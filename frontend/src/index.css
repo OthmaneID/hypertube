@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global scrollbar defaults (kept subtle) */
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* Top scrollbar on horizontal `.popular-movies` containers.
+   Technique: rotate the container so the scrollbar appears on top,
+   then rotate the children back so content reads normally. */
+.popular-movies {
+  overflow-x: auto;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(124, 58, 237, 0.9) transparent;
+}
+
+.popular-movies::-webkit-scrollbar {
+  height: 10px; /* horizontal scrollbar height */
+  background: transparent;
+}
+
+.popular-movies::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.popular-movies::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #7c3aed, #1e40af);
+  border-radius: 9999px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
