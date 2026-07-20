@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
-from services.Movies import getMovies, getGenres
-from fastapi import Request
+from services.Movies import getMovies, getGenres, getMovieDetails
+from fastapi.requests import Request
 
 router = APIRouter(prefix="/movies")
 
@@ -11,4 +11,12 @@ def get_movies(request:Request, page: int = 1):
 
 @router.get("/genres")
 def get_genres(request:Request):
-    return getGenres(request=request)
+    return getGenres(request)
+
+
+@router.get("/{movie_id}")
+def get_movie(request:Request, movie_id: int):
+    return getMovieDetails(request=request, movie_id=movie_id)
+
+
+

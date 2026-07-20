@@ -1,14 +1,18 @@
+import { Link } from "react-router-dom";
+
 function MovieCard({
+  id,
   poster,
   title,
   vote,
 }: {
+  id: number;
   poster: string;
   title: string;
   vote: number;
 }) {
   return (
-    <div className="movie-card cursor-pointer duration-300 relative group flex flex-col justify-center items-center max-w-[175px] min-w-[175px] mx-5 h-[250px] rounded-2xl">
+    <Link to={"/movies/" + id} className="movie-card cursor-pointer duration-300 relative group flex flex-col justify-center items-center max-w-[175px] min-w-[175px] mx-5 h-[250px] rounded-2xl">
       <img
         src={"https://image.tmdb.org/t/p/w500" + poster}
         alt={title}
@@ -20,7 +24,7 @@ function MovieCard({
       <p className="text-lg text-gray-400 h-[30px] w-full overflow-hidden text-ellipsis text-nowrap " title={title}>
         {title}
       </p>
-    </div>
+    </Link>
   );
 }
 

@@ -8,7 +8,7 @@ import NavBar from "./components/NavBar";
 
 function App() {
   return (
-    <div className="bg-gradient-to-tr bg-no-repeat from-[#00071a] to-[#001c64] p-0 m-0 min-h-screen">
+    <div className="bg-gradient-to-tr bg-no-repeat from-[#00071a] to-[#00154b] p-0 m-0 min-h-screen">
       <div className="app flex flex-row justify-start items-start gap-0 w-full h-full">
         <Router>
           <Sidebar />
