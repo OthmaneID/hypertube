@@ -51,11 +51,11 @@ def getMovies(request : Request, category: str = "popular", page: int = 1):
     try:
         if res.json():
             rd.setex(f"popular_movies_{page}", 60 * 60 * 6, json.dumps(res.json()))
-        return res.json()
+            return res.json()
     except Exception as e:
         print(f"Error while fetching Movies : {e}")
         return res.json()
-    
+    return {"page": 1, "results": [], "total_pages": 0, "total_results": 0}
 
 
 def getMovieDetails(request: Request, movie_id: int):
@@ -65,7 +65,7 @@ def getMovieDetails(request: Request, movie_id: int):
             return json.loads(rd.get(f"movie_{movie_id}"))
     except Exception as e:
         pass
-    res = requests.get(f"{BASE_URL}movie/{movie_id}", headers)
+    res = requests.get(f"{BASE_URL}movie/{movie_id}", headers=headers)
     try:
         if res.json():
             rd.setex(f"movie_{movie_id}", 60 * 60 * 24, json.dumps(res.json()))

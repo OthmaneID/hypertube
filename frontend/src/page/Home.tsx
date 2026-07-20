@@ -1,11 +1,16 @@
 import PopularMovies from "../components/Home/PopularMovies";
+import NavBar from "../components/NavBar";
 
 function Home() {
-    return <div className="home flex flex-col justify-center items-center gap-4 w-full h-full">
-        <div className="flex flex-col justify-center items-center gap-4 w-full h-full">
-            <PopularMovies />
+    return (
+      <div className="home flex flex-col w-full h-full">
+        <NavBar />
+
+        <div className="flex flex-col w-full h-full">
+          <PopularMovies />
         </div>
-    </div>
+      </div>
+    );
 }
 
 export default Home;

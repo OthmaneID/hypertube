@@ -14,7 +14,7 @@ def get_genres(request:Request):
     return getGenres(request)
 
 
-@router.get("/{movie_id}")
+@router.get("/details/{movie_id}")
 def get_movie(request:Request, movie_id: int):
     return getMovieDetails(request=request, movie_id=movie_id)
 

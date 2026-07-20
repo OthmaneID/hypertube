@@ -1,0 +1,101 @@
+export interface Movie {
+  adult?: boolean;
+  backdrop_path?: string;
+  genre_ids?: Array<number>;
+  id?: number;
+  original_language?: string;
+  original_title?: string;
+  overview?: string;
+  popularity?: number;
+  poster_path?: string;
+  release_date?: Date;
+  title?: string;
+  video?: boolean;
+  vote_average?: number;
+  vote_count?: number;
+}
+
+export interface PopularMoviesResponse {
+  page: number;
+  results: Movie[];
+  total_pages: number;
+  total_results: number;
+  error?: string;
+}
+
+export interface ImageConfig {
+  images?: {
+    base_url?: string;
+    secure_base_url?: string;
+    backdrop_sizes?: Array<string>;
+    logo_sizes?: Array<string>;
+    poster_sizes?: Array<string>;
+    profile_sizes?: Array<string>;
+    still_sizes?: Array<string>;
+    change_keys?: Array<string>;
+  };
+  error?: string;
+}
+
+export interface MovieDetails {
+  adult?: boolean;
+  backdrop_path?: string;
+  belongs_to_collection?: {
+    id?: number;
+    name?: string;
+    poster_path?: string;
+    backdrop_path?: string;
+  };
+  budget?: number;
+  genres?: Array<{ id: number; name: string }>;
+  homepage?: string;
+  id: number;
+  imdb_id?: string;
+  origin_country?: Array<string>;
+  original_language?: string;
+  original_title?: string;
+  overview?: string;
+  popularity?: number;
+  poster_path?: string;
+  production_companies?: Array<{
+    id?: number;
+    logo_path?: string;
+    name?: string;
+    origin_country?: string;
+  }>;
+  production_countries?: Array<{ iso_3166_1: string; name: string }>;
+  release_date?: Date;
+  revenue?: number;
+  runtime?: number;
+  spoken_languages?: Array<{
+    english_name?: string;
+    iso_639_1?: string;
+    name?: string;
+  }>;
+  status?: string;
+  tagline?: string;
+  title?: string;
+  video?: boolean;
+  vote_average?: number;
+  vote_count?: number;
+  error?: string;
+}
+
+export interface Image {
+  aspect_ratio?: number;
+  height?: number;
+  iso_3166_1?: string;
+  iso_639_1?: string;
+  file_path?: string;
+  vote_average?: number;
+  vote_count?: number;
+  width?: number;
+}
+
+export interface MovieImages {
+  id: number;
+  backdrops?: Array<Image>;
+  logos?: Array<Image>;
+  posters?: Array<Image>;
+  error?: string;
+}

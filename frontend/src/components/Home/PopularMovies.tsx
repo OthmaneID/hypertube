@@ -1,11 +1,21 @@
 import MovieCard from "../MovieCard";
-import DummyData from "../../utils/data";
+// import DummyData from "../../utils/data";
 import { Link } from "react-router-dom";
 import { BiChevronRight } from "react-icons/bi";
+import { useEffect, useState } from "react";
+import { getPopularMovies } from "../../utils/api";
+import type { PopularMoviesResponse } from "../../utils/interfaces";
+
 
 function PopularMovies() {
+  const [Movies, setMovies] = useState({page: 1, results: [], total_pages: 0, total_results: 0} as PopularMoviesResponse);
+  useEffect(() => {
+    getPopularMovies().then((data) => {
+      setMovies(data)
+    })
+  }, [])
   return (
-    <div className="popular-movies flex flex-col justify-center gap-4 w-[calc(100vw-120px)] h-full px-2">
+    <div className="popular-movies flex flex-col py-4 gap-4 w-[calc(100vw-120px)] h-full px-2">
       <div className="flex flex-row justify-between items-center px-2">
         <h4 className="text-4xl text-white font-thin">Popular - Movies</h4>
         <Link
@@ -16,7 +26,7 @@ function PopularMovies() {
         </Link>
       </div>
       <div className="flex flex-row items-center h-[300px] overflow-auto gap-2 border-b-2 border-gray-600">
-        {DummyData.results.map((movie, index) => (
+        {Movies.results.map((movie, index) => (
           <MovieCard
             key={index}
             id={movie.id}

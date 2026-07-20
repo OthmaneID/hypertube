@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi.middleware import cors
 
 from routes.movies import router as movie_router
+from routes.images import router as image_conf_router
 
 import redis
 
@@ -38,6 +39,7 @@ app.add_middleware(
 
 app.include_router(movie_router)
 
+app.include_router(image_conf_router)
 
 
 if __name__ == "__main__":
