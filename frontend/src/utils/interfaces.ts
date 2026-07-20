@@ -99,3 +99,13 @@ export interface MovieImages {
   posters?: Array<Image>;
   error?: string;
 }
+
+export interface cast {
+  
+  id: number;
+  name: string;
+  profile_path: string;
+  character: string;
+
+}
+

@@ -26,7 +26,7 @@ function MovieCard({
       <img
         src={src}
         alt={title}
-        className="group-hover:outline-2 group-hover:outline-white rounded-lg w-[175px] h-[220px] duration-200 object-fill"
+        className="group-hover:outline-2 group-hover:outline-white rounded-lg w-[175px] h-[220px] duration-200 object-fill" loading="lazy"
       />
       <p className="text-2xl absolute left-0 top-0 text-yellow-400 font-bold [-webkit-text-stroke:1px_black] py-1 px-1 rounded-br-lg bg-gray-50/30">
         {vote?.toFixed(1)}

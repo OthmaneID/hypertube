@@ -10,7 +10,7 @@ import type { PopularMoviesResponse } from "../../utils/interfaces";
 function PopularMovies() {
   const [Movies, setMovies] = useState({page: 1, results: [], total_pages: 0, total_results: 0} as PopularMoviesResponse);
   useEffect(() => {
-    getPopularMovies().then((data) => {
+    getPopularMovies(1).then((data) => {
       setMovies(data)
     })
   }, [])
@@ -19,7 +19,7 @@ function PopularMovies() {
       <div className="flex flex-row justify-between items-center px-2">
         <h4 className="text-4xl text-white font-thin">Popular - Movies</h4>
         <Link
-          to="/movies&page=1"
+          to="/movies?page=1"
           className="text-lg text-gray-400 hover:text-white transition duration-300"
         >
           See All <BiChevronRight className="inline-block ml-1" />

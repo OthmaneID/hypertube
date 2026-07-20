@@ -6,6 +6,7 @@ import Home from "./page/Home";
 import Settings from "./page/Settings";
 import MovieDetails from "./page/MovieDetails";
 import { ImageConfigProvider } from "./global/imageConfigProvider";
+import Movies from "./page/Movies";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
               <Routes>
                 <Route index path="/" element={<Home />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/movies" element={<Movies />} />
                 <Route path="/movies/:id" element={<MovieDetails />} />
               </Routes>
             </div>

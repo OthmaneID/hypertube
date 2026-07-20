@@ -7,7 +7,7 @@ function Sidebar() {
   const [active, setActive] = useState("home");
 
   return (
-    <div className="  sidebar  min-w-[120px] min-h-screen flex flex-col justify-start items-center gap-16  py-4 px-1 bg-gradient-to-tr from-[#23162C] to-[#48295f]">
+    <div className="  sidebar  min-w-[120px] min-h-screen flex flex-col justify-start items-center gap-16  py-4 px-1 bg-gradient-to-tr from-[#1e0025] to-[#2e0c47]">
       <img src="../public/favicon.svg" alt="" className="w-12 h-14 " />
       <SidebarItem
         href="/"

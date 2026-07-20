@@ -55,7 +55,7 @@ def getMovies(request : Request, category: str = "popular", page: int = 1):
     except Exception as e:
         print(f"Error while fetching Movies : {e}")
         return res.json()
-    return {"page": 1, "results": [], "total_pages": 0, "total_results": 0}
+    return {"page": 1, "results": [], "total_pages": 1, "total_results": 0}
 
 
 def getMovieDetails(request: Request, movie_id: int):

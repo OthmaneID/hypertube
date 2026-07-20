@@ -12,13 +12,13 @@ export async function getImageConfig(): Promise<ImageConfig> {
 }
 
 
-export async function getPopularMovies(): Promise<PopularMoviesResponse> {
+export async function getPopularMovies(page: number): Promise<PopularMoviesResponse> {
   try {
-    const res = await axiosInstance.get("/movies/popular");
+    const res = await axiosInstance.get("/movies/popular?page=" + page);
     return res.data;
   } catch (error: any) {
     console.log("error while fetchin popular movies . ", error.message);
-    return { page: 1, results: [], total_pages: 0, total_results: 0 };
+    return { page: 1, results: [], total_pages: 1, total_results: 0 };
   }
 }
 
