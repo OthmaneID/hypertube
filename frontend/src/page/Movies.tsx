@@ -35,7 +35,8 @@ function Movies() {
   useEffect(() => {
     if (page < 1) setPage(1);
     if (page > totalPages) setPage(totalPages);
-    window.history.replaceState({}, "", `/movies?page=${page}`);
+      // window.history.replaceState({}, "", `/movies?page=${page}`);
+      navigator(`/movies?page=${page}`);
   }, [page]);
   return (
     <div className="p-4 flex flex-col">

@@ -54,12 +54,18 @@ function MovieDetails() {
       <div className="absolute top-0 pt-5 left-0 w-full h-screen z-50 px-6 flex flex-col">
         <div className="pt-5 gap-6">
           {/* here should be the logo */}
-          <img
-            src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
-            alt={movie?.title}
-            className="w-[600px]"
-            loading="lazy"
-          />
+          {titleLogo?.file_path ? (
+            <img
+              src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
+              alt={movie?.title}
+              className="w-[600px]"
+              loading="lazy"
+            />
+          ) :
+            <span className="text-[50px] font-bold text-gray-200 [-webkit-text-stroke:0.5px_purple] ">
+              {movie?.title}
+            </span>
+            }
         </div>
         <div className="flex flex-row gap-6 text-gray-200 font-bold text-3xl  mt-6">
           <span>{movie?.runtime} min</span>
