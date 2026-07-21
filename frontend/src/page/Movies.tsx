@@ -61,7 +61,7 @@ function Movies() {
               "text-gray-200 text-4xl font-thin cursor-pointer hover:text-white hover:scale-105 transition duration-300 " +
               (page === 1 ? "hidden" : "")
             }
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))} 
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
           />
           <span className="text-4xl text-gray-200 font-thin">
             Popular - Movies
@@ -91,7 +91,8 @@ function Movies() {
               No movies found. Please try again later.
             </span>
           ) : (
-            movies?.map((movie, index) => {
+                movies?.map((movie, index) => {
+              console.log(movie);
               return (
                 <MovieCard
                   key={index}

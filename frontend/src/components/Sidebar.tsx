@@ -3,12 +3,13 @@ import { SlHome } from "react-icons/sl";
 import { SlSettings } from "react-icons/sl";
 import SidebarItem from "./SidebarItem";
 import { Link } from "react-router-dom";
+import { BiSolidDoorOpen } from "react-icons/bi";
 
 function Sidebar() {
   const [active, setActive] = useState("home");
 
   return (
-    <div className="  sidebar  min-w-[80px] min-h-screen flex flex-col justify-start items-center gap-16  py-6 px-1 bg-gradient-to-tr from-[#18001d] to-[#270042]">
+    <div className="sidebar  min-w-[80px] min-h-screen flex flex-col justify-start items-center gap-16  py-6 px-1 bg-gradient-to-tr from-[#18001d] to-[#270042]">
       <Link to="/">
         <img src="../public/favicon.svg" alt="" className="h-10" />
       </Link>
@@ -43,7 +44,22 @@ function Sidebar() {
           label="Settings"
           onClick={() => setActive("settings")}
         />
-
+      </div>
+      <div className="h-full w-full flex items-end">
+        <SidebarItem
+          href="/signin"
+          icon={
+            <BiSolidDoorOpen
+              className={
+                "icon text-4xl " +
+                +(active === "signin" ? "bg-purple-600 scale-105" : "")
+              }
+            />
+          }
+          isActive={active === "signin"}
+          label="Sign in"
+          onClick={() => setActive("signin")}
+        />
       </div>
     </div>
   );

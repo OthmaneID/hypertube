@@ -58,97 +58,107 @@ function MovieDetails() {
         />
         <div className="bg-gradient-to-t from-[#000000] to-[#200049] opacity-60 z-30 absolute top-0 left-0 h-full w-full"></div>
       </div>
-      <div className="absolute top-0 py-5 left-0 w-full h-screen z-50 px-6 flex flex-col justify-between overflow-auto">
-        <div className="pt-5 gap-6">
-          {/* here should be the logo */}
-          {titleLogo?.file_path ? (
-            <img
-              src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
-              alt={movie?.title}
-              className="w-[600px]"
-              loading="lazy"
-            />
-          ) : (
-            <span className="text-[50px] font-bold text-gray-200 [-webkit-text-stroke:0.5px_purple] ">
-              {movie?.title}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-row gap-6 text-gray-200 font-bold text-3xl  mt-6">
-          <span>{movie?.runtime} min</span>
-          <span>
-            {new Date(movie?.release_date ?? "").getFullYear().toString()}
-          </span>
-          <span className="flex flex-row">
-            {movie?.vote_average?.toFixed(1)}{" "}
-            <BiStar className="text-yellow-400" />
-          </span>
-        </div>
-        <div className="w-full flex flex-col gap-4 items-center">
-          <div className="flex flex-col gap-2 w-full">
-            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
-              Genres
-            </span>
-            <div className="flex flex-row gap-3 overflow-x-auto pb-2">
-              {movie?.genres?.map((genre, index) => {
-                return (
-                  <span
-                    className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center flex-shrink-0"
-                    key={index}
-                  >
-                    {genre.name}
-                  </span>
-                );
-              })}
-            </div>
+      <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">
+        <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-2/3 min-w-[500px]">
+          <div className="pt-5 gap-6">
+            {/* here should be the logo */}
+            {titleLogo?.file_path ? (
+              <img
+                src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
+                alt={movie?.title}
+                className="w-[600px]"
+                loading="lazy"
+              />
+            ) : (
+              <span className="text-[50px] font-bold text-gray-200 [-webkit-text-stroke:0.5px_purple] ">
+                {movie?.title}
+              </span>
+            )}
           </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
-              Cast
+          <div className="flex flex-row gap-6 text-gray-200 font-bold text-3xl  mt-6">
+            <span>{movie?.runtime} min</span>
+            <span>
+              {new Date(movie?.release_date ?? "").getFullYear().toString()}
             </span>
-            <div className="flex flex-row gap-3 overflow-x-auto pb-2">
-              {credits?.cast?.map((cast, index) => {
-                return (
-                  <div
-                    className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
-                    key={index}
-                  >
-                    <span className="text-base">{cast.name}</span>
-                    <span className="text-sm text-gray-300">
-                      {cast.character}
+            <span className="flex flex-row">
+              {movie?.vote_average?.toFixed(1)}{" "}
+              <BiStar className="text-yellow-400" />
+            </span>
+          </div>
+          <div className="w-full flex flex-col gap-4 items-start">
+            <div className="flex flex-col gap-2 w-2/3 min-w-[500px] ">
+              <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
+                Genres
+              </span>
+              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+                {movie?.genres?.map((genre, index) => {
+                  return (
+                    <span
+                      className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center flex-shrink-0"
+                      key={index}
+                    >
+                      {genre.name}
                     </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 w-2/3 min-w-[500px]">
+              <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
+                Cast
+              </span>
+              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+                {credits?.cast?.map((cast, index) => {
+                  return (
+                    <div
+                      className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
+                      key={index}
+                    >
+                      <span className="text-base">{cast.name}</span>
+                      <span className="text-sm text-gray-300">
+                        {cast.character}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 w-2/3 min-w-[500px]">
+              <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
+                Crew
+              </span>
+              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+                {credits?.crew?.map((crew, index) => {
+                  return (
+                    <div
+                      className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
+                      key={index}
+                    >
+                      <span className="text-base">{crew.name}</span>
+                      <span className="text-sm text-gray-300">{crew.job}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-
-          <div className="flex flex-col gap-2 w-full">
-            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
-              Crew
+          {/* overview */}
+          <div className=" flex flex-col w-2/3">
+            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple] ">
+              summary
             </span>
-            <div className="flex flex-row gap-3 overflow-x-auto pb-2">
-              {credits?.crew?.map((crew, index) => {
-                return (
-                  <div
-                    className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
-                    key={index}
-                  >
-                    <span className="text-base">{crew.name}</span>
-                    <span className="text-sm text-gray-300">{crew.job}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="text-lg text-white">{movie?.overview}</span>
           </div>
         </div>
-        {/* overview */}
-        <div className=" flex flex-col w-2/3">
-          <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple] ">
-            summary
-          </span>
-          <span className="text-lg text-white">{movie?.overview}</span>
+        {/* streaming options section */}
+        <div className="h-full w-1/3 min-w-[400px] py-2 px-4 bg-gray-900/50 rounded-2xl flex flex-col text-xl text-gray-200 gap-2">
+          <h1 className="h-6">streaming options :</h1>
+          <div className="container h-[98%] flex items-center justify-center rounded-3xl bg-black/60">
+            {/* should add some streaming options in some react reusable components */}
+            <h2 className="text-center rotate-30">Not implimented yet</h2>
+          </div>
         </div>
       </div>
     </div>

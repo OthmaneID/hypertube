@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 
 function SignIn() {
   return (
-    <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top_left,_rgba(255,0,140,0.25),_transparent_35%),linear-gradient(135deg,_#06010b_0%,_#22002f_45%,_#6a0f63_100%)] px-4 py-10 sm:px-6 lg:px-8 flex justify-center ">
+    <div className="min-h-screen w-full bg-inherit px-4 py-10 sm:px-6 lg:px-8 flex justify-center ">
       <div className="mx-auto flex w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl shadow-purple-950/40 backdrop-blur-xl">
-        <div className="flex flex-1 flex-col justify-between bg-gradient-to-br from-[#14011f] via-[#2b0038] to-[#3f003b] p-8 sm:p-10 lg:p-12">
+        <div className="flex flex-1 flex-col justify-between  bg-gradient-to-br from-[#14011fa9] via-[#2b0038a9] to-[#3f003ba9] p-8 sm:p-10 lg:p-12">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Welcome back
