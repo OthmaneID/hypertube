@@ -1,4 +1,10 @@
-import { useContext, useEffect, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
 import { useParams } from "react-router-dom";
 import {
   type Image,
@@ -6,6 +12,7 @@ import {
 } from "../utils/interfaces";
 import { getImageConfig, getMovieDetails, getMovieImages } from "../utils/api";
 import { ImageConfigContext } from "../global/imageConfigContext";
+import StreamingOptions from "../components/MovieDetails/StreamingOptions";
 import { BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
@@ -23,6 +30,18 @@ function MovieDetails() {
   const [movie, setMovie] = useState<IMovieDetails>();
   const [titleLogo, setTitleLogo] = useState<Image>();
   const [credits, setCredits] = useState<ICredits>();
+  const genresRef = useRef<HTMLDivElement | null>(null);
+  const castRef = useRef<HTMLDivElement | null>(null);
+  const crewRef = useRef<HTMLDivElement | null>(null);
+  const dragState = useRef<{
+    isDragging: boolean;
+    startX: number;
+    scrollLeft: number;
+  }>({
+    isDragging: false,
+    startX: 0,
+    scrollLeft: 0,
+  });
 
   useEffect(() => {
     getMovieDetails(movieId).then((data) => {
@@ -40,8 +59,36 @@ function MovieDetails() {
       setCredits(data);
     });
   }, []);
+
+  const startDragging = (
+    event: MouseEvent<HTMLDivElement>,
+    ref: HTMLDivElement | null,
+  ) => {
+    if (!ref) return;
+    dragState.current = {
+      isDragging: true,
+      startX: event.pageX - ref.offsetLeft,
+      scrollLeft: ref.scrollLeft,
+    };
+  };
+
+  const onDrag = (
+    event: MouseEvent<HTMLDivElement>,
+    ref: HTMLDivElement | null,
+  ) => {
+    if (!ref || !dragState.current.isDragging) return;
+    event.preventDefault();
+    const x = event.pageX - ref.offsetLeft;
+    const walk = (x - dragState.current.startX) * 1.2;
+    ref.scrollLeft = dragState.current.scrollLeft - walk;
+  };
+
+  const stopDragging = () => {
+    dragState.current.isDragging = false;
+  };
+
   return (
-    <div className="relative">
+    <div className="relative select-none scroll-smooth">
       <div
         className="absolute left-1 top-0 z-100 text-5xl font-bold text-gray-300 cursor-pointer w-[100px] h-[100px] flex "
         onClick={() => window.history.back()}
@@ -60,7 +107,7 @@ function MovieDetails() {
       </div>
       <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">
         <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-2/3 min-w-[500px]">
-          <div className="pt-5 gap-6">
+          <div className="pt-5 gap-6 flex flex-row w-full justify-between">
             {/* here should be the logo */}
             {titleLogo?.file_path ? (
               <img
@@ -74,6 +121,9 @@ function MovieDetails() {
                 {movie?.title}
               </span>
             )}
+            <span className="px-4 py-2 text-purple-300 font-bold text-2xl  h-8 rounded-xl bg-gray-400/40 flex items-center justify-center">
+              {movie?.status}
+            </span>
           </div>
           <div className="flex flex-row gap-6 text-gray-200 font-bold text-3xl  mt-6">
             <span>{movie?.runtime} min</span>
@@ -90,7 +140,14 @@ function MovieDetails() {
               <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
                 Genres
               </span>
-              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+              <div
+                ref={genresRef}
+                className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
+                onMouseDown={(event) => startDragging(event, genresRef.current)}
+                onMouseMove={(event) => onDrag(event, genresRef.current)}
+                onMouseLeave={stopDragging}
+                onMouseUp={stopDragging}
+              >
                 {movie?.genres?.map((genre, index) => {
                   return (
                     <span
@@ -108,7 +165,14 @@ function MovieDetails() {
               <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
                 Cast
               </span>
-              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+              <div
+                ref={castRef}
+                className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
+                onMouseDown={(event) => startDragging(event, castRef.current)}
+                onMouseMove={(event) => onDrag(event, castRef.current)}
+                onMouseLeave={stopDragging}
+                onMouseUp={stopDragging}
+              >
                 {credits?.cast?.map((cast, index) => {
                   return (
                     <div
@@ -129,7 +193,14 @@ function MovieDetails() {
               <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
                 Crew
               </span>
-              <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+              <div
+                ref={crewRef}
+                className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
+                onMouseDown={(event) => startDragging(event, crewRef.current)}
+                onMouseMove={(event) => onDrag(event, crewRef.current)}
+                onMouseLeave={stopDragging}
+                onMouseUp={stopDragging}
+              >
                 {credits?.crew?.map((crew, index) => {
                   return (
                     <div
@@ -153,13 +224,7 @@ function MovieDetails() {
           </div>
         </div>
         {/* streaming options section */}
-        <div className="h-full w-1/3 min-w-[400px] py-2 px-4 bg-gray-900/50 rounded-2xl flex flex-col text-xl text-gray-200 gap-2">
-          <h1 className="h-6">streaming options :</h1>
-          <div className="container h-[98%] flex items-center justify-center rounded-3xl bg-black/60">
-            {/* should add some streaming options in some react reusable components */}
-            <h2 className="text-center rotate-30">Not implimented yet</h2>
-          </div>
-        </div>
+        <StreamingOptions movie_id={movieId} movie_name={movie?.title ?? ""} />
       </div>
     </div>
   );

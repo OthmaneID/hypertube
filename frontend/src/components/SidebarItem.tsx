@@ -11,7 +11,7 @@ function SidebarItem({ icon, label, isActive, href, onClick }: { icon: React.Rea
       }
     >
       {icon}
-      <span className={"group-hover:w-full overflow-hidden duration-150 text-center text-nowrap " + (isActive ? "w-full" : "w-0")}>
+      <span className={"group-hover:w-full overflow-hidden duration-150 text-center text-md font-semibold text-nowrap " + (isActive ? "w-full" : "w-0")}>
         {label}
       </span>
     </Link>
