@@ -7,6 +7,8 @@ import Settings from "./page/Settings";
 import MovieDetails from "./page/MovieDetails";
 import { ImageConfigProvider } from "./global/imageConfigProvider";
 import Movies from "./page/Movies";
+import SignIn from "./page/SignIn";
+import Register from "./page/Register";
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/movies" element={<Movies />} />
                 <Route path="/movies/:id" element={<MovieDetails />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/register" element={<Register />} />
               </Routes>
             </div>
           </Router>

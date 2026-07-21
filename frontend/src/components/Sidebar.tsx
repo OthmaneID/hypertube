@@ -19,7 +19,7 @@ function Sidebar() {
           icon={
             <SlHome
               className={
-                "icon text-3xl font-[800] " +
+                "icon text-4xl " +
                 +(active === "home" ? "bg-purple-600 scale-105" : "")
               }
             />
@@ -34,7 +34,7 @@ function Sidebar() {
           icon={
             <SlSettings
               className={
-                "icon text-3xl font-[800] " +
+                "icon text-4xl " +
                 +(active === "settings" ? "bg-purple-600 scale-105" : "")
               }
             />
