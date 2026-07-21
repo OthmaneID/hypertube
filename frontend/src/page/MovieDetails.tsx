@@ -97,12 +97,16 @@ function MovieDetails() {
       </div>
       {/* backdrop image */}
       <div className="bg-cover h-screen w-full z-20 absolute top-0 left-0">
-        <img
-          src={image_baseUrl + backdrop_size + movie?.backdrop_path}
-          alt={movie?.title}
-          className="h-full w-full bg-cover bg-center bg-no-repeat"
-          loading="lazy"
-        />
+        {
+          movie?.backdrop_path !== null &&
+          <img
+            src={image_baseUrl + backdrop_size + movie?.backdrop_path}
+            alt={movie?.title}
+            className="h-full w-full bg-cover bg-center bg-no-repeat"
+            loading="lazy"
+            /> 
+            
+        }
         <div className="bg-gradient-to-t from-[#000000] to-[#200049] opacity-60 z-30 absolute top-0 left-0 h-full w-full"></div>
       </div>
       <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">

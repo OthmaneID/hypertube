@@ -17,7 +17,7 @@ function App() {
         <div className="flex flex-row gap-0 w-full h-screen">
           <Router>
             <Sidebar />
-            <div className="flex flex-col w-full overflow-auto">
+            <div className="flex flex-col w-full overflow-auto" id="scrollContainer">
               <Routes>
                 <Route index path="/" element={<Home />} />
                 <Route path="/settings" element={<Settings />} />
