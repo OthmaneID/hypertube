@@ -10,7 +10,7 @@ import Movies from "./page/Movies";
 
 function App() {
   return (
-    <div className="bg-gradient-to-tr bg-no-repeat from-[#00071a] to-[#2f004b] p-0 m-0 min-h-screen">
+    <div className="bg-gradient-to-tr bg-no-repeat from-[#08000e] to-[#1d002e] p-0 m-0 min-h-screen">
       <ImageConfigProvider>
         <div className="flex flex-row gap-0 w-full h-screen">
           <Router>

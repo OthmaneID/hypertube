@@ -5,12 +5,14 @@ import MovieCard from "../components/MovieCard";
 import { FaArrowLeft } from "react-icons/fa";
 import {
   MdArrowBack,
+  MdArrowRight,
   MdKeyboardArrowLeft,
   MdKeyboardArrowRight,
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
+import { BiArrowToLeft, BiArrowToRight } from "react-icons/bi";
 
 function Movies() {
   const navigator = useNavigate();
@@ -35,30 +37,41 @@ function Movies() {
   useEffect(() => {
     if (page < 1) setPage(1);
     if (page > totalPages) setPage(totalPages);
-      // window.history.replaceState({}, "", `/movies?page=${page}`);
-      navigator(`/movies?page=${page}`);
+    // window.history.replaceState({}, "", `/movies?page=${page}`);
+    navigator(`/movies?page=${page}`);
   }, [page]);
   return (
     <div className="p-4 flex flex-col">
       <div className="w-full flex flex-row justify-between items-center py-5 relative">
         {/* prev */}
         <span
-          className={" absolute left-5 top-5 flex flex-row gap-2 items-center cursor-pointer hover:text-white hover:scale-105 transition duration-300 " + (page === 1 ? "hidden" : "")}
+          className={
+            " absolute left-5 top-5 flex flex-row gap-2 items-center cursor-pointer hover:text-white hover:scale-105 transition duration-300 " +
+            (page === 1 ? "hidden" : "")
+          }
           onClick={() => setPage(1)}
         >
           <MdKeyboardDoubleArrowLeft className="text-gray-200 text-4xl font-thin " />
           <span className="text-gray-200 text-xl">Back to Page 1</span>
         </span>
         <div className="flex flex-row items-center justify-center gap-2 w-full">
-          <MdKeyboardArrowLeft
-            className={"text-gray-200 text-4xl font-thin cursor-pointer hover:text-white hover:scale-105 transition duration-300 " + (page === 1 ? "hidden" : "")}
-            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+          <BiArrowToLeft
+            title="Previous Page"
+            className={
+              "text-gray-200 text-4xl font-thin cursor-pointer hover:text-white hover:scale-105 transition duration-300 " +
+              (page === 1 ? "hidden" : "")
+            }
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))} 
           />
           <span className="text-4xl text-gray-200 font-thin">
             Popular - Movies
           </span>
-          <MdKeyboardArrowRight
-            className={"text-gray-200 text-4xl font-thin cursor-pointer hover:text-white hover:scale-105 transition duration-300 " + (page === totalPages ? "hidden" : "")}
+          <BiArrowToRight
+            title="Next Page"
+            className={
+              "text-gray-200 text-4xl font-thin cursor-pointer hover:text-white hover:scale-105 transition duration-300 " +
+              (page === totalPages ? "hidden" : "")
+            }
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
           />
         </div>

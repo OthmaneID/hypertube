@@ -73,3 +73,21 @@ def getMovieDetails(request: Request, movie_id: int):
     except Exception as e:
         print(f"Error while fetching Movie Details : {e}")
         return res.json()
+
+
+def getMovieCredits(request: Request, movie_id: int):
+    try:
+        rd : redis.Redis = request.app.state.redis
+        if rd is not None and rd.get(f"movie_cast_{movie_id}"):
+            return json.loads(rd.get(f"movie_cast_{movie_id}"))
+    except Exception as e:
+        pass
+    res = requests.get(f"{BASE_URL}movie/{movie_id}/credits?language=en-US", headers=headers)
+    data = res.json()
+    try:
+        if data:
+            rd.setex(f"movie_cast_{movie_id}", 60 * 60 * 24, json.dumps(data))
+        return data
+    except Exception as e:
+        print(f"Error while fetching Movie Details : {e}")
+        return data

@@ -6,8 +6,10 @@ import {
 } from "../utils/interfaces";
 import { getImageConfig, getMovieDetails, getMovieImages } from "../utils/api";
 import { ImageConfigContext } from "../global/imageConfigContext";
-import { BiArrowBack, BiArrowToLeft, BiStar } from "react-icons/bi";
+import { BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
+import type { Credits as ICredits } from "../utils/interfaces";
+import { getMovieCredits } from "../utils/api";
 
 function MovieDetails() {
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
@@ -20,6 +22,7 @@ function MovieDetails() {
 
   const [movie, setMovie] = useState<IMovieDetails>();
   const [titleLogo, setTitleLogo] = useState<Image>();
+  const [credits, setCredits] = useState<ICredits>();
 
   useEffect(() => {
     getMovieDetails(movieId).then((data) => {
@@ -31,6 +34,10 @@ function MovieDetails() {
 
     getMovieImages(movieId).then((data) => {
       setTitleLogo(data.logos?.[0]);
+    });
+
+    getMovieCredits(movieId).then((data) => {
+      setCredits(data);
     });
   }, []);
   return (
@@ -51,7 +58,7 @@ function MovieDetails() {
         />
         <div className="bg-gradient-to-t from-[#000000] to-[#200049] opacity-60 z-30 absolute top-0 left-0 h-full w-full"></div>
       </div>
-      <div className="absolute top-0 pt-5 left-0 w-full h-screen z-50 px-6 flex flex-col">
+      <div className="absolute top-0 py-5 left-0 w-full h-screen z-50 px-6 flex flex-col justify-between overflow-auto">
         <div className="pt-5 gap-6">
           {/* here should be the logo */}
           {titleLogo?.file_path ? (
@@ -61,11 +68,11 @@ function MovieDetails() {
               className="w-[600px]"
               loading="lazy"
             />
-          ) :
+          ) : (
             <span className="text-[50px] font-bold text-gray-200 [-webkit-text-stroke:0.5px_purple] ">
               {movie?.title}
             </span>
-            }
+          )}
         </div>
         <div className="flex flex-row gap-6 text-gray-200 font-bold text-3xl  mt-6">
           <span>{movie?.runtime} min</span>
@@ -77,20 +84,60 @@ function MovieDetails() {
             <BiStar className="text-yellow-400" />
           </span>
         </div>
-        <div className="h-[300px] w-full flex items-center ">
+        <div className="w-full flex flex-col gap-4 items-center">
           <div className="flex flex-col gap-2 w-full">
-            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple] ">
+            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
               Genres
             </span>
-            <div className="flex flex-row gap-3">
+            <div className="flex flex-row gap-3 overflow-x-auto pb-2">
               {movie?.genres?.map((genre, index) => {
                 return (
                   <span
-                    className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center"
+                    className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center flex-shrink-0"
                     key={index}
                   >
                     {genre.name}
                   </span>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 w-full">
+            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
+              Cast
+            </span>
+            <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+              {credits?.cast?.map((cast, index) => {
+                return (
+                  <div
+                    className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
+                    key={index}
+                  >
+                    <span className="text-base">{cast.name}</span>
+                    <span className="text-sm text-gray-300">
+                      {cast.character}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 w-full">
+            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
+              Crew
+            </span>
+            <div className="flex flex-row gap-3 overflow-x-auto pb-2">
+              {credits?.crew?.map((crew, index) => {
+                return (
+                  <div
+                    className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
+                    key={index}
+                  >
+                    <span className="text-base">{crew.name}</span>
+                    <span className="text-sm text-gray-300">{crew.job}</span>
+                  </div>
                 );
               })}
             </div>

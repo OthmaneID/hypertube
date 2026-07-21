@@ -1,5 +1,5 @@
 from fastapi.routing import APIRouter
-from services.Movies import getMovies, getGenres, getMovieDetails
+from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits
 from fastapi.requests import Request
 
 router = APIRouter(prefix="/movies")
@@ -19,4 +19,6 @@ def get_movie(request:Request, movie_id: int):
     return getMovieDetails(request=request, movie_id=movie_id)
 
 
-
+@router.get("/credits/{movie_id}")
+def get_movie_credits(request:Request, movie_id:int):
+    return getMovieCredits(request, movie_id)
