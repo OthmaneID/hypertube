@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getPopularMovies } from "../utils/api";
 import type { PopularMoviesResponse } from "../utils/interfaces";
 import MovieCard from "../components/MovieCard";
+import { BiArrowToTop } from "react-icons/bi";
 
 function Movies() {
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
@@ -30,23 +31,27 @@ function Movies() {
     isMoviesLoadingRef.current = isMoviesLoading;
   }, [isMoviesLoading]);
 
+  const scrollContainer = document.getElementById("scrollContainer");
   useEffect(() => {
-    const scrollContainer = document.getElementById("scrollContainer");
-    const observer = new IntersectionObserver(handleIntersection, {
-      root: scrollContainer ? scrollContainer : null,
-      rootMargin: "0px",
-      threshold: 1.0,
-    });
-    const intersectionChecker = document.getElementById("intersectionChecker");
-    if (intersectionChecker?.checkVisibility) {
-      observer.observe(intersectionChecker);
-    }
-    return () => {
-      observer.disconnect();
-    };
+    setTimeout(() => {
+      const observer = new IntersectionObserver(handleIntersection, {
+        root: scrollContainer ? scrollContainer : null,
+        rootMargin: "100px",
+        threshold: 1.0,
+      });
+      const intersectionChecker = document.getElementById("intersectionChecker");
+      if (intersectionChecker?.checkVisibility) {
+        observer.observe(intersectionChecker);
+      }
+      return () => {
+        observer.disconnect();
+      };
+      
+    }, 300)
   }, []);
 
-  useEffect(() => {
+
+  function fetchPopularMovies() {
     if (!hasMorePagesRef.current || isMoviesLoadingRef.current) return;
     if (requestedPagesRef.current.has(currentPageRef.current)) return;
 
@@ -55,21 +60,31 @@ function Movies() {
 
     getPopularMovies(currentPageRef.current)
       .then((data) => {
-        setMovies((prev) => [...prev, ...data.results]);
+        setMovies((prev) => {
+          const combined = [...prev, ...data.results];
+          const uniqueMap = new Map(combined.map((movie) => [movie.id, movie]));
+          return Array.from(uniqueMap.values());
+        });
         setTotalPages(data.total_pages);
+        totalPagesRef.current = data.total_pages;
         setCurrentPage(data.page);
         setHasMorePages(data.page < data.total_pages);
       })
       .finally(() => {
         setIsMoviesLoading(false);
       });
-  }, [currentPage, hasMorePages, isMoviesLoading]);
+  }
 
+
+
+  useEffect(() => {
+    fetchPopularMovies()
+  }, [currentPage, hasMorePages, isMoviesLoading]);
   function handleIntersection(entries: IntersectionObserverEntry[]) {
     entries.forEach((entry) => {
       if (
         entry.isIntersecting &&
-        currentPageRef.current < totalPagesRef.current &&
+        currentPageRef.current <= totalPagesRef.current &&
         !isMoviesLoadingRef.current &&
         hasMorePagesRef.current
       ) {
@@ -77,7 +92,12 @@ function Movies() {
       }
     });
   }
-
+  function scrollBackUp() {
+      scrollContainer?.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
   return (
     <div className="p-4 flex flex-col">
       <div className="w-full flex flex-row justify-between items-center py-5 relative">
@@ -107,6 +127,7 @@ function Movies() {
               );
             })
           )}
+          <div className="w-full h-1" id="intersectionChecker"></div>
           {isMoviesLoading && (
             <div className="w-full flex justify-center items-center py-20">
               <div className="flex flex-col items-center gap-3">
@@ -115,12 +136,15 @@ function Movies() {
               </div>
             </div>
           )}
-          <div
-            className="w-full h-20"
-            id="intersectionChecker"
-          ></div>
         </div>
       </div>
+        {
+          // console.log(scrollContainer?.scroll) 
+          // scrollContainer?.scrollHeight
+        }
+      <div onClick={scrollBackUp} id="GoTopBtn" className=" active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500  rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer" title="Back to top">
+            <BiArrowToTop/>
+        </div>
     </div>
   );
 }

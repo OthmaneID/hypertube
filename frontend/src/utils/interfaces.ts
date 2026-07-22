@@ -133,5 +133,24 @@ export interface Credits {
   id?: number;
   cast?: Array<Cast>;
   crew?: Array<Crew>;
-  error?: string 
+  error?: string;
+}
+
+export interface Trailer {
+  iso_639_1?: string;
+  iso_3166_1?: string;
+  name?: string;
+  key?: string;
+  site?: string;
+  size?: number;
+  type?: string;
+  official?: boolean;
+  published_at?: Date;
+  id?: string;
+}
+
+export interface MovieTrailers {
+  id?: number;
+  results?: Array<Trailer>;
+  error?: string;
 }

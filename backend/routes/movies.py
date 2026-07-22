@@ -1,11 +1,11 @@
 from fastapi.routing import APIRouter
-from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits
+from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits, getMovieVideos  
 from fastapi.requests import Request
 
 router = APIRouter(prefix="/movies")
 
 @router.get("/popular")
-def get_movies(request:Request, page: int = 1):
+def get_popular_movies(request:Request, page: int = 1):
     return getMovies(request=request, page=page)
 
 
@@ -22,3 +22,8 @@ def get_movie(request:Request, movie_id: int):
 @router.get("/credits/{movie_id}")
 def get_movie_credits(request:Request, movie_id:int):
     return getMovieCredits(request, movie_id)
+
+# get movie trailers and related videos that are provided by the tmdb api
+@router.get("/videos/{movie_id}")
+def get_movie_videos(request:Request, movie_id:int):
+    return getMovieVideos(request, movie_id)

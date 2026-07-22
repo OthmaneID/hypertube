@@ -1,5 +1,5 @@
 import axiosInstance from "./axiosInstance";
-import type { MovieDetails, PopularMoviesResponse, ImageConfig, MovieImages, Credits } from "./interfaces";
+import type { MovieDetails, PopularMoviesResponse, ImageConfig, MovieImages, Credits, MovieTrailers } from "./interfaces";
 
 export async function getImageConfig(): Promise<ImageConfig> {
   try {
@@ -51,5 +51,18 @@ export async function getMovieCredits(movie_id: number): Promise<Credits> {
   } catch (error: any) {
     console.log("error while fetching movie cast : ", error.message)
     return {error: error.message}
+  }
+}
+
+
+export async function getMovieTrailers(movie_id: number): Promise<MovieTrailers>{
+  try {
+    const res = await axiosInstance.get(`/movies/videos/${movie_id}`);
+    return res.data
+    
+  } catch (error: any) {
+    console.log("error while fetching movie trailers : ", error.message)
+    return {error: error.message}
+  
   }
 }

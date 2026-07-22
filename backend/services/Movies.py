@@ -43,14 +43,14 @@ def getMovies(request : Request, category: str = "popular", page: int = 1):
     # get populare movies in pagination
     rd :redis.Redis= request.app.state.redis
     try:
-        if rd is not None  and rd.get(f"popular_movies_{page}"):
-            return json.loads(rd.get(f"popular_movies_{page}"))
+        if rd is not None  and rd.get(f"{category}_movies_{page}"):
+            return json.loads(rd.get(f"{category}_movies_{page}"))
     except Exception as e :
         pass
     res = requests.get(f"{BASE_URL}movie/{category}?language=en&page={page}", headers=headers)
     try:
         if res.json():
-            rd.setex(f"popular_movies_{page}", 60 * 60 * 6, json.dumps(res.json()))
+            rd.setex(f"{category}_movies_{page}", 60 * 60 * 6, json.dumps(res.json()))
             return res.json()
     except Exception as e:
         print(f"Error while fetching Movies : {e}")
@@ -91,3 +91,26 @@ def getMovieCredits(request: Request, movie_id: int):
     except Exception as e:
         print(f"Error while fetching Movie Details : {e}")
         return data
+
+
+
+def getMovieVideos(request: Request, movie_id: int):
+    request_url = f"{BASE_URL}movie/{movie_id}/videos?language=en-US"
+    rd : redis.Redis = request.app.state.redis
+    try:
+        if rd is not None and rd.get(f"movie_{movie_id}_videos"):
+            return json.loads(rd.get(f"movie_{movie_id}_videos"))
+    except Exception as e:
+        pass
+
+    res = requests.get(request_url, headers=headers)
+    data = res.json()
+    try:
+        if data:
+            rd.setex(f"movie_{movie_id}_videos", 60 * 60 * 8, json.dumps(data))
+    except Exception as e:
+        print("error while getting movie trailers : ", e)
+        return data
+    return data
+
+    

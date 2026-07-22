@@ -13,10 +13,11 @@ import {
 import { getImageConfig, getMovieDetails, getMovieImages } from "../utils/api";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiStar } from "react-icons/bi";
+import { BiCameraMovie, BiMovie, BiMoviePlay, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getMovieCredits } from "../utils/api";
+import TrailerModule from "../components/TrailerModule";
 
 function MovieDetails() {
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
@@ -30,6 +31,9 @@ function MovieDetails() {
   const [movie, setMovie] = useState<IMovieDetails>();
   const [titleLogo, setTitleLogo] = useState<Image>();
   const [credits, setCredits] = useState<ICredits>();
+  const [showModule, setShowModule] = useState(false);
+  const [isLoading, setIsLoading] = useState(false)
+
   const genresRef = useRef<HTMLDivElement | null>(null);
   const castRef = useRef<HTMLDivElement | null>(null);
   const crewRef = useRef<HTMLDivElement | null>(null);
@@ -44,21 +48,33 @@ function MovieDetails() {
   });
 
   useEffect(() => {
-    getMovieDetails(movieId).then((data) => {
+    const moviePromise = getMovieDetails(movieId).then((data) => {
       setMovie(data);
     });
-    getImageConfig().then((data) => {
+    const imageConfigPromise = getImageConfig().then((data) => {
       setImageConfig(data);
     });
-
-    getMovieImages(movieId).then((data) => {
+    
+    const movieImagesPromise = getMovieImages(movieId).then((data) => {
       setTitleLogo(data.logos?.[0]);
     });
-
-    getMovieCredits(movieId).then((data) => {
+    
+    const movieCreditsPromise = getMovieCredits(movieId).then((data) => {
       setCredits(data);
     });
+    
+    const allPromises = Promise.all([
+      moviePromise,
+      imageConfigPromise,
+      movieImagesPromise,
+      movieCreditsPromise,
+    ]);
+    setIsLoading(true)
+    
+    allPromises.finally(() => setIsLoading(false));
   }, []);
+
+
 
   const startDragging = (
     event: MouseEvent<HTMLDivElement>,
@@ -87,30 +103,39 @@ function MovieDetails() {
     dragState.current.isDragging = false;
   };
 
+  if (isLoading) 
+    return (
+      <div className="w-full flex justify-center items-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+          <span className="text-gray-300">Loading movies...</span>
+        </div>
+      </div>
+    );
+
   return (
     <div className="relative select-none scroll-smooth">
       <div
-        className="absolute left-1 top-0 z-100 text-5xl font-bold text-gray-300 cursor-pointer w-[100px] h-[100px] flex "
+        className="absolute left-1 top-0 z-[60] text-5xl font-bold text-gray-300 cursor-pointer w-[60px] h-[50px] flex "
         onClick={() => window.history.back()}
       >
         <BsArrowLeft className="[-webkit-text-stroke:0.5px_purple] " />
       </div>
       {/* backdrop image */}
       <div className="bg-cover h-screen w-full z-20 absolute top-0 left-0">
-        {
-          movie?.backdrop_path !== null &&
+        {movie?.backdrop_path !== null && (
           <img
             src={image_baseUrl + backdrop_size + movie?.backdrop_path}
             alt={movie?.title}
             className="h-full w-full bg-cover bg-center bg-no-repeat"
             loading="lazy"
-            /> 
-            
-        }
-        <div className="bg-gradient-to-t from-[#000000] to-[#200049] opacity-60 z-30 absolute top-0 left-0 h-full w-full"></div>
+          />
+        )}
+        <div className="bg-gradient-to-t from-[#000000b2] to-[#200049b2] opacity-60 z-30 absolute top-0 left-0 h-full w-full"></div>
       </div>
       <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">
-        <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-2/3 min-w-[500px]">
+        {/* movie details section*/}
+        <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-3/4 min-w-[500px]">
           <div className="pt-5 gap-6 flex flex-row w-full justify-between">
             {/* here should be the logo */}
             {titleLogo?.file_path ? (
@@ -129,18 +154,32 @@ function MovieDetails() {
               {movie?.status}
             </span>
           </div>
-          <div className="flex flex-row gap-6 text-gray-200 font-bold text-3xl  mt-6">
-            <span>{movie?.runtime} min</span>
-            <span>
-              {new Date(movie?.release_date ?? "").getFullYear().toString()}
-            </span>
-            <span className="flex flex-row">
-              {movie?.vote_average?.toFixed(1)}{" "}
-              <BiStar className="text-yellow-400" />
-            </span>
+          {/* runtime, date, vote, trailer */}
+          <div className="flex flex-row justify-between  text-gray-200 font-bold text-3xl  mt-6">
+            <div className="flex flex-row gap-6 items-center">
+              <span>{movie?.runtime} min</span>
+              <span>
+                {new Date(movie?.release_date ?? "").getFullYear().toString()}
+              </span>
+              <span className="flex flex-row">
+                {movie?.vote_average?.toFixed(1)}{" "}
+                <BiStar className="text-yellow-400" />
+              </span>
+            </div>
+            <div>
+              <span
+                className="flex flex-row gap-2 items-center text-4xl bg-gray-700/40 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-700/50 active:scale-105 duration-300"
+                title="Play Trailer"
+                onClick={() => {
+                  setShowModule(true);
+                }}
+              >
+                <BiCameraMovie className="text-purple-700" />
+              </span>
+            </div>
           </div>
           <div className="w-full flex flex-col gap-4 items-start">
-            <div className="flex flex-col gap-2 w-2/3 min-w-[500px] ">
+            <div className="flex flex-col gap-2 w-full ">
               <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
                 Genres
               </span>
@@ -165,7 +204,7 @@ function MovieDetails() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-2/3 min-w-[500px]">
+            <div className="flex flex-col gap-2 w-full">
               <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
                 Cast
               </span>
@@ -180,7 +219,7 @@ function MovieDetails() {
                 {credits?.cast?.map((cast, index) => {
                   return (
                     <div
-                      className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
+                      className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
                       key={index}
                     >
                       <span className="text-base">{cast.name}</span>
@@ -193,7 +232,7 @@ function MovieDetails() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-2/3 min-w-[500px]">
+            <div className="flex flex-col gap-2 w-full">
               <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
                 Crew
               </span>
@@ -208,7 +247,7 @@ function MovieDetails() {
                 {credits?.crew?.map((crew, index) => {
                   return (
                     <div
-                      className="px-3 py-2 h-[100px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
+                      className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
                       key={index}
                     >
                       <span className="text-base">{crew.name}</span>
@@ -220,7 +259,7 @@ function MovieDetails() {
             </div>
           </div>
           {/* overview */}
-          <div className=" flex flex-col w-2/3">
+          <div className=" flex flex-col w-full">
             <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple] ">
               summary
             </span>
@@ -230,6 +269,14 @@ function MovieDetails() {
         {/* streaming options section */}
         <StreamingOptions movie_id={movieId} movie_name={movie?.title ?? ""} />
       </div>
+      {/* trailer module */}
+      {showModule && (
+        <TrailerModule
+          movie_id={movieId}
+          show={showModule}
+          setShow={setShowModule}
+        />
+      )}
     </div>
   );
 }

@@ -17,11 +17,12 @@ function App() {
         <div className="flex flex-row gap-0 w-full h-screen">
           <Router>
             <Sidebar />
-            <div className="flex flex-col w-full overflow-auto" id="scrollContainer">
+            <div className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth" id="scrollContainer">
               <Routes>
                 <Route index path="/" element={<Home />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/movies" element={<Movies />} />
+                {/* <Route path="/discover" element={<Discover/>} */}
                 <Route path="/movies/:id" element={<MovieDetails />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/register" element={<Register />} />

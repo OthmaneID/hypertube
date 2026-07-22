@@ -9,7 +9,7 @@ function Sidebar() {
   const [active, setActive] = useState("home");
 
   return (
-    <div className="sidebar  min-w-[80px] min-h-screen flex flex-col justify-start items-center gap-16  py-6 px-1 bg-gradient-to-tr from-[#18001d] to-[#270042]">
+    <div className="sidebar  min-w-[80px] min-h-screen flex flex-col justify-start items-center gap-16  py-6 px-1 bg-gradient-to-tr from-[#18001d] to-[#1b002e]">
       <Link to="/">
         <img src="../public/favicon.svg" alt="" className="h-10" />
       </Link>
@@ -21,7 +21,7 @@ function Sidebar() {
             <SlHome
               className={
                 "icon text-4xl " +
-                +(active === "home" ? "bg-purple-600 scale-105" : "")
+                +(active === "home" ? "bg-purple-700 scale-105" : "")
               }
             />
           }
@@ -36,7 +36,7 @@ function Sidebar() {
             <SlSettings
               className={
                 "icon text-4xl " +
-                +(active === "settings" ? "bg-purple-600 scale-105" : "")
+                +(active === "settings" ? "bg-purple-700 scale-105" : "")
               }
             />
           }
@@ -52,7 +52,7 @@ function Sidebar() {
             <BiSolidDoorOpen
               className={
                 "icon text-4xl " +
-                +(active === "signin" ? "bg-purple-600 scale-105" : "")
+                +(active === "signin" ? "bg-purple-700 scale-105" : "")
               }
             />
           }
