@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { getPopularMovies } from "../utils/api";
 import type { PopularMoviesResponse } from "../utils/interfaces";
-import MovieCard from "../components/MovieCard";
 import { BiArrowToTop } from "react-icons/bi";
+import Card from "../components/Card";
 
 function Movies() {
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
@@ -39,17 +39,17 @@ function Movies() {
         rootMargin: "100px",
         threshold: 1.0,
       });
-      const intersectionChecker = document.getElementById("intersectionChecker");
+      const intersectionChecker = document.getElementById(
+        "intersectionChecker",
+      );
       if (intersectionChecker?.checkVisibility) {
         observer.observe(intersectionChecker);
       }
       return () => {
         observer.disconnect();
       };
-      
-    }, 300)
+    }, 300);
   }, []);
-
 
   function fetchPopularMovies() {
     if (!hasMorePagesRef.current || isMoviesLoadingRef.current) return;
@@ -75,10 +75,8 @@ function Movies() {
       });
   }
 
-
-
   useEffect(() => {
-    fetchPopularMovies()
+    fetchPopularMovies();
   }, [currentPage, hasMorePages, isMoviesLoading]);
   function handleIntersection(entries: IntersectionObserverEntry[]) {
     entries.forEach((entry) => {
@@ -93,7 +91,7 @@ function Movies() {
     });
   }
   function scrollBackUp() {
-      scrollContainer?.scrollTo({
+    scrollContainer?.scrollTo({
       top: 0,
       behavior: "smooth",
     });
@@ -117,7 +115,8 @@ function Movies() {
           ) : (
             movies?.map((movie, index) => {
               return (
-                <MovieCard
+                <Card
+                  url={"/movies/" + movie.id}
                   key={index}
                   id={movie.id}
                   poster={movie.poster_path}
@@ -138,13 +137,18 @@ function Movies() {
           )}
         </div>
       </div>
-        {
-          // console.log(scrollContainer?.scroll) 
-          // scrollContainer?.scrollHeight
-        }
-      <div onClick={scrollBackUp} id="GoTopBtn" className=" active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500  rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer" title="Back to top">
-            <BiArrowToTop/>
-        </div>
+      {
+        // console.log(scrollContainer?.scroll)
+        // scrollContainer?.scrollHeight
+      }
+      <div
+        onClick={scrollBackUp}
+        id="GoTopBtn"
+        className=" active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500  rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer"
+        title="Back to top"
+      >
+        <BiArrowToTop />
+      </div>
     </div>
   );
 }

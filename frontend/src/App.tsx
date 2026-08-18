@@ -9,6 +9,8 @@ import { ImageConfigProvider } from "./global/imageConfigProvider";
 import Movies from "./page/Movies";
 import SignIn from "./page/SignIn";
 import Register from "./page/Register";
+import Series from "./page/Series";
+import SerieDetails from "./page/SerieDetails";
 
 function App() {
   return (
@@ -17,13 +19,18 @@ function App() {
         <div className="flex flex-row gap-0 w-full h-screen">
           <Router>
             <Sidebar />
-            <div className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth" id="scrollContainer">
+            <div
+              className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth"
+              id="scrollContainer"
+            >
               <Routes>
                 <Route index path="/" element={<Home />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/movies" element={<Movies />} />
+                <Route path="/series" element={<Series />} />
                 {/* <Route path="/discover" element={<Discover/>} */}
                 <Route path="/movies/:id" element={<MovieDetails />} />
+                <Route path="/series/:id" element={<SerieDetails />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/register" element={<Register />} />
               </Routes>

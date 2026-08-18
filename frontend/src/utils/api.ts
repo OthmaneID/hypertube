@@ -1,5 +1,5 @@
 import axiosInstance from "./axiosInstance";
-import type { MovieDetails, PopularMoviesResponse, ImageConfig, MovieImages, Credits, MovieTrailers } from "./interfaces";
+import type { MovieDetails, PopularMoviesResponse, ImageConfig, MovieImages, Credits, MovieTrailers, PopularSeriesResponse, SerieDetails } from "./interfaces";
 
 export async function getImageConfig(): Promise<ImageConfig> {
   try {
@@ -18,7 +18,7 @@ export async function getPopularMovies(page: number): Promise<PopularMoviesRespo
     return res.data;
   } catch (error: any) {
     console.log("error while fetchin popular movies . ", error.message);
-    return { page: 1, results: [], total_pages: 1, total_results: 0 };
+    return { page: 1, results: [], total_pages: 1, total_results: 0, error: error.message};
   }
 }
 
@@ -64,5 +64,49 @@ export async function getMovieTrailers(movie_id: number): Promise<MovieTrailers>
     console.log("error while fetching movie trailers : ", error.message)
     return {error: error.message}
   
+  }
+}
+
+
+
+
+export async function getPopularSeries(page: number): Promise<PopularSeriesResponse> {
+  try {
+    const res = await axiosInstance.get("/series/popular?page=" + page);
+    return res.data;
+  } catch (error: any) {
+    console.log("error while fetchin popular series . ", error.message);
+    return { page: 1, results: [], total_pages: 1, total_results: 0, error: error.message};
+  }
+}
+
+export async function getSerieDetails(serie_id: number): Promise<SerieDetails> {
+  try {
+    const res = await axiosInstance.get("/series/details/" + serie_id)
+    return res.data
+  } catch (error: any) {
+    console.log("error while fetching popular series : ", error.message)
+    return { error: error.message }
+  }
+}
+
+
+export async function getSerieCredits(serie_id: number): Promise<Credits>{
+  try {
+    const res = await axiosInstance.get("/series/credits/" + serie_id)
+    return res.data
+  } catch (error: any) {
+    console.log("error while fetching serie credits : ", error.message)
+    return {error:error.message}
+  }
+}
+
+export async function getSerieImages(serie_id: number): Promise<MovieImages> {
+  try {
+    const res = await axiosInstance.get(`/images/serie/${serie_id}`);
+    return res.data;
+  } catch (error: any) {
+    console.log("error while fetching movie details : ", error.message);
+    return { id: serie_id, error: error.message };
   }
 }

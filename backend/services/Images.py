@@ -44,3 +44,17 @@ def GetMovieImages(request: Request, movie_id: int):
     except Exception as e:
         print(f"error while fetching Movie Images : {e}")
         return res.json()
+# /tv/{series_id}
+
+def GetSerieImages(request: Request, serie_id: int):
+    rd : redis.Redis = request.app.state.redis
+    if rd is not None and rd.get(f"serie_{serie_id}_images"):
+        return json.loads(rd.get(f"serie_{serie_id}_images"))
+    res = requests.get(f"{BASE_URL}tv/{serie_id}/images?language=en", headers=headers)
+    try:
+        if res.json():
+            rd.setex(f"serie_{serie_id}_images", 60 * 60 * 24, json.dumps(res.json()))
+        return res.json()
+    except Exception as e:
+        print(f"error while fetching Movie Images : {e}")
+        return res.json()

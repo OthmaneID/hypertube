@@ -2,16 +2,18 @@ import { Link } from "react-router-dom";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import { useContext } from "react";
 
-function MovieCard({
+function Card({
   id,
   poster,
   title,
   vote,
+  url,
 }: {
   id?: number;
   poster?: string;
   title?: string;
-  vote?: number;
+    vote?: number;
+  url: string;
 }) {
   const { imageConfig } = useContext(ImageConfigContext);
   const base =
@@ -20,7 +22,7 @@ function MovieCard({
   const src = poster ? `${base}${size}${poster}` : undefined;
   return (
     <Link
-      to={"/movies/" + id}
+      to={url}
       className="movie-card cursor-pointer duration-300 relative group flex flex-col justify-center items-center max-w-[175px] min-w-[175px] mx-5 h-[250px] rounded-2xl"
     >
       <img
@@ -41,4 +43,4 @@ function MovieCard({
   );
 }
 
-export default MovieCard;
+export default Card;
