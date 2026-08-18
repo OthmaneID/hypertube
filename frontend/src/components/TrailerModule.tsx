@@ -12,18 +12,26 @@ function TrailerModule({
   show: boolean;
   setShow: (value: boolean) => void;
 }) {
-  const trailers = useRef<Map<number, Trailer>>(new Map());
+  const trailers = useRef<Array<Trailer>>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     getMovieTrailers(movie_id).then((data) => {
       const results = data.results ?? [];
       let filtered =  results.filter(
         (trailer) => trailer.type === "Teaser" || trailer.type === "Trailer",
       );
-      filtered.forEach((trailer, index) => {
-        trailers.current.set(index, trailer);
+      trailers.current = filtered.sort((a, b) => { 
+        if (a.name?.toLowerCase().startsWith("official") && !b.name?.toLowerCase().startsWith("official")) return -1;
+        if (!a.name?.toLowerCase().startsWith("official") && b.name?.toLowerCase().startsWith("official")) return 1;
+        return 0;
       });
-      setCurrentIndex(trailers.current.size - 1);
+      
+      console.log("trailers", trailers.current);
+
+      setCurrentIndex(0);
+    }).finally(() => {
+      setIsLoading(false);
     });
   }, [movie_id]);
 
@@ -55,7 +63,6 @@ function TrailerModule({
     };
   }, []);
 
-  
 
   return (
     <div
@@ -87,6 +94,13 @@ function TrailerModule({
         <div className="flex flex-row flex-wrap items-center gap-6 z-[75] h-full">
           <div className="flex flex-col gap-2 w-full h-[90%] z-[75]">
             <div ref={video_parent} className="w-full h-[90%]">
+              {isLoading ? (
+                <div className="w-full h-[90%] flex justify-center items-center">
+                  <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+                  <p className="text-gray-400 text-lg">Loading trailers...</p>
+                </div> 
+                )
+                :
               <iframe
                 ref={video}
                 width={video_parent.current?.clientWidth}
@@ -94,13 +108,14 @@ function TrailerModule({
                 className="rounded-lg z-[75]"
                 src={
                   "https://www.youtube.com/embed/" +
-                  trailers.current?.get(currentIndex)?.key
+                  trailers.current?.at(currentIndex)?.key
                 }
-                title={trailers.current?.get(currentIndex)?.name}
+                title={trailers.current?.at(currentIndex)?.name}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
+            }
             </div>
             <div className="bg-gray-500/50 rounded-lg p-3 flex flex-row justify-between items-center">
               <span
@@ -108,7 +123,7 @@ function TrailerModule({
                 onClick={() =>
                   setCurrentIndex((prev) => {
                     if (prev > 0) return prev - 1;
-                    else return trailers.current.size - 1;
+                    else return trailers.current.length - 1;
                   })
                 }
               >
@@ -116,22 +131,22 @@ function TrailerModule({
               </span>
               <div className="w-full text-center flex flex-col justify-center items-center">
                 <p className="text-sm text-gray-200 font-semibold">
-                  {trailers.current?.get(currentIndex)?.name}
+                  {trailers.current?.at(currentIndex)?.name}
                 </p>
                 <div className="flex flex-row justify-between w-[200px]">
-                  {trailers.current?.get(currentIndex)?.published_at && (
+                  {trailers.current?.at(currentIndex)?.published_at && (
                     <p className="text-xs text-gray-400 mt-1">
                       Published:{" "}
                       {new Date(
                         trailers.current
-                          ?.get(currentIndex)
+                          ?.at(currentIndex)
                           ?.published_at?.toString() || "",
                       ).toLocaleDateString()}
                     </p>
                   )}
                   <p className="text-xs text-gray-400 mt-1">
-                    <span>{(currentIndex % trailers.current.size) + 1}</span>/
-                    <span>{trailers.current.size}</span>
+                    <span>{(currentIndex % trailers.current.length) + 1}</span>/
+                    <span>{trailers.current.length}</span>
                   </p>
                 </div>
               </div>
@@ -139,7 +154,7 @@ function TrailerModule({
                 className="bg-gray-300/30 rounded-full p-3 text-3xl font-bold cursor-pointer hover:bg-gray-300/40 active:scale-105"
                 onClick={() =>
                   setCurrentIndex((prev) => {
-                    if (prev < trailers.current.size - 1) return prev + 1;
+                    if (prev < trailers.current.length - 1) return prev + 1;
                     else return 0;
                   })
                 }
