@@ -13,7 +13,7 @@ import {
 import { getImageConfig, getMovieDetails, getMovieImages } from "../utils/api";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiCameraMovie, BiMovie, BiMoviePlay, BiStar } from "react-icons/bi";
+import { BiCameraMovie, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getMovieCredits } from "../utils/api";
@@ -272,7 +272,8 @@ function MovieDetails() {
       {/* trailer module */}
       {showModule && (
         <TrailerModule
-          movie_id={movieId}
+          type="movie"
+          id={movieId}
           show={showModule}
           setShow={setShowModule}
         />

@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BiLeftArrowAlt, BiRightArrowAlt, BiX } from "react-icons/bi";
-import type { MovieTrailers, Trailer } from "../utils/interfaces";
-import { getMovieTrailers } from "../utils/api";
+import type { Trailer } from "../utils/interfaces";
+import { getMovieTrailers, getSerieTrailers } from "../utils/api";
 
 function TrailerModule({
-  movie_id,
+  type,
+  id,
   show,
   setShow,
 }: {
-  movie_id: number;
+  type: "movie" | "serie";
+  id: number;
   show: boolean;
   setShow: (value: boolean) => void;
 }) {
@@ -16,31 +18,70 @@ function TrailerModule({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    getMovieTrailers(movie_id).then((data) => {
-      const results = data.results ?? [];
-      let filtered =  results.filter(
-        (trailer) => trailer.type === "Teaser" || trailer.type === "Trailer",
-      );
-      trailers.current = filtered.sort((a, b) => { 
-        if (a.name?.toLowerCase().startsWith("official") && !b.name?.toLowerCase().startsWith("official")) return -1;
-        if (!a.name?.toLowerCase().startsWith("official") && b.name?.toLowerCase().startsWith("official")) return 1;
-        return 0;
-      });
-      
-      console.log("trailers", trailers.current);
+    if (type == "movie") {
+      getMovieTrailers(id)
+        .then((data) => {
+          const results = data.results ?? [];
+          let filtered = results.filter(
+            (trailer) =>
+              trailer.type === "Teaser" || trailer.type === "Trailer",
+          );
+          trailers.current = filtered.sort((a, b) => {
+            if (
+              a.name?.toLowerCase().startsWith("official") &&
+              !b.name?.toLowerCase().startsWith("official")
+            )
+              return -1;
+            if (
+              !a.name?.toLowerCase().startsWith("official") &&
+              b.name?.toLowerCase().startsWith("official")
+            )
+              return 1;
+            return 0;
+          });
 
-      setCurrentIndex(0);
-    }).finally(() => {
-      setIsLoading(false);
-    });
-  }, [movie_id]);
+          console.log("trailers", trailers.current);
 
+          setCurrentIndex(0);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      getSerieTrailers(id)
+        .then((data) => {
+          const results = data.results ?? [];
+          let filtered = results.filter(
+            (trailer) =>
+              trailer.type === "Teaser" || trailer.type === "Trailer",
+          );
+          trailers.current = filtered.sort((a, b) => {
+            if (
+              a.name?.toLowerCase().startsWith("official") &&
+              !b.name?.toLowerCase().startsWith("official")
+            )
+              return -1;
+            if (
+              !a.name?.toLowerCase().startsWith("official") &&
+              b.name?.toLowerCase().startsWith("official")
+            )
+              return 1;
+            return 0;
+          });
 
+          console.log("trailers", trailers.current);
+
+          setCurrentIndex(0);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [id]);
 
   useEffect(() => {
     changeTrailer(currentIndex);
   }, [currentIndex]);
-
 
   function changeTrailer(index: number) {
     setCurrentIndex(index);
@@ -63,6 +104,8 @@ function TrailerModule({
     };
   }, []);
 
+  if (trailers.current.length === 0 && !isLoading) {
+  }
 
   return (
     <div
@@ -92,77 +135,84 @@ function TrailerModule({
           <BiX />
         </span>
         <div className="flex flex-row flex-wrap items-center gap-6 z-[75] h-full">
-          <div className="flex flex-col gap-2 w-full h-[90%] z-[75]">
-            <div ref={video_parent} className="w-full h-[90%]">
-              {isLoading ? (
-                <div className="w-full h-[90%] flex justify-center items-center">
-                  <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <p className="text-gray-400 text-lg">Loading trailers...</p>
-                </div> 
-                )
-                :
-              <iframe
-                ref={video}
-                width={video_parent.current?.clientWidth}
-                height={video_parent.current?.clientHeight}
-                className="rounded-lg z-[75]"
-                src={
-                  "https://www.youtube.com/embed/" +
-                  trailers.current?.at(currentIndex)?.key
-                }
-                title={trailers.current?.at(currentIndex)?.name}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            }
+          {trailers.current.length === 0 && !isLoading ? (
+            <div className="flex flex-col justify-center items-center gap-4 w-full h-[90%]">
+              <h1 className="text-gray-400 text-2xl">No trailers found</h1>
             </div>
-            <div className="bg-gray-500/50 rounded-lg p-3 flex flex-row justify-between items-center">
-              <span
-                className="bg-gray-300/30 rounded-full p-3 text-3xl font-bold cursor-pointer hover:bg-gray-300/40 active:scale-105"
-                onClick={() =>
-                  setCurrentIndex((prev) => {
-                    if (prev > 0) return prev - 1;
-                    else return trailers.current.length - 1;
-                  })
-                }
-              >
-                <BiLeftArrowAlt />
-              </span>
-              <div className="w-full text-center flex flex-col justify-center items-center">
-                <p className="text-sm text-gray-200 font-semibold">
-                  {trailers.current?.at(currentIndex)?.name}
-                </p>
-                <div className="flex flex-row justify-between w-[200px]">
-                  {trailers.current?.at(currentIndex)?.published_at && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      Published:{" "}
-                      {new Date(
-                        trailers.current
-                          ?.at(currentIndex)
-                          ?.published_at?.toString() || "",
-                      ).toLocaleDateString()}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    <span>{(currentIndex % trailers.current.length) + 1}</span>/
-                    <span>{trailers.current.length}</span>
-                  </p>
-                </div>
+          ) : (
+            <div className="flex flex-col gap-2 w-full h-[90%] z-[75]">
+              <div ref={video_parent} className="w-full h-[90%]">
+                {isLoading ? (
+                  <div className="w-full h-[90%] flex justify-center items-center">
+                    <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+                    <p className="text-gray-400 text-lg">Loading trailers...</p>
+                  </div>
+                ) : (
+                  <iframe
+                    ref={video}
+                    width={video_parent.current?.clientWidth}
+                    height={video_parent.current?.clientHeight}
+                    className="rounded-lg z-[75]"
+                    src={
+                      "https://www.youtube.com/embed/" +
+                      trailers.current?.at(currentIndex)?.key
+                    }
+                    title={trailers.current?.at(currentIndex)?.name}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                )}
               </div>
-              <span
-                className="bg-gray-300/30 rounded-full p-3 text-3xl font-bold cursor-pointer hover:bg-gray-300/40 active:scale-105"
-                onClick={() =>
-                  setCurrentIndex((prev) => {
-                    if (prev < trailers.current.length - 1) return prev + 1;
-                    else return 0;
-                  })
-                }
-              >
-                <BiRightArrowAlt />
-              </span>
+              <div className="bg-gray-500/50 rounded-lg p-3 flex flex-row justify-between items-center">
+                <span
+                  className="bg-gray-300/30 rounded-full p-3 text-3xl font-bold cursor-pointer hover:bg-gray-300/40 active:scale-105"
+                  onClick={() =>
+                    setCurrentIndex((prev) => {
+                      if (prev > 0) return prev - 1;
+                      else return trailers.current.length - 1;
+                    })
+                  }
+                >
+                  <BiLeftArrowAlt />
+                </span>
+                <div className="w-full text-center flex flex-col justify-center items-center">
+                  <p className="text-sm text-gray-200 font-semibold">
+                    {trailers.current?.at(currentIndex)?.name}
+                  </p>
+                  <div className="flex flex-row justify-between w-[200px]">
+                    {trailers.current?.at(currentIndex)?.published_at && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Published:{" "}
+                        {new Date(
+                          trailers.current
+                            ?.at(currentIndex)
+                            ?.published_at?.toString() || "",
+                        ).toLocaleDateString()}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
+                      <span>
+                        {trailers.current.length > 0 &&(currentIndex % trailers.current.length) + 1}
+                      </span>
+                      /<span>{trailers.current.length}</span>
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className="bg-gray-300/30 rounded-full p-3 text-3xl font-bold cursor-pointer hover:bg-gray-300/40 active:scale-105"
+                  onClick={() =>
+                    setCurrentIndex((prev) => {
+                      if (prev < trailers.current.length - 1) return prev + 1;
+                      else return 0;
+                    })
+                  }
+                >
+                  <BiRightArrowAlt />
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

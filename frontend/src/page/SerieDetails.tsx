@@ -280,7 +280,8 @@ function SerieDetails() {
       {/* trailer module */}
       {showModule && (
         <TrailerModule
-          movie_id={serieId}
+          type="serie"
+          id={serieId}
           show={showModule}
           setShow={setShowModule}
         />

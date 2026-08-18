@@ -106,7 +106,18 @@ export async function getSerieImages(serie_id: number): Promise<MovieImages> {
     const res = await axiosInstance.get(`/images/serie/${serie_id}`);
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching movie details : ", error.message);
+    console.log("error while fetching serie details : ", error.message);
     return { id: serie_id, error: error.message };
+  }
+}
+
+
+export async function getSerieTrailers(serie_id: number): Promise<MovieTrailers> {
+  try {
+    const res = await axiosInstance.get(`/series/videos/${serie_id}`)
+    return res.data
+  } catch (error: any) {
+    console.log("error while fetching serie trailers : ", error.message)
+    return {error:error.message}
   }
 }
