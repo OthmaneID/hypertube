@@ -1,25 +1,21 @@
 import requests
 from fastapi.requests import Request
 import redis
-import os
 import json
 
-from dotenv import load_dotenv
-load_dotenv(".env")
+from config import settings
 
-# for images : (https://image.tmdb.org/t/p/original/{path}.png || .svg or https://image.tmdb.org/t/p/w500/{path})
-BASE_URL = url = "https://api.themoviedb.org/3/"
 
-TMDB_KEY = os.getenv("TMDB_ACCESS_KEY")
+#
 
 headers = {
     "accept": "application/json",
-    "Authorization": f"Bearer {TMDB_KEY}"
+    "Authorization": f"Bearer {settings.tmdb_key}"
 }
 
 
 def GetSeries(request: Request, category:str = "popular", page:int = 1):
-    request_url = f"{BASE_URL}/tv/{category}" + f"?language=en-US&page={page}"
+    request_url = f"{settings.api_base_url}/tv/{category}" + f"?language=en-US&page={page}"
     rd:redis.Redis = request.app.state.redis
     try:
         if rd is not None and rd.get(f"{category}_series_{page}"):
@@ -41,7 +37,7 @@ def GetSeries(request: Request, category:str = "popular", page:int = 1):
 
 def getSerieDetails(request: Request, serie_id: int):
     rd : redis.Redis = request.app.state.redis
-    request_url = f"{BASE_URL}/tv/{serie_id}"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}"
     try:
         if rd is not None and rd.get(f"serie_{serie_id}"):
             return json.loads(rd.get(f"serie_{serie_id}"))
@@ -61,7 +57,7 @@ def getSerieDetails(request: Request, serie_id: int):
 
 def getSerieCredits(request: Request, serie_id: int):
     rd : redis.Redis = request.app.state.redis
-    request_url = f"{BASE_URL}/tv/{serie_id}/credits?language=en-US"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}/credits?language=en-US"
     rd_name = f"serie_credits_{serie_id}"
     try:
         if rd is not None and rd.get(rd_name):
@@ -82,7 +78,7 @@ def getSerieCredits(request: Request, serie_id: int):
 
 def getSerieVideos(request:Request, serie_id:int):
     rd : redis.Redis = request.app.state.redis
-    request_url = f"{BASE_URL}/tv/{serie_id}/videos?language=en-US"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}/videos?language=en-US"
     rd_name = f"serie_videos_{serie_id}"
     try:
         if rd is not None and rd.get(rd_name):
@@ -93,7 +89,7 @@ def getSerieVideos(request:Request, serie_id:int):
     data = res.json()
     try:
         if data:
-            rd.setex(rd_name, 60 * 60 * 6, )
+            rd.setex(rd_name, 60 * 60 * 6, json.dumps(data))
         return data
     except Exception as e:
         print("error while fetching serie videos : ", e)

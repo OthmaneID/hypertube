@@ -12,14 +12,12 @@ import {
 } from "../utils/interfaces";
 import {
   getImageConfig,
-  getMovieDetails,
-  getMovieImages,
   getSerieDetails,
   getSerieImages,
 } from "../utils/api";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiCameraMovie, BiMovie, BiMoviePlay, BiStar } from "react-icons/bi";
+import { BiCameraMovie, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getSerieCredits } from "../utils/api";
@@ -165,9 +163,11 @@ function SerieDetails() {
               <span>
                 {new Date(serie?.first_air_date ?? "").getFullYear().toString()}
                 <span> - </span>
-                {serie?.status === "Ended" ?
-                  new Date(serie?.last_air_date ?? "").getFullYear().toString() : "..."
-                } 
+                {serie?.status === "Ended"
+                  ? new Date(serie?.last_air_date ?? "")
+                      .getFullYear()
+                      .toString()
+                  : "..."}
               </span>
               <span className="flex flex-row">
                 {serie?.vote_average?.toFixed(1)}{" "}
@@ -267,11 +267,11 @@ function SerieDetails() {
             </div>
           </div>
           {/* overview */}
-          <div className=" flex flex-col w-full">
-            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple] ">
+          <div className=" flex flex-col w-full rounded-2xl py-2 px-4 bg-gray-50/50 ">
+            <span className="text-3xl text-gray-800 font-semibold mb-2">
               summary
             </span>
-            <span className="text-lg text-white">{serie?.overview}</span>
+            <span className="text-2xl">{serie?.overview}</span>
           </div>
         </div>
         {/* streaming options section */}

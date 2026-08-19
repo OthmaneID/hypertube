@@ -1,8 +1,16 @@
 fastapi
 uvicorn
 
+PyJWT
+bcrypt
 requests
+pydantic
+pydantic-settings
+pydantic[email]
 
 python-dotenv
 
 redis
+sqlalchemy
+asyncpg 
+psycopg2-binary

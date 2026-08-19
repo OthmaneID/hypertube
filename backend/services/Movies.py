@@ -1,20 +1,20 @@
 import requests
 from fastapi.requests import Request
 import redis
-import os
-import json
 
-from dotenv import load_dotenv
-load_dotenv(".env")
+import json
+from config import settings
+
 
 # for images : (https://image.tmdb.org/t/p/original/{path}.png || .svg or https://image.tmdb.org/t/p/w500/{path})
-BASE_URL = url = "https://api.themoviedb.org/3/"
 
-TMDB_KEY = os.getenv("TMDB_ACCESS_KEY")
+
+
+# TMDB_KEY = os.getenv("TMDB_ACCESS_KEY")
 
 headers = {
     "accept": "application/json",
-    "Authorization": f"Bearer {TMDB_KEY}"
+    "Authorization": f"Bearer {settings.tmdb_key}"
 }
 
 
@@ -28,7 +28,7 @@ def getGenres(request: Request) :
     except Exception as e:
         pass
         
-    res = requests.get(f"{BASE_URL}genre/movie/list?language=en", headers=headers)
+    res = requests.get(f"{settings.api_base_url}genre/movie/list?language=en", headers=headers)
     try:
         if res.json():
             rd.setex("genres", 60 * 60 * 24, json.dumps(res.json()))
@@ -47,7 +47,7 @@ def getMovies(request : Request, category: str = "popular", page: int = 1):
             return json.loads(rd.get(f"{category}_movies_{page}"))
     except Exception as e :
         pass
-    res = requests.get(f"{BASE_URL}movie/{category}?language=en&page={page}", headers=headers)
+    res = requests.get(f"{settings.api_base_url}movie/{category}?language=en&page={page}", headers=headers)
     try:
         if res.json():
             rd.setex(f"{category}_movies_{page}", 60 * 60 * 6, json.dumps(res.json()))
@@ -65,7 +65,7 @@ def getMovieDetails(request: Request, movie_id: int):
             return json.loads(rd.get(f"movie_{movie_id}"))
     except Exception as e:
         pass
-    res = requests.get(f"{BASE_URL}movie/{movie_id}", headers=headers)
+    res = requests.get(f"{settings.api_base_url}movie/{movie_id}", headers=headers)
     try:
         if res.json():
             rd.setex(f"movie_{movie_id}", 60 * 60 * 24, json.dumps(res.json()))
@@ -82,7 +82,7 @@ def getMovieCredits(request: Request, movie_id: int):
             return json.loads(rd.get(f"movie_cast_{movie_id}"))
     except Exception as e:
         pass
-    res = requests.get(f"{BASE_URL}movie/{movie_id}/credits?language=en-US", headers=headers)
+    res = requests.get(f"{settings.api_base_url}movie/{movie_id}/credits?language=en-US", headers=headers)
     data = res.json()
     try:
         if data:
@@ -95,7 +95,7 @@ def getMovieCredits(request: Request, movie_id: int):
 
 
 def getMovieVideos(request: Request, movie_id: int):
-    request_url = f"{BASE_URL}movie/{movie_id}/videos?language=en-US"
+    request_url = f"{settings.api_base_url}movie/{movie_id}/videos?language=en-US"
     rd : redis.Redis = request.app.state.redis
     try:
         if rd is not None and rd.get(f"movie_{movie_id}_videos"):

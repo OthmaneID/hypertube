@@ -259,11 +259,11 @@ function MovieDetails() {
             </div>
           </div>
           {/* overview */}
-          <div className=" flex flex-col w-full">
-            <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple] ">
+          <div className=" flex flex-col w-full rounded-2xl py-2 px-4 bg-gray-50/50 ">
+            <span className="text-3xl text-gray-800 font-semibold mb-2">
               summary
             </span>
-            <span className="text-lg text-white">{movie?.overview}</span>
+            <span className="text-2xl ">{movie?.overview}</span>
           </div>
         </div>
         {/* streaming options section */}
