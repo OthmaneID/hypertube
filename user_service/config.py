@@ -13,7 +13,9 @@ API_BASE_URL = url = "https://api.themoviedb.org/3/"
 TMDB_KEY = os.getenv("TMDB_ACCESS_KEY")
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION", 3600))
+JWT_REFRESH_EXPIRATION = int(os.getenv("JWT_REFRESH_EXPIRATION", 86400))
 USER_SERVICE_PORT = int(os.getenv("USER_SERVICE_PORT", 8020))
+HASH_SALT = int(os.getenv("HASH_SALT", 78))
 
 
 class Settings(BaseSettings):
@@ -22,7 +24,9 @@ class Settings(BaseSettings):
     tmdb_key: str = TMDB_KEY
     jwt_secret: str = JWT_SECRET
     jwt_expiration: int = JWT_EXPIRATION
+    jwt_refresh_expiration: int = JWT_REFRESH_EXPIRATION
     user_service_port: int = USER_SERVICE_PORT
+    hash_salt: int = HASH_SALT
 
     class Config:
         env_file = ".env"

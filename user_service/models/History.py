@@ -13,3 +13,6 @@ class History(Base):
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
     watcher : Mapped["User"] = relationship(back_populates="watched_history")
+
+# Late import to avoid circular dependency
+from models.User import User

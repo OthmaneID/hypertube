@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Integer, String, ARRAY, DateTime, func, Boolean, JSON, Column, Enum
+from sqlalchemy import Integer, String, ARRAY, DateTime, func, Boolean, JSON, Column, Enum, LargeBinary
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 import enum
 from datetime import datetime
@@ -29,3 +29,6 @@ class User(Base):
     # history: Mapped[List[Dict[str, str]]] = mapped_column(JSON, default=[])
     watched_history : Mapped[List["History"]] = relationship(back_populates="watcher", cascade="all, delete-orphan")
     comments : Mapped[List["Comment"]] = relationship( back_populates="owner", cascade="all, delete-orphan")
+
+# Late import to avoid circular dependency
+from models.History import History

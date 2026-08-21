@@ -1,20 +1,19 @@
 from fastapi import Depends, Request
 from database import get_db
 from config import settings
-from schema.User import UserCreate, UserResponse
+from schema.User import UserCreate, UserLogin, UserResponse
 from sqlalchemy.orm import Session
 import jwt
 import bcrypt
 from models.User import User, oauthEnum
 
 
-def hashPass(password: str) -> bytes:
-    password_byte = password.encode(encoding='utf-8')
+def hashPass(password: str) -> str:
 
     salt = bcrypt.gensalt()
 
-    hashed_pass = bcrypt.hashpw(password=password_byte, salt=salt)
-    return hashed_pass
+    hashed_pass = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed_pass.decode("utf-8")
 
 def createTokens(user: UserResponse):
     
@@ -26,26 +25,48 @@ def createTokens(user: UserResponse):
     access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
     
     refresh_payload = {
-        
+        "user" : user.model_dump(),
+        "exp" : settings.jwt_refresh_expiration
     }
-    return access_token, None
+    refresh_token = jwt.encode(refresh_payload, settings.jwt_secret, algorithm="HS256")
+    return access_token, refresh_token
     
 
 
 
-def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider: oauthEnum = oauthEnum.EMAIL) -> UserResponse:
+def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider: oauthEnum = oauthEnum.EMAIL):
     try:
+        usr = db.query(User).filter(User.email == user.email).first()
+        if usr:
+            return {"error": "email already exists"}
         user_data = user.model_dump()
         if oauth_provider == oauthEnum.EMAIL:
             user_data["password"] = hashPass(user_data["password"])
         user_data["oauth_provider"] = oauth_provider
-        db_user = User(**user_data)
-        db.add(db_user)
+        user_db = User(**user_data)
+
+        db.add(user_db)
         db.commit()
-        db.refresh(db_user)
+        db.refresh(user_db)
 
-        return db_user
+        user_serialized = UserResponse.model_validate(user_db)
+        return createTokens(user_serialized)
     except Exception as e:
-        print(f"error : {e}")
+        print(e)
+        return {"error": "Internal server error", "details": str(e)}
 
-# def loginUser(request: Request, user: User):pass
+
+
+def loginEmail(request: Request, user: UserLogin, db:Session):
+    try:
+        user_db = db.query(User).filter(User.email == user.email).first()
+        if not user_db:
+            return {"error": "email/password is not correct"}
+        check_pass = bcrypt.checkpw(password=user.password.encode("utf-8"), hashed_password=user_db.password.encode("utf-8"))
+        if not check_pass or user_db.oauth_provider != oauthEnum.EMAIL:
+            return {"error": "email/password is not correct"}
+        user_serialized = UserResponse.model_validate(user_db)
+        return createTokens(user_serialized)
+    except Exception as e:
+        print(f"error while login: {e}")
+        return {"error": "Internal server error", "details": str(e)}
