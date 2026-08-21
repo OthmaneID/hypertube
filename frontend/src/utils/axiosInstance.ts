@@ -1,9 +1,8 @@
 import axios from "axios";
 
 
-
-const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL,
+const axiosMovieService = axios.create({
+    baseURL: import.meta.env.VITE_MOVIE_SERVICE_URL,
     withCredentials: true,
     headers: {
         "Content-Type": "application/json",
@@ -11,4 +10,14 @@ const axiosInstance = axios.create({
 })
 
 
-export default axiosInstance
+
+const axiosUserService = axios.create({
+    baseURL: import.meta.env.VITE_USER_SERVICE_URL,
+    withCredentials: true,
+    headers: {
+        "Content-Type": "application/json",
+    },
+})
+
+
+export { axiosMovieService, axiosUserService }

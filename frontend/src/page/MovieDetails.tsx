@@ -10,13 +10,14 @@ import {
   type Image,
   type MovieDetails as IMovieDetails,
 } from "../utils/interfaces";
-import { getImageConfig, getMovieDetails, getMovieImages } from "../utils/api";
+import { getImageConfig, getMovieImages } from "../utils/api/movieService/imagesApi";
+
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
 import { BiCameraMovie, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
-import { getMovieCredits } from "../utils/api";
+import { getMovieCredits, getMovieDetails } from "../utils/api/movieService/moviesApi";
 import TrailerModule from "../components/TrailerModule";
 
 function MovieDetails() {

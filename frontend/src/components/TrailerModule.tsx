@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { BiLeftArrowAlt, BiRightArrowAlt, BiX } from "react-icons/bi";
 import type { Trailer } from "../utils/interfaces";
-import { getMovieTrailers, getSerieTrailers } from "../utils/api";
+import { getMovieTrailers } from "../utils/api/movieService/moviesApi";
+import { getSerieTrailers } from "../utils/api/movieService/seriesApi";
+
 
 function TrailerModule({
   type,

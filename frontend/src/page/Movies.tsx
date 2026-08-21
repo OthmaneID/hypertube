@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getPopularMovies } from "../utils/api";
+import { getPopularMovies } from "../utils/api/movieService/moviesApi";
 import type { PopularMoviesResponse } from "../utils/interfaces";
 import { BiArrowToTop } from "react-icons/bi";
 import Card from "../components/Card";

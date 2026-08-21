@@ -12,15 +12,14 @@ import {
 } from "../utils/interfaces";
 import {
   getImageConfig,
-  getSerieDetails,
   getSerieImages,
-} from "../utils/api";
+} from "../utils/api/movieService/imagesApi";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
 import { BiCameraMovie, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
-import { getSerieCredits } from "../utils/api";
+import { getSerieCredits, getSerieDetails } from "../utils/api/movieService/seriesApi";
 import TrailerModule from "../components/TrailerModule";
 
 function SerieDetails() {
@@ -165,8 +164,8 @@ function SerieDetails() {
                 <span> - </span>
                 {serie?.status === "Ended"
                   ? new Date(serie?.last_air_date ?? "")
-                      .getFullYear()
-                      .toString()
+                    .getFullYear()
+                    .toString()
                   : "..."}
               </span>
               <span className="flex flex-row">

@@ -3,7 +3,7 @@ import Card from "../Card";
 import { Link } from "react-router-dom";
 import { BiChevronRight } from "react-icons/bi";
 import { useEffect, useState } from "react";
-import { getPopularSeries} from "../../utils/api";
+import { getPopularSeries} from "../../utils/api/movieService/seriesApi";
 import type { PopularSeriesResponse } from "../../utils/interfaces";
 
 function PopularSeries() {

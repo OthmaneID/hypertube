@@ -3,9 +3,6 @@ from uvicorn import run
 from contextlib import asynccontextmanager
 from fastapi.middleware import cors
 
-from routes.movies import router as movie_router
-from routes.series import router as series_router
-from routes.images import router as image_conf_router
 from routes.auth import router as auth_router
 from config import settings
 import redis
@@ -13,7 +10,7 @@ from database import Base, engine
 import models
 
 
-PORT = 8000
+PORT = settings.user_service_port
 
 Base.metadata.create_all(bind=engine)
 
@@ -45,10 +42,6 @@ app.add_middleware(
 
 app.include_router(auth_router)
 
-app.include_router(movie_router)
-app.include_router(series_router)
-
-app.include_router(image_conf_router)
 
 
 
