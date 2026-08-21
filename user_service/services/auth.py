@@ -8,13 +8,16 @@ import bcrypt
 from models.User import User, oauthEnum
 
 
-def hashPass(password: str) -> bytes:
+def hashPass(password: str) -> str:
     password_byte = password.encode(encoding='utf-8')
 
     salt = bcrypt.gensalt()
 
     hashed_pass = bcrypt.hashpw(password=password_byte, salt=salt)
-    return hashed_pass
+    return hashed_pass.decode(encoding='utf-8')
+
+def verifyPass(password: str, hashed_pass: str) -> bool:
+    return bcrypt.checkpw(password.encode(encoding='utf-8'), hashed_pass.encode(encoding='utf-8'))
 
 def createTokens(user: UserResponse):
     
