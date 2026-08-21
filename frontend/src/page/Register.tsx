@@ -1,6 +1,46 @@
-import { Link } from "react-router-dom";
+import { useContext, useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { toast } from "react-toast";
+import { emailRegister } from "../utils/api/userService/authAPi";
+import type { AuthResponse } from "../utils/interfaces";
+import { UserContext } from "../global/userContext";
+
 
 function Register() {
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("")
+  const [email, setEmail] = useState("")
+  const [emailError, setEmailError] = useState("")
+  const [password, setPassword] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const {user, setUser} = useContext(UserContext)
+
+
+  function submit(e: Event) {
+    e.preventDefault()
+
+    if (password !== confirmPassword) {
+      toast.error("password and confirm password should be the same")
+      setPasswordError("password and confirm password should be the same")
+      return
+    }
+    emailRegister(username, email, password).then((data: AuthResponse) => {
+      if (data.error) {
+        toast.error(data.error)
+        return
+      }
+      if (data.access_token) {
+        localStorage.setItem("accessToken", data.access_token)
+      }
+      setUser(data.user)
+    })
+  }
+
+
+  if (user)
+    Navigate({ to: "/" })
+
   return (
     <div className="min-h-screen w-full bg-inherit px-4 py-10 sm:px-6 lg:px-8 flex justify-center ">
       <div className="mx-auto flex w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl shadow-purple-950/40 backdrop-blur-xl">
@@ -34,7 +74,7 @@ function Register() {
               </p>
             </div>
 
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={(e: Event) => submit(e)}>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
                   Username
@@ -42,30 +82,32 @@ function Register() {
                 <input
                   type="text"
                   placeholder="username"
+                  onChange={(e) => setUsername(e.target.value)}
+                  value={username}
+                  required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
                 />
               </div>
+              <span>
+                {usernameError}
+              </span>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Full name
-                </label>
-                <input
-                  type="text"
-                  placeholder="Full name"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
-                />
-              </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
                   Email
                 </label>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
+                  required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
                 />
               </div>
+              <span>
+                {emailError}
+              </span>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
@@ -73,24 +115,33 @@ function Register() {
                 </label>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
+                  required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
                 />
               </div>
+              <span>
+                {passwordError}
+              </span>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
                   Confirm password
                 </label>
                 <input
                   type="password"
-                  placeholder="COnfirm your password"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
                 />
               </div>
 
               <button
-                type="button"
-                className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-4 py-3 font-semibold text-white transition hover:brightness-110"
+                type="submit"
+                className="w-full rounded-2xl bg-purple-500/50 px-4 py-3 font-semibold text-white transition hover:brightness-110"
               >
                 Continue
               </button>

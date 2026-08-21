@@ -132,7 +132,7 @@ function MovieDetails() {
             loading="lazy"
           />
         )}
-        <div className="bg-gradient-to-t from-[#000000b2] to-[#200049b2] opacity-60 z-30 absolute top-0 left-0 h-full w-full"></div>
+        <div className="bg-gradient-to-t from-[#000000b2] to-[#200049b2] z-30 absolute top-0 left-0 h-full w-full"></div>
       </div>
       <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">
         {/* movie details section*/}

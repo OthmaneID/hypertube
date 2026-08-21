@@ -1,9 +1,16 @@
+from enum import Enum
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from typing import List
+from models.User import oauthEnum 
 
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=4, max_length=15)
-    email : EmailStr
+    email: EmailStr
+    picture: str = "Default_pfp.svg"
+    oauth_provider: oauthEnum = oauthEnum.EMAIL
+    favorite_movies: List[int] = []
+    favorite_series: List[int] = []
 
 
 class UserCreate(UserBase):

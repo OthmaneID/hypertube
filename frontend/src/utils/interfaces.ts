@@ -262,3 +262,30 @@ export interface SerieDetails {
   vote_count?: number;
   error?: string;
 }
+
+
+
+export interface User {
+  id?: number;
+  email?: string;
+  username?: string;
+  picture?: string;
+  oauth_provider?: string;
+  created_at?: string;
+  error?: string;
+}
+
+
+export interface AuthResponse {
+  user?: User;
+  access_token?: string;
+  error?: string;
+
+}
+
+
+export interface AuthState {
+  user?: User;
+  isAuthenticated?: boolean;
+  isLoading?: boolean;
+}

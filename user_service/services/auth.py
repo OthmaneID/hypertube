@@ -50,7 +50,13 @@ def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider
         db.refresh(user_db)
 
         user_serialized = UserResponse.model_validate(user_db)
-        return createTokens(user_serialized)
+        tokens = createTokens(user_serialized)
+        payload = {
+            "access_token": tokens[0],
+            "user": user_serialized
+        }
+        # later save refresh token in the db so when requested it can be sent
+        return payload
     except Exception as e:
         print(e)
         return {"error": "Internal server error", "details": str(e)}
@@ -66,7 +72,12 @@ def loginEmail(request: Request, user: UserLogin, db:Session):
         if not check_pass or user_db.oauth_provider != oauthEnum.EMAIL:
             return {"error": "email/password is not correct"}
         user_serialized = UserResponse.model_validate(user_db)
-        return createTokens(user_serialized)
+        tokens = createTokens(user_serialized)
+        payload = {
+            "access_token": tokens[0],
+            "user": user_serialized
+        }
+        return payload
     except Exception as e:
         print(f"error while login: {e}")
         return {"error": "Internal server error", "details": str(e)}

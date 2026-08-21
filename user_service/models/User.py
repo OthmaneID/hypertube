@@ -20,6 +20,7 @@ class User(Base):
     id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     email : Mapped[str] = mapped_column(String, unique=True, nullable=False)
     username : Mapped[str] = mapped_column(String, nullable=False)
+    picture : Mapped[str] = mapped_column(String, default="Default_pfp.svg")
     password : Mapped[str] = mapped_column(String, nullable=True)
     oauth_provider: Mapped[oauthEnum] = Column(Enum(oauthEnum), insert_default=oauthEnum.EMAIL)
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
@@ -27,6 +28,7 @@ class User(Base):
     favorite_movies: Mapped[List[int]] = mapped_column(ARRAY(Integer), default=[])
     favorite_series: Mapped[List[int]] = mapped_column(ARRAY(Integer), default=[])
     # history: Mapped[List[Dict[str, str]]] = mapped_column(JSON, default=[])
+    # refresh_token
     watched_history : Mapped[List["History"]] = relationship(back_populates="watcher", cascade="all, delete-orphan")
     comments : Mapped[List["Comment"]] = relationship( back_populates="owner", cascade="all, delete-orphan")
 

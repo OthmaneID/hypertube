@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { SlHome } from "react-icons/sl";
 import { SlSettings } from "react-icons/sl";
 import SidebarItem from "./SidebarItem";
 import { Link } from "react-router-dom";
-import { BiSolidDoorOpen } from "react-icons/bi";
+import SidebarAuth from "./SidebarAuth";
 
 function Sidebar() {
   const [active, setActive] = useState("home");
@@ -45,21 +45,8 @@ function Sidebar() {
           onClick={() => setActive("settings")}
         />
       </div>
-      <div className="h-full w-full flex items-end">
-        <SidebarItem
-          href="/signin"
-          icon={
-            <BiSolidDoorOpen
-              className={
-                "icon text-4xl " +
-                +(active === "signin" ? "bg-purple-700 scale-105" : "")
-              }
-            />
-          }
-          isActive={active === "signin"}
-          label="Sign in"
-          onClick={() => setActive("signin")}
-        />
+      <div className="w-full h-full">
+          <SidebarAuth/>
       </div>
     </div>
   );
