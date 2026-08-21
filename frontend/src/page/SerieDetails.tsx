@@ -174,15 +174,18 @@ function SerieDetails() {
                 <BiStar className="text-yellow-400" />
               </span>
             </div>
-            <div>
+            <div className="flex flex-col items-center">
               <span
-                className="flex flex-row gap-2 items-center text-4xl bg-gray-700/40 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-700/50 active:scale-105 duration-300"
+                className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
                 title="Play Trailer"
                 onClick={() => {
                   setShowModule(true);
                 }}
               >
-                <BiCameraMovie className="text-purple-700" />
+                <BiCameraMovie className="group-hover:text-purple-500 text-purple-400" />
+              </span>
+              <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                View trailer
               </span>
             </div>
           </div>

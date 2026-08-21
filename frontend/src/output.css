@@ -1065,6 +1065,10 @@ video {
   border-width: 4px;
 }
 
+.border-2 {
+  border-width: 2px;
+}
+
 .border-b-2 {
   border-bottom-width: 2px;
 }
@@ -1084,6 +1088,11 @@ video {
 
 .border-white\/20 {
   border-color: rgb(255 255 255 / 0.2);
+}
+
+.border-red-600 {
+  --tw-border-opacity: 1;
+  border-color: rgb(220 38 38 / var(--tw-border-opacity, 1));
 }
 
 .border-t-white {
@@ -1114,6 +1123,10 @@ video {
 
 .bg-gray-300\/30 {
   background-color: rgb(209 213 219 / 0.3);
+}
+
+.bg-gray-300\/60 {
+  background-color: rgb(209 213 219 / 0.6);
 }
 
 .bg-gray-400 {
@@ -1177,6 +1190,10 @@ video {
 
 .bg-white\/5 {
   background-color: rgb(255 255 255 / 0.05);
+}
+
+.bg-gray-500\/60 {
+  background-color: rgb(107 114 128 / 0.6);
 }
 
 .bg-gradient-to-br {
@@ -1499,6 +1516,16 @@ video {
   color: rgb(250 204 21 / var(--tw-text-opacity, 1));
 }
 
+.text-purple-400 {
+  --tw-text-opacity: 1;
+  color: rgb(192 132 252 / var(--tw-text-opacity, 1));
+}
+
+.text-purple-500 {
+  --tw-text-opacity: 1;
+  color: rgb(168 85 247 / var(--tw-text-opacity, 1));
+}
+
 .opacity-0 {
   opacity: 0;
 }
@@ -1549,6 +1576,12 @@ video {
 
 .transition {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.transition-opacity {
+  transition-property: opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
@@ -1622,6 +1655,10 @@ body::-webkit-scrollbar {
   background-color: rgb(209 213 219 / 0.4);
 }
 
+.hover\:bg-gray-300\/70:hover {
+  background-color: rgb(209 213 219 / 0.7);
+}
+
 .hover\:bg-gray-400\/30:hover {
   background-color: rgb(156 163 175 / 0.3);
 }
@@ -1637,6 +1674,10 @@ body::-webkit-scrollbar {
 
 .hover\:bg-white\/10:hover {
   background-color: rgb(255 255 255 / 0.1);
+}
+
+.hover\:bg-gray-500\/70:hover {
+  background-color: rgb(107 114 128 / 0.7);
 }
 
 .hover\:text-fuchsia-300:hover {
@@ -1688,12 +1729,30 @@ body::-webkit-scrollbar {
   width: 100%;
 }
 
+.group:hover .group-hover\:text-purple-500 {
+  --tw-text-opacity: 1;
+  color: rgb(168 85 247 / var(--tw-text-opacity, 1));
+}
+
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+
 .group:hover .group-hover\:outline-2 {
   outline-width: 2px;
 }
 
 .group:hover .group-hover\:outline-white {
   outline-color: #fff;
+}
+
+.peer:hover ~ .peer-hover\:text-purple-500 {
+  --tw-text-opacity: 1;
+  color: rgb(168 85 247 / var(--tw-text-opacity, 1));
+}
+
+.peer:hover ~ .peer-hover\:opacity-100 {
+  opacity: 1;
 }
 
 @media (min-width: 640px) {

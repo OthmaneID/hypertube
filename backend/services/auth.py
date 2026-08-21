@@ -16,6 +16,22 @@ def hashPass(password: str) -> bytes:
     hashed_pass = bcrypt.hashpw(password=password_byte, salt=salt)
     return hashed_pass
 
+def createTokens(user: UserResponse):
+    
+    payload = {
+        "exp": settings.jwt_expiration,
+        "user": user.model_dump()
+    }
+
+    access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+    
+    refresh_payload = {
+        
+    }
+    return access_token, None
+    
+
+
 
 def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider: oauthEnum = oauthEnum.EMAIL) -> UserResponse:
     try:

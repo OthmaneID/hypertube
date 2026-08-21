@@ -26,6 +26,6 @@ class User(Base):
     deleted : Mapped[bool] = mapped_column(Boolean, default=False)
     favorite_movies: Mapped[List[int]] = mapped_column(ARRAY(Integer), default=[])
     favorite_series: Mapped[List[int]] = mapped_column(ARRAY(Integer), default=[])
-    history: Mapped[List[Dict[str, str]]] = mapped_column(JSON, default=[])
-
+    # history: Mapped[List[Dict[str, str]]] = mapped_column(JSON, default=[])
+    watched_history : Mapped[List["History"]] = relationship(back_populates="watcher", cascade="all, delete-orphan")
     comments : Mapped[List["Comment"]] = relationship( back_populates="owner", cascade="all, delete-orphan")
