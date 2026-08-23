@@ -11,7 +11,14 @@ interface StreamingOptionsProps {
   episodeNumber?: number | null;
 }
 
-function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, seasonNumber, episodeNumber }: StreamingOptionsProps) {
+function StreamingOptions({
+  movie_id,
+  movie_name,
+  setShowStreams,
+  showStreams,
+  seasonNumber,
+  episodeNumber,
+}: StreamingOptionsProps) {
   // Mock data - replace with actual API calls
   const mockStreams = [
     {
@@ -21,7 +28,7 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
       rating: 4.8,
       userCount: 15420,
       latency: "12ms",
-      isOfficial: true
+      isOfficial: true,
     },
     {
       provider: "Prime Video",
@@ -30,7 +37,7 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
       rating: 4.5,
       userCount: 8930,
       latency: "24ms",
-      isOfficial: true
+      isOfficial: true,
     },
     {
       provider: "Disney+",
@@ -39,7 +46,7 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
       rating: 4.7,
       userCount: 12450,
       latency: "18ms",
-      isOfficial: true
+      isOfficial: true,
     },
     {
       provider: "HBO Max",
@@ -48,7 +55,7 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
       rating: 4.3,
       userCount: 5670,
       latency: "32ms",
-      isOfficial: true
+      isOfficial: true,
     },
     {
       provider: "Hulu",
@@ -57,7 +64,7 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
       rating: 4.1,
       userCount: 3210,
       latency: "45ms",
-      isOfficial: false
+      isOfficial: false,
     },
     {
       provider: "Peacock",
@@ -66,8 +73,8 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
       rating: 4.0,
       userCount: 2890,
       latency: "38ms",
-      isOfficial: false
-    }
+      isOfficial: false,
+    },
   ];
 
   useEffect(() => {
@@ -88,7 +95,9 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
     <div
       className={
         "absolute w-full h-full z-40 top-0 left-0 duration-500 flex justify-center items-center " +
-        (showStreams ? "opacity-100 scale-100" : "opacity-0 scale-0 pointer-events-none")
+        (showStreams
+          ? "opacity-100 scale-100"
+          : "opacity-0 scale-0 pointer-events-none")
       }
     >
       <div
@@ -116,8 +125,7 @@ function StreamingOptions({ movie_id, movie_name, setShowStreams, showStreams, s
               <p className="text-gray-400 text-sm">
                 {seasonNumber && episodeNumber
                   ? `Choose your preferred streaming service for "${movie_name}" - Season ${seasonNumber}, Episode ${episodeNumber}`
-                  : `Choose your preferred streaming service for "${movie_name}"`
-                }
+                  : `Choose your preferred streaming service for "${movie_name}"`}
               </p>
             </div>
 

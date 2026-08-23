@@ -20,7 +20,10 @@ import EpisodeSelectorModal from "../components/SerieDetails/EpisodeSelectorModa
 import { BiCameraMovie, BiPlay, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
-import { getSerieCredits, getSerieDetails } from "../utils/api/movieService/seriesApi";
+import {
+  getSerieCredits,
+  getSerieDetails,
+} from "../utils/api/movieService/seriesApi";
 import TrailerModule from "../components/TrailerModule";
 
 function SerieDetails() {
@@ -130,7 +133,8 @@ function SerieDetails() {
     <>
       <div className="relative select-none scroll-smooth h-full">
         {/* back button */}
-        <div className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "
+        <div
+          className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "
           onClick={() => window.history.back()}
         >
           <BsArrowLeft className="text-gray-300" />
@@ -174,19 +178,31 @@ function SerieDetails() {
             <div className="flex flex-row justify-between  text-gray-200 font-bold text-3xl  mt-6">
               <div className="flex flex-row gap-6 items-center">
                 <span>
-                  {new Date(serie?.first_air_date ?? "").getFullYear().toString()}
+                  {new Date(serie?.first_air_date ?? "")
+                    .getFullYear()
+                    .toString()}
                   <span> - </span>
                   {serie?.status === "Ended"
                     ? new Date(serie?.last_air_date ?? "")
-                      .getFullYear()
-                      .toString()
+                        .getFullYear()
+                        .toString()
                     : "..."}
                 </span>
                 <span className="text-2xl">
-                  {serie?.number_of_seasons ?? serie?.seasons?.filter((season) => season.season_number > 0).length ?? 0} seasons
+                  {serie?.number_of_seasons ??
+                    serie?.seasons?.filter((season) => season.season_number > 0)
+                      .length ??
+                    0}{" "}
+                  seasons
                 </span>
                 <span className="text-2xl">
-                  {serie?.number_of_episodes ?? serie?.seasons?.reduce((total, season) => total + (season.episode_count ?? 0), 0) ?? 0} episodes
+                  {serie?.number_of_episodes ??
+                    serie?.seasons?.reduce(
+                      (total, season) => total + (season.episode_count ?? 0),
+                      0,
+                    ) ??
+                    0}{" "}
+                  episodes
                 </span>
                 <span className="flex flex-row">
                   {serie?.vote_average?.toFixed(1)}{" "}
@@ -232,7 +248,9 @@ function SerieDetails() {
                 <div
                   ref={genresRef}
                   className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
-                  onMouseDown={(event) => startDragging(event, genresRef.current)}
+                  onMouseDown={(event) =>
+                    startDragging(event, genresRef.current)
+                  }
                   onMouseMove={(event) => onDrag(event, genresRef.current)}
                   onMouseLeave={stopDragging}
                   onMouseUp={stopDragging}
@@ -297,7 +315,9 @@ function SerieDetails() {
                         key={index}
                       >
                         <span className="text-base">{crew.name}</span>
-                        <span className="text-sm text-gray-300">{crew.job}</span>
+                        <span className="text-sm text-gray-300">
+                          {crew.job}
+                        </span>
                       </div>
                     );
                   })}
@@ -315,11 +335,16 @@ function SerieDetails() {
         </div>
       </div>
       {/* streaming options section */}
-      {
-        showStreams && (
-          <StreamingOptions movie_id={serieId} movie_name={serie?.name ?? ""} setShowStreams={setShowStreams} showStreams={showStreams} seasonNumber={selectedSeason} episodeNumber={selectedEpisode} />
-        )
-      }
+      {showStreams && (
+        <StreamingOptions
+          movie_id={serieId}
+          movie_name={serie?.name ?? ""}
+          setShowStreams={setShowStreams}
+          showStreams={showStreams}
+          seasonNumber={selectedSeason}
+          episodeNumber={selectedEpisode}
+        />
+      )}
       {/* episode selector modal */}
       {showEpisodeSelector && (
         <EpisodeSelectorModal
