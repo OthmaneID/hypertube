@@ -14,7 +14,7 @@ import { getImageConfig, getMovieImages } from "../utils/api/movieService/images
 
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiCameraMovie, BiStar } from "react-icons/bi";
+import { BiCameraMovie, BiPlayCircle, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getMovieCredits, getMovieDetails } from "../utils/api/movieService/moviesApi";
@@ -33,6 +33,7 @@ function MovieDetails() {
   const [titleLogo, setTitleLogo] = useState<Image>();
   const [credits, setCredits] = useState<ICredits>();
   const [showModule, setShowModule] = useState(false);
+  const [showStreamingOptions, setShowStreamingOptions] = useState(false);
   const [isLoading, setIsLoading] = useState(false)
 
   const genresRef = useRef<HTMLDivElement | null>(null);
@@ -136,7 +137,7 @@ function MovieDetails() {
       </div>
       <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">
         {/* movie details section*/}
-        <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-3/4 min-w-[500px]">
+        <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-full min-w-[500px]">
           <div className="pt-5 gap-6 flex flex-row w-full justify-between">
             {/* here should be the logo */}
             {titleLogo?.file_path ? (
@@ -167,19 +168,35 @@ function MovieDetails() {
                 <BiStar className="text-yellow-400" />
               </span>
             </div>
-            <div className="flex flex-col items-center">
-              <span
-                className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                title="Play Trailer"
-                onClick={() => {
-                  setShowModule(true);
-                }}
-              >
-                <BiCameraMovie className="group-hover:text-purple-500 text-purple-400" />
-              </span>
-              <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                View trailer
-              </span>
+            <div className="flex flex-row gap-4">
+              <div className="flex flex-col items-center">
+                <span
+                  className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
+                  title="Play Trailer"
+                  onClick={() => {
+                    setShowModule(true);
+                  }}
+                >
+                  <BiCameraMovie className="group-hover:text-purple-500 text-purple-400" />
+                </span>
+                <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                  View trailer
+                </span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span
+                  className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
+                  title="Available Streams"
+                  onClick={() => {
+                    setShowStreamingOptions(true);
+                  }}
+                >
+                  <BiPlayCircle className="group-hover:text-purple-500 text-purple-400" />
+                </span>
+                <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                  Available streams
+                </span>
+              </div>
             </div>
           </div>
           <div className="w-full flex flex-col gap-4 items-start">
@@ -270,9 +287,16 @@ function MovieDetails() {
             <span className="text-2xl ">{movie?.overview}</span>
           </div>
         </div>
-        {/* streaming options section */}
-        <StreamingOptions movie_id={movieId} movie_name={movie?.title ?? ""} />
       </div>
+      {/* streaming options module */}
+      {showStreamingOptions && (
+        <StreamingOptions
+          movie_id={movieId}
+          movie_name={movie?.title ?? ""}
+          show={showStreamingOptions}
+          setShow={setShowStreamingOptions}
+        />
+      )}
       {/* trailer module */}
       {showModule && (
         <TrailerModule
