@@ -16,7 +16,8 @@ import {
 } from "../utils/api/movieService/imagesApi";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiCameraMovie, BiStar } from "react-icons/bi";
+import EpisodeSelectorModal from "../components/SerieDetails/EpisodeSelectorModal";
+import { BiCameraMovie, BiPlay, BiStar } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getSerieCredits, getSerieDetails } from "../utils/api/movieService/seriesApi";
@@ -35,6 +36,10 @@ function SerieDetails() {
   const [titleLogo, setTitleLogo] = useState<Image>();
   const [credits, setCredits] = useState<ICredits>();
   const [showModule, setShowModule] = useState(false);
+  const [showStreams, setShowStreams] = useState(false);
+  const [showEpisodeSelector, setShowEpisodeSelector] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const genresRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +58,6 @@ function SerieDetails() {
   useEffect(() => {
     const seriePromise = getSerieDetails(serieId).then((data) => {
       setSerie(data);
-      console.log(data);
     });
     const imageConfigPromise = getImageConfig().then((data) => {
       setImageConfig(data);
@@ -105,6 +109,13 @@ function SerieDetails() {
     dragState.current.isDragging = false;
   };
 
+  const handleEpisodeSelect = (seasonNumber: number, episodeNumber: number) => {
+    setSelectedSeason(seasonNumber);
+    setSelectedEpisode(episodeNumber);
+    setShowEpisodeSelector(false);
+    setShowStreams(true);
+  };
+
   if (isLoading)
     return (
       <div className="w-full flex justify-center items-center py-20">
@@ -116,169 +127,208 @@ function SerieDetails() {
     );
 
   return (
-    <div className="relative select-none scroll-smooth">
-      <div
-        className="absolute left-1 top-0 z-[60] text-5xl font-bold text-gray-300 cursor-pointer w-[60px] h-[50px] flex "
-        onClick={() => window.history.back()}
-      >
-        <BsArrowLeft className="[-webkit-text-stroke:0.5px_purple] " />
-      </div>
-      {/* backdrop image */}
-      <div className="bg-cover h-screen w-full z-20 absolute top-0 left-0">
-        {serie?.backdrop_path !== null && (
-          <img
-            src={image_baseUrl + backdrop_size + serie?.backdrop_path}
-            alt={serie?.name}
-            className="h-full w-full bg-cover bg-center bg-no-repeat"
-            loading="lazy"
-          />
-        )}
-        <div className="bg-gradient-to-t from-[#000000b2] to-[#200049b2] z-30 absolute top-0 left-0 h-full w-full"></div>
-      </div>
-      <div className="absolute z-50 top-0  left-0 flex w-full h-screen flex-row flex-wrap overflow-auto">
-        {/* serie details section*/}
-        <div className=" h-screen py-5 px-6 flex flex-col justify-between  w-3/4 min-w-[500px]">
-          <div className="pt-5 gap-6 flex flex-row w-full justify-between">
-            {/* here should be the logo */}
-            {titleLogo?.file_path ? (
-              <img
-                src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
-                alt={serie?.name}
-                className="w-[600px]"
-                loading="lazy"
-              />
-            ) : (
-              <span className="text-[50px] font-bold text-gray-200 [-webkit-text-stroke:0.5px_purple] ">
-                {serie?.name}
-              </span>
-            )}
-            <span className="px-4 py-2 text-purple-300 font-bold text-2xl  h-8 rounded-xl bg-gray-400/40 flex items-center justify-center">
-              {serie?.status}
-            </span>
-          </div>
-          {/* runtime, date, vote, trailer */}
-          <div className="flex flex-row justify-between  text-gray-200 font-bold text-3xl  mt-6">
-            <div className="flex flex-row gap-6 items-center">
-              <span>
-                {new Date(serie?.first_air_date ?? "").getFullYear().toString()}
-                <span> - </span>
-                {serie?.status === "Ended"
-                  ? new Date(serie?.last_air_date ?? "")
-                    .getFullYear()
-                    .toString()
-                  : "..."}
-              </span>
-              <span className="flex flex-row">
-                {serie?.vote_average?.toFixed(1)}{" "}
-                <BiStar className="text-yellow-400" />
+    <>
+      <div className="relative select-none scroll-smooth h-full">
+        {/* back button */}
+        <div className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "
+          onClick={() => window.history.back()}
+        >
+          <BsArrowLeft className="text-gray-300" />
+        </div>
+
+        {/* backdrop image */}
+        <div className="absolute top-0 left-0 bg-cover h-full w-full ">
+          {serie?.backdrop_path !== null && (
+            <img
+              src={image_baseUrl + backdrop_size + serie?.backdrop_path}
+              alt={serie?.name}
+              className="h-full w-full bg-cover bg-center bg-no-repeat"
+              loading="lazy"
+            />
+          )}
+          <div className="bg-linear-to-t from-black/70 to-black/40 absolute top-0 left-0 h-full w-full"></div>
+        </div>
+        <div className="relative z-30 w-full h-full overflow-auto">
+          {/* serie details section*/}
+          <div className="h-full py-5 px-6 flex flex-col justify-between w-full">
+            <div className="pt-5 gap-6 flex flex-row w-full justify-between">
+              {/* here should be the logo */}
+              {titleLogo?.file_path ? (
+                <img
+                  src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
+                  alt={serie?.name}
+                  width="600px"
+                  height="auto"
+                  loading="lazy"
+                />
+              ) : (
+                <span className="text-[50px] font-bold text-gray-200">
+                  {serie?.name}
+                </span>
+              )}
+              <span className="px-4 py-2 text-white font-bold text-2xl  h-8 rounded-xl bg-gray-700 flex items-center justify-center">
+                {serie?.status}
               </span>
             </div>
-            <div className="flex flex-col items-center">
-              <span
-                className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                title="Play Trailer"
-                onClick={() => {
-                  setShowModule(true);
-                }}
-              >
-                <BiCameraMovie className="group-hover:text-purple-500 text-purple-400" />
-              </span>
-              <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                View trailer
-              </span>
-            </div>
-          </div>
-          <div className="w-full flex flex-col gap-4 items-start">
-            <div className="flex flex-col gap-2 w-full ">
-              <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
-                Genres
-              </span>
-              <div
-                ref={genresRef}
-                className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
-                onMouseDown={(event) => startDragging(event, genresRef.current)}
-                onMouseMove={(event) => onDrag(event, genresRef.current)}
-                onMouseLeave={stopDragging}
-                onMouseUp={stopDragging}
-              >
-                {serie?.genres?.map((genre, index) => {
-                  return (
-                    <span
-                      className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center flex-shrink-0"
-                      key={index}
-                    >
-                      {genre.name}
-                    </span>
-                  );
-                })}
+            {/* date, season and episode totals, vote, trailer, streams */}
+            <div className="flex flex-row justify-between  text-gray-200 font-bold text-3xl  mt-6">
+              <div className="flex flex-row gap-6 items-center">
+                <span>
+                  {new Date(serie?.first_air_date ?? "").getFullYear().toString()}
+                  <span> - </span>
+                  {serie?.status === "Ended"
+                    ? new Date(serie?.last_air_date ?? "")
+                      .getFullYear()
+                      .toString()
+                    : "..."}
+                </span>
+                <span className="text-2xl">
+                  {serie?.number_of_seasons ?? serie?.seasons?.filter((season) => season.season_number > 0).length ?? 0} seasons
+                </span>
+                <span className="text-2xl">
+                  {serie?.number_of_episodes ?? serie?.seasons?.reduce((total, season) => total + (season.episode_count ?? 0), 0) ?? 0} episodes
+                </span>
+                <span className="flex flex-row">
+                  {serie?.vote_average?.toFixed(1)}{" "}
+                  <BiStar className="text-yellow-400" />
+                </span>
+              </div>
+              <div className="flex flex-row gap-5 items-center">
+                <div>
+                  <span
+                    className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
+                    title="Play Trailer"
+                    onClick={() => {
+                      setShowModule(true);
+                    }}
+                  >
+                    <BiCameraMovie className="group-hover:text-white text-gray-300" />
+                  </span>
+                  <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                    View trailer
+                  </span>
+                </div>
+                <div>
+                  <span
+                    className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
+                    title="Select Episode"
+                    onClick={() => {
+                      setShowEpisodeSelector(true);
+                    }}
+                  >
+                    <BiPlay className="group-hover:text-white text-gray-300" />
+                  </span>
+                  <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                    Select Episode
+                  </span>
+                </div>
               </div>
             </div>
-
-            <div className="flex flex-col gap-2 w-full">
-              <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
-                Cast
-              </span>
-              <div
-                ref={castRef}
-                className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
-                onMouseDown={(event) => startDragging(event, castRef.current)}
-                onMouseMove={(event) => onDrag(event, castRef.current)}
-                onMouseLeave={stopDragging}
-                onMouseUp={stopDragging}
-              >
-                {credits?.cast?.map((cast, index) => {
-                  return (
-                    <div
-                      className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
-                      key={index}
-                    >
-                      <span className="text-base">{cast.name}</span>
-                      <span className="text-sm text-gray-300">
-                        {cast.character}
+            <div className="w-full flex flex-col gap-4 items-start">
+              <div className="flex flex-col gap-2 w-full ">
+                <span className="text-2xl text-gray-300 font-semibold">
+                  Genres
+                </span>
+                <div
+                  ref={genresRef}
+                  className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
+                  onMouseDown={(event) => startDragging(event, genresRef.current)}
+                  onMouseMove={(event) => onDrag(event, genresRef.current)}
+                  onMouseLeave={stopDragging}
+                  onMouseUp={stopDragging}
+                >
+                  {serie?.genres?.map((genre, index) => {
+                    return (
+                      <span
+                        className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center shrink-0"
+                        key={index}
+                      >
+                        {genre.name}
                       </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-2 w-full">
-              <span className="text-2xl text-gray-300 font-semibold [-webkit-text-stroke:0.5px_purple]">
-                Crew
-              </span>
-              <div
-                ref={crewRef}
-                className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
-                onMouseDown={(event) => startDragging(event, crewRef.current)}
-                onMouseMove={(event) => onDrag(event, crewRef.current)}
-                onMouseLeave={stopDragging}
-                onMouseUp={stopDragging}
-              >
-                {credits?.crew?.map((crew, index) => {
-                  return (
-                    <div
-                      className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left flex-shrink-0 flex flex-col justify-center"
-                      key={index}
-                    >
-                      <span className="text-base">{crew.name}</span>
-                      <span className="text-sm text-gray-300">{crew.job}</span>
-                    </div>
-                  );
-                })}
+              <div className="flex flex-col gap-2 w-full">
+                <span className="text-2xl text-gray-300 font-semibold">
+                  Cast
+                </span>
+                <div
+                  ref={castRef}
+                  className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
+                  onMouseDown={(event) => startDragging(event, castRef.current)}
+                  onMouseMove={(event) => onDrag(event, castRef.current)}
+                  onMouseLeave={stopDragging}
+                  onMouseUp={stopDragging}
+                >
+                  {credits?.cast?.map((cast, index) => {
+                    return (
+                      <div
+                        className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left shrink-0 flex flex-col justify-center"
+                        key={index}
+                      >
+                        <span className="text-base">{cast.name}</span>
+                        <span className="text-sm text-gray-300">
+                          {cast.character}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 w-full">
+                <span className="text-2xl text-gray-300 font-semibold">
+                  Crew
+                </span>
+                <div
+                  ref={crewRef}
+                  className="flex flex-row gap-3 overflow-x-auto overflow-y-hidden pb-2 cursor-grab active:cursor-grabbing"
+                  onMouseDown={(event) => startDragging(event, crewRef.current)}
+                  onMouseMove={(event) => onDrag(event, crewRef.current)}
+                  onMouseLeave={stopDragging}
+                  onMouseUp={stopDragging}
+                >
+                  {credits?.crew?.map((crew, index) => {
+                    return (
+                      <div
+                        className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left shrink-0 flex flex-col justify-center"
+                        key={index}
+                      >
+                        <span className="text-base">{crew.name}</span>
+                        <span className="text-sm text-gray-300">{crew.job}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-          {/* overview */}
-          <div className=" flex flex-col w-full rounded-2xl py-2 px-4 bg-gray-50/50 ">
-            <span className="text-3xl text-gray-800 font-semibold mb-2">
-              summary
-            </span>
-            <span className="text-2xl">{serie?.overview}</span>
+            {/* overview */}
+            <div className=" flex flex-col w-full rounded-2xl py-2 px-4 bg-gray-50/50 ">
+              <span className="text-3xl text-gray-800 font-semibold mb-2">
+                summary
+              </span>
+              <span className="text-2xl ">{serie?.overview}</span>
+            </div>
           </div>
         </div>
-        {/* streaming options section */}
-        <StreamingOptions movie_id={serieId} movie_name={serie?.name ?? ""} />
       </div>
+      {/* streaming options section */}
+      {
+        showStreams && (
+          <StreamingOptions movie_id={serieId} movie_name={serie?.name ?? ""} setShowStreams={setShowStreams} showStreams={showStreams} seasonNumber={selectedSeason} episodeNumber={selectedEpisode} />
+        )
+      }
+      {/* episode selector modal */}
+      {showEpisodeSelector && (
+        <EpisodeSelectorModal
+          serie={serie!}
+          show={showEpisodeSelector}
+          setShow={setShowEpisodeSelector}
+          onEpisodeSelect={handleEpisodeSelect}
+        />
+      )}
       {/* trailer module */}
       {showModule && (
         <TrailerModule
@@ -288,7 +338,7 @@ function SerieDetails() {
           setShow={setShowModule}
         />
       )}
-    </div>
+    </>
   );
 }
 

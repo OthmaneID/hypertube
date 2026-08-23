@@ -16,7 +16,7 @@ import { ToastContainer } from "react-toast";
 
 function App() {
   return (
-    <div className="bg-gradient-to-tr bg-no-repeat from-[#08000e] to-[#1d002e] p-0 m-0 min-h-screen">
+    <div className="bg-black p-0 m-0 min-h-screen">
       <UserProvider>
         <ImageConfigProvider>
           <div className="flex flex-row gap-0 w-full h-screen">
@@ -42,7 +42,7 @@ function App() {
           </div>
         </ImageConfigProvider>
       </UserProvider>
-      <ToastContainer position="bottom-right"/>
+      <ToastContainer position="bottom-right" />
     </div>
   );
 }

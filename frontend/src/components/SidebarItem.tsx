@@ -18,8 +18,8 @@ function SidebarItem({
       to={href}
       onClick={onClick}
       className={
-        "group cursor-pointer h-16 w-full rounded-md flex flex-col items-center justify-center duration-200 hover:bg-gray-400/30 active:scale-105 " +
-        (isActive ? "text-purple-700 bg-gray-400/30 " : "text-gray-400")
+        "group cursor-pointer h-16 w-full rounded-md flex flex-col items-center justify-center duration-200 hover:bg-gray-800 active:scale-105 " +
+        (isActive ? "text-white bg-gray-800 " : "text-gray-400")
       }
     >
       {icon}

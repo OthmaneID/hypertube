@@ -26,10 +26,10 @@ function PopularMovies() {
           to="/movies"
           className="text-lg text-gray-400 hover:text-white transition duration-300"
         >
-          See All <BiChevronRight className="inline-block ml-1" />
+          See All <BiChevronRight className="ml-1" />
         </Link>
       </div>
-      <div className="flex flex-row items-center h-[300px] overflow-auto gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-center h-85 overflow-auto gap-2 border-b-2 border-gray-600">
         {Movies.results.map((movie, index) => (
           <MovieCard
             url={"/movies/" + movie.id}

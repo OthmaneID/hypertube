@@ -1,12 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 /* Global scrollbar defaults (kept subtle) */
 body::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  scrollbar-color: rgba(124, 58, 237, 0.9) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 /* Top scrollbar on horizontal `.popular-movies` containers.
@@ -14,12 +31,14 @@ body::-webkit-scrollbar {
    then rotate the children back so content reads normally. */
 .popular-movies {
   overflow-x: auto;
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba(124, 58, 237, 0.9) transparent;
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 ::-webkit-scrollbar {
-  height: 10px; /* horizontal scrollbar height */
+  height: 10px;
+  /* horizontal scrollbar height */
   background: transparent;
 }
 
@@ -28,15 +47,37 @@ body::-webkit-scrollbar {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #7c3aed, #1e40af);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 9999px;
   border: 2px solid rgba(0, 0, 0, 0.15);
 }
 
-* {
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Custom scrollbar for streaming options */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  border: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+html {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-
-

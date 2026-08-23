@@ -25,12 +25,12 @@ function SignIn() {
 
 
   if (user)
-    Navigate({to:"/"})
+    Navigate({ to: "/" })
 
   return (
     <div className="min-h-screen w-full bg-inherit px-4 py-10 sm:px-6 lg:px-8 flex justify-center ">
-      <div className="mx-auto flex w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl shadow-purple-950/40 backdrop-blur-xl">
-        <div className="flex flex-1 flex-col justify-between  bg-gradient-to-br from-[#14011fa9] via-[#2b0038a9] to-[#3f003ba9] p-8 sm:p-10 lg:p-12">
+      <div className="mx-auto flex w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-1 flex-col justify-between  bg-gray-900 p-8 sm:p-10 lg:p-12">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Welcome back
@@ -70,7 +70,7 @@ function SignIn() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
               </div>
 
@@ -83,13 +83,13 @@ function SignIn() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/30"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-2xl bg-purple-500/50 px-4 py-3 font-semibold text-white transition hover:brightness-110"
+                className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200"
               >
                 Continue
               </button>
@@ -118,7 +118,7 @@ function SignIn() {
               New here?{" "}
               <Link
                 to="/register"
-                className="font-medium text-fuchsia-400 hover:text-fuchsia-300"
+                className="font-medium text-white hover:text-gray-300"
               >
                 Create an account
               </Link>

@@ -29,7 +29,7 @@ function PopularSeries() {
           See All <BiChevronRight className="inline-block ml-1" />
         </Link>
       </div>
-      <div className="flex flex-row items-center h-[300px] overflow-auto gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-center h-85 overflow-auto gap-2 border-b-2 border-gray-600">
         {Series.results.map((serie, index) => (
           <Card
             url={"/series/" + serie.id}

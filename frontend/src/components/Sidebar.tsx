@@ -1,52 +1,40 @@
-import { useContext, useState } from "react";
-import { SlHome } from "react-icons/sl";
-import { SlSettings } from "react-icons/sl";
-import SidebarItem from "./SidebarItem";
-import { Link } from "react-router-dom";
+import { Home, Settings } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import SidebarAuth from "./SidebarAuth";
 
 function Sidebar() {
-  const [active, setActive] = useState("home");
+  const location = useLocation();
 
   return (
-    <div className="sidebar  min-w-[80px] min-h-screen flex flex-col justify-start items-center gap-16  py-6 px-1 bg-gradient-to-tr from-[#18001d] to-[#1b002e]">
-      <Link to="/">
-        <img src="../public/favicon.svg" alt="" className="h-10" />
+    <div className="w-20 min-h-screen bg-black border-r border-gray-800 flex flex-col items-center py-6 gap-8">
+      <Link to="/" className="text-white hover:text-gray-300 transition-colors">
+        <Home size={28} />
       </Link>
 
-      <div className="h-full w-full flex flex-col items-center justify-center gap-24 ">
-        <SidebarItem
-          href="/"
-          icon={
-            <SlHome
-              className={
-                "icon text-4xl " +
-                +(active === "home" ? "bg-purple-700 scale-105" : "")
-              }
-            />
-          }
-          isActive={active === "home"}
-          label="Home"
-          onClick={() => setActive("home")}
-        />
+      <nav className="flex-1 flex flex-col gap-6 w-full items-center">
+        <Link
+          to="/"
+          className={`p-3 rounded-xl transition-all ${location.pathname === "/"
+            ? "bg-white text-black"
+            : "text-gray-400 hover:text-white hover:bg-gray-800"
+            }`}
+        >
+          <Home size={24} />
+        </Link>
 
-        <SidebarItem
-          href="/settings"
-          icon={
-            <SlSettings
-              className={
-                "icon text-4xl " +
-                +(active === "settings" ? "bg-purple-700 scale-105" : "")
-              }
-            />
-          }
-          isActive={active === "settings"}
-          label="Settings"
-          onClick={() => setActive("settings")}
-        />
-      </div>
-      <div className="w-full h-full">
-          <SidebarAuth/>
+        <Link
+          to="/settings"
+          className={`p-3 rounded-xl transition-all ${location.pathname === "/settings"
+            ? "bg-white text-black"
+            : "text-gray-400 hover:text-white hover:bg-gray-800"
+            }`}
+        >
+          <Settings size={24} />
+        </Link>
+      </nav>
+
+      <div className="w-full flex justify-center">
+        <SidebarAuth />
       </div>
     </div>
   );

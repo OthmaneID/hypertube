@@ -9,7 +9,7 @@ function NavBar() {
           type="text"
           id="search"
           placeholder="Search ..."
-          className="bg-transparent outline-none w-full active:none focus:outline-none text-gray-200"
+          className="bg-transparent outline-hidden w-full active:none focus:outline-hidden text-gray-200"
           autoComplete="off"
           autoCorrect="False"
         />

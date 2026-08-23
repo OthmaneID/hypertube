@@ -112,7 +112,7 @@ function TrailerModule({
   return (
     <div
       className={
-        "absolute w-full h-screen z-[60] top-0 left-0  duration-500  flex justify-center items-center " +
+        "absolute w-full h-screen z-60 top-0 left-0  duration-500  flex justify-center items-center " +
         (show ? "opacity-100 scale-100" : "opacity-0 scale-0")
       }
     >
@@ -125,24 +125,24 @@ function TrailerModule({
       <div
         id="trailer-module"
         ref={trailer_moduleRef}
-        className=" relative container h-full w-full z-[70] rounded-2xl overflow-y-auto"
+        className=" relative container h-full w-full z-70 rounded-2xl overflow-y-auto"
       >
         {/* close btn */}
         <span
-          className="absolute top-3 right-3 z-[100]] rounded-full bg-gray-400 font-bold text-3xl hover:bg-gray-500 active:scale-105 cursor-pointer"
+          className="absolute top-3 right-3 z-100] rounded-full bg-gray-400 font-bold text-3xl hover:bg-gray-500 active:scale-105 cursor-pointer"
           onClick={() => setShow(false)}
           title="Close"
           aria-label="Close"
         >
           <BiX />
         </span>
-        <div className="flex flex-row flex-wrap items-center gap-6 z-[75] h-full">
+        <div className="flex flex-row flex-wrap items-center gap-6 z-75 h-full">
           {trailers.current.length === 0 && !isLoading ? (
             <div className="flex flex-col justify-center items-center gap-4 w-full h-[90%]">
               <h1 className="text-gray-400 text-2xl">No trailers found</h1>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 w-full h-[90%] z-[75]">
+            <div className="flex flex-col gap-2 w-full h-[90%] z-75">
               <div ref={video_parent} className="w-full h-[90%]">
                 {isLoading ? (
                   <div className="w-full h-[90%] flex justify-center items-center">
@@ -154,7 +154,7 @@ function TrailerModule({
                     ref={video}
                     width={video_parent.current?.clientWidth}
                     height={video_parent.current?.clientHeight}
-                    className="rounded-lg z-[75]"
+                    className="rounded-lg z-75"
                     src={
                       "https://www.youtube.com/embed/" +
                       trailers.current?.at(currentIndex)?.key

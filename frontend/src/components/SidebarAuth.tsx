@@ -22,11 +22,11 @@ function SidebarAuth() {
                             <img
                                 src={user.picture}
                                 alt="Profile"
-                                className="w-14 h-14 rounded-full object-cover border-2 border-purple-500/50"
+                                className="w-14 h-14 rounded-full object-cover border-2 border-gray-600"
                             />
                         ) : (
-                            <div className="w-14 h-14 rounded-full bg-purple-500/30 flex items-center justify-center">
-                                <BiSolidUser className="text-purple-300 text-xl" />
+                            <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center">
+                                <BiSolidUser className="text-gray-300 text-xl" />
                             </div>
                         )}
                         <span className="text-xs text-gray-400 mt-1 truncate w-full text-center">
@@ -35,7 +35,7 @@ function SidebarAuth() {
                     </div>
                     <button
                         onClick={handleLogout}
-                        className="group cursor-pointer h-16 w-full rounded-md flex flex-col items-center justify-center duration-200 hover:bg-gray-400/30 active:scale-105 text-gray-400 hover:text-red-400"
+                        className="group cursor-pointer h-16 w-full rounded-md flex flex-col items-center justify-center duration-200 hover:bg-gray-800 active:scale-105 text-gray-400"
                     >
                         <BiLogOut className="text-2xl" />
                         <span className="group-hover:w-full overflow-hidden duration-150 text-center text-xs font-semibold text-nowrap w-0">
