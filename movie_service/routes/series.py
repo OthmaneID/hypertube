@@ -1,6 +1,6 @@
 from fastapi.routing import APIRouter
 from fastapi.requests import Request
-from services.Series import GetSeries, getSerieDetails, getSerieCredits, getSerieVideos
+from services.Series import GetSeries, getSerieDetails, getSerieCredits, getSerieVideos, getSerieSeason
 
 
 router = APIRouter(prefix="/series")
@@ -22,3 +22,8 @@ def get_serie_credits(request:Request, serie_id:int):
 @router.get("/videos/{serie_id}")
 def get_serie_videos(request:Request, serie_id:int):
     return getSerieVideos(request, serie_id)
+
+
+@router.get("/{serie_id}/season/{season_number}")
+def get_serie_season(request:Request, serie_id:int, season_number:int):
+    return getSerieSeason(request, serie_id, season_number)

@@ -1,3 +1,4 @@
+
 export interface Movie {
   adult?: boolean;
   backdrop_path?: string;
@@ -264,6 +265,40 @@ export interface SerieDetails {
 }
 
 
+export interface Episode {
+  id?: number,
+  name?: string,
+  air_date?: string,
+  episode_number?: number,
+  episode_type?: string,
+  overview?: string,
+  production_code?: string,
+  runtime?: number,
+  season_number?: number,
+  show_id?: number,
+  still_path?: string,
+  vote_average?: number,
+  vote_count?: number,
+  crew?: Array<Crew>;
+  guest_stars?: Array<any>;
+  error?: string;
+
+}
+export interface SerieSeasonDetails {
+  _id?: string;
+  id?: number;
+  air_date?: string;
+  episodes?: Array<Episode>;
+  name?: string;
+  networks?: any;
+  overview?: string;
+  poster_path?: string;
+  vote_average?: number;
+  season_number?: number;
+  error?: string;
+}
+
+
 
 export interface User {
   id?: number;
@@ -289,3 +324,8 @@ export interface AuthState {
   isAuthenticated?: boolean;
   isLoading?: boolean;
 }
+
+
+
+
+

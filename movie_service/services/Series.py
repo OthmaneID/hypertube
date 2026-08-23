@@ -94,3 +94,26 @@ def getSerieVideos(request:Request, serie_id:int):
     except Exception as e:
         print("error while fetching serie videos : ", e)
         return data
+
+
+
+
+
+def getSerieSeason(request: Request, serie_id: int, season_number: int):
+    rd : redis.Redis = request.app.state.redis
+    request_url = f"{settings.api_base_url}/tv/{serie_id}/season/{season_number}?language=en-US"
+    rd_name = f"serie_season_{serie_id}_{season_number}"
+    try:
+        if rd is not None and rd.get(rd_name):
+            return json.loads(rd.get(rd_name))
+    except Exception as e:
+        pass  
+    res = requests.get(request_url, headers=headers)
+    data = res.json()
+    try:
+        if data:
+            rd.setex(rd_name, 60 * 60 * 6, json.dumps(data))
+        return data
+    except Exception as e:
+        print("error while fetching serie season : ", e)
+        return data

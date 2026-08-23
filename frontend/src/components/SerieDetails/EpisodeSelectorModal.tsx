@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { SerieDetails } from '../../utils/interfaces';
+import type { SerieDetails, SerieSeasonDetails, Episode } from '../../utils/interfaces';
 import { IoClose } from 'react-icons/io5';
-import { getSeasonDetails, type SeasonDetails } from '../../utils/api/movieService/seriesApi';
+import { getSeasonDetails } from '../../utils/api/movieService/seriesApi';
+
+
 
 interface EpisodeSelectorModalProps {
   serie: SerieDetails;
@@ -16,7 +18,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
     seasons[0]?.season_number ?? null,
   );
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
-  const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
+  const [seasonDetails, setSeasonDetails] = useState<SerieSeasonDetails | null>(null);
   const [isLoadingSeason, setIsLoadingSeason] = useState(false);
 
   const currentSeason = seasons.find(s => s.season_number === selectedSeason) || seasons[0];
@@ -57,15 +59,6 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
 
     setSelectedEpisode(episodeNumber);
     onEpisodeSelect(selectedSeason, episodeNumber);
-  };
-
-  const generateEpisodes = (episodeCount: number) => {
-    return Array.from({ length: episodeCount }, (_, i) => i + 1);
-  };
-
-  const getEpisodeName = (episodeNumber: number) => {
-    const episode = seasonDetails?.episodes?.find(ep => ep.episode_number === episodeNumber);
-    return episode?.name || `Episode ${episodeNumber}`;
   };
 
   if (!show) return null;
@@ -121,17 +114,17 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                   Season {currentSeason.season_number} Episodes
                 </h3>
                 <span className="text-sm text-gray-400">
-                  {currentSeason.episode_count} episodes
+                  {seasonDetails?.episodes?.length || currentSeason.episode_count} episodes
                 </span>
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
                 {isLoadingSeason ? (
-                  <div className="flex items-center justify-center py-8">
+                  <div className="w-full h-full flex items-center justify-center py-8">
                     <div className="h-8 w-8 rounded-full border-4 border-white/20 border-t-white animate-spin" />
                   </div>
-                ) : (
-                  generateEpisodes(currentSeason.episode_count || 0).map((episodeNumber) => {
+                ) : seasonDetails?.episodes && seasonDetails.episodes.length > 0 ? (
+                  seasonDetails.episodes.map((episode: Episode) => {
                     // Check if episode has aired
                     const lastAiredSeason = serie.last_episode_to_air?.season_number;
                     const lastAiredEpisode = serie.last_episode_to_air?.episode_number;
@@ -139,41 +132,45 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                     const isEpisodeAired =
                       lastAiredSeason && lastAiredEpisode &&
                       (currentSeason.season_number! < lastAiredSeason ||
-                        (currentSeason.season_number === lastAiredSeason && episodeNumber <= lastAiredEpisode));
+                        (currentSeason.season_number === lastAiredSeason && episode.episode_number! <= lastAiredEpisode));
 
-                    const episodeName = getEpisodeName(episodeNumber);
+                    const episodeName = episode.name || `Episode ${episode.episode_number}`;
+                    const episodeAirDate = episode.air_date;
 
                     return (
                       <button
-                        key={episodeNumber}
-                        onClick={() => handleEpisodeClick(episodeNumber)}
+                        key={episode.episode_number}
+                        onClick={() => handleEpisodeClick(episode.episode_number!)}
                         disabled={!isEpisodeAired}
-                        className={`w-full text-left p-4 rounded-xl transition-all border ${selectedEpisode === episodeNumber
-                            ? 'bg-gray-800 border-white'
-                            : isEpisodeAired
-                              ? 'bg-gray-800/50 border-transparent hover:bg-gray-800'
-                              : 'bg-gray-800/30 border-transparent cursor-not-allowed opacity-60'
+                        className={`w-full text-left p-4 rounded-xl transition-all border ${selectedEpisode === episode.episode_number
+                          ? 'bg-gray-800 border-white'
+                          : isEpisodeAired
+                            ? 'bg-gray-800/50 border-transparent hover:bg-gray-800'
+                            : 'bg-gray-800/30 border-transparent cursor-not-allowed opacity-60'
                           }`}
                       >
                         <div className="flex items-center gap-4">
                           <div className={`shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${isEpisodeAired ? 'bg-gray-700' : 'bg-gray-800'
                             }`}>
-                            <span className="text-white text-lg font-bold">{episodeNumber}</span>
+                            <span className="text-white text-lg font-bold">{episode.episode_number}</span>
                           </div>
                           <div className="flex-1">
                             <h4 className={`font-medium ${isEpisodeAired ? 'text-white' : 'text-gray-400'}`}>
                               {episodeName}
                             </h4>
-                            <p className="text-gray-400 text-sm mt-1">
-                              S{currentSeason.season_number} E{episodeNumber}
-                            </p>
-                            {!isEpisodeAired && (
-                              <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
-                                Not aired yet
-                              </span>
-                            )}
+                            <div className="flex items-center w-full justify-between">
+                              <p className="text-gray-400 text-sm mt-1">
+                                S{currentSeason.season_number} E{episode.episode_number}
+                              </p>
+                              {!isEpisodeAired && episodeAirDate && (
+                                <span className="inline-block mt-1 px-2 py-1 bg-purple-500/20 font-semibold text-purple-300  text-md rounded-full">
+                                  {new Date(episodeAirDate).toLocaleDateString()}
+                                </span>
+                              )}
+
+                            </div>
                           </div>
-                          {selectedEpisode === episodeNumber && isEpisodeAired && (
+                          {selectedEpisode === episode.episode_number && isEpisodeAired && (
                             <div className="shrink-0">
                               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                                 <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
@@ -186,6 +183,8 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                       </button>
                     );
                   })
+                ) : (
+                  <div className="w-full h-full flex justify-center items-center text-center text-gray-400 py-4">No episodes available</div>
                 )}
               </div>
             </div>

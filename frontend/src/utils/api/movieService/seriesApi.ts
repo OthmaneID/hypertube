@@ -1,29 +1,5 @@
 import { axiosMovieService } from "../../axiosInstance";
-import type { Credits, MovieTrailers, PopularSeriesResponse, SerieDetails } from "../../interfaces";
-
-export interface SeasonDetails {
-  _id?: string;
-  air_date?: string;
-  episodes?: Array<{
-    air_date?: string;
-    episode_number?: number;
-    id?: number;
-    name?: string;
-    overview?: string;
-    production_code?: string;
-    runtime?: number;
-    season_number?: number;
-    still_path?: string;
-    vote_average?: number;
-    vote_count?: number;
-  }>;
-  name?: string;
-  overview?: string;
-  poster_path?: string;
-  season_number?: number;
-  vote_average?: number;
-  error?: string;
-}
+import type { Credits, MovieTrailers, PopularSeriesResponse, SerieDetails, SerieSeasonDetails } from "../../interfaces";
 
 
 
@@ -70,7 +46,7 @@ export async function getSerieTrailers(serie_id: number): Promise<MovieTrailers>
   }
 }
 
-export async function getSeasonDetails(serie_id: number, season_number: number): Promise<SeasonDetails> {
+export async function getSeasonDetails(serie_id: number, season_number: number): Promise<SerieSeasonDetails> {
   try {
     const res = await axiosMovieService.get(`/series/${serie_id}/season/${season_number}`)
     return res.data
