@@ -315,14 +315,17 @@ export interface AuthResponse {
   user?: User;
   access_token?: string;
   error?: string;
-
+  
 }
 
-
-export interface AuthState {
-  user?: User;
-  isAuthenticated?: boolean;
-  isLoading?: boolean;
+export interface AuthContextType {
+  user: User | undefined;
+  token: string | undefined;
+  isAuthenticated: boolean;
+  loading: boolean;
+  login: (email: string, password: string) => void;
+  register: (username: string, email: string, password: string, confirmPassword: string) => void;
+  logout: () => void;
 }
 
 

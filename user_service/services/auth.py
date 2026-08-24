@@ -19,13 +19,13 @@ def createTokens(user: UserResponse):
     
     payload = {
         "exp": settings.jwt_expiration,
-        "user": user.model_dump()
+        "user": user.model_dump(mode='json')
     }
 
     access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
     
     refresh_payload = {
-        "user" : user.model_dump(),
+        "user" : user.model_dump(mode='json'),
         "exp" : settings.jwt_refresh_expiration
     }
     refresh_token = jwt.encode(refresh_payload, settings.jwt_secret, algorithm="HS256")

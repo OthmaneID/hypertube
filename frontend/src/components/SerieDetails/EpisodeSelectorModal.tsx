@@ -28,7 +28,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
     if (selectedSeason && serie.id) {
       setIsLoadingSeason(true);
       getSeasonDetails(serie.id, selectedSeason)
-        .then((data) => {
+        .then((data: SerieSeasonDetails) => {
           setSeasonDetails(data);
           setIsLoadingSeason(false);
         })

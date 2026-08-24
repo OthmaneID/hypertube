@@ -19,5 +19,5 @@ def register_email(request:Request, user: UserCreate , db: Session = Depends(get
 
 @router.post("/login")
 def login_email(request:Request, user: UserLogin , db: Session = Depends(get_db)):
-    # print()
+    print("user : ", user)
     return loginEmail(request, user, db)

@@ -27,7 +27,7 @@ function Card({
       to={url}
       className="group relative flex flex-col items-center"
     >
-      <div className="relative w-[180px] h-[270px] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 group-hover:shadow-2xl group-hover:-translate-y-2">
+      <div className="relative w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 group-hover:shadow-2xl group-hover:-translate-y-2">
         {/* Image */}
         <img
           src={src}
@@ -58,7 +58,7 @@ function Card({
       </div>
 
       {/* Title */}
-      <div className="mt-3 w-[180px]">
+      <div className="mt-3 w-45">
         <p
           className="text-sm font-medium text-gray-200 truncate group-hover:text-white transition-colors"
           title={title}
