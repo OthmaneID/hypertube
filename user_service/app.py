@@ -8,7 +8,7 @@ from config import settings
 import redis
 from database import Base, engine
 import models
-
+from authlib.integrations.starlette_client import OAuth
 
 PORT = settings.user_service_port
 
@@ -25,15 +25,30 @@ async def lifespan(app: fastapi.FastAPI):
     except Exception as e:
         print(f"Error while connecting to redis : {e}")
         app.state.redis = None
+    
+    oauth = OAuth()
+    oauth.register(
+        name="google",
+        client_id=settings.google_client_id,
+        client_secret=settings.google_client_secret,
+        authorize_url="https://accounts.google.com/o/oauth2/auth",
+        authorize_params={"scope": "openid email profile"},
+        access_token_url="https://oauth2.googleapis.com/token",
+        client_kwargs={"scope": "openid email profile"},
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration"
+    )
+    app.state.oauth: OAuth = oauth
+    
     yield
 
-    await app.state.redis.close()
+    if app.state.redis:
+        await app.state.redis.close()
 
 app = fastapi.FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     cors.CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]

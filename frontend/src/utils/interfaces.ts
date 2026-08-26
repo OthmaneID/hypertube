@@ -1,3 +1,4 @@
+import type { TokenResponse } from "@react-oauth/google";
 
 export interface Movie {
   adult?: boolean;
@@ -320,10 +321,11 @@ export interface AuthResponse {
 
 export interface AuthContextType {
   user: User | undefined;
-  token: string | undefined;
+  // token: string | undefined; \\ using httpOnly accessToken now
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => void;
+  Glogin: (token: TokenResponse) => void;
   register: (username: string, email: string, password: string, confirmPassword: string) => void;
   logout: () => void;
 }

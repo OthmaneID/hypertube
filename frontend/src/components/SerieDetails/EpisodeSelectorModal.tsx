@@ -87,7 +87,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
           {/* Season Selector */}
           <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-gray-800 p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Seasons</h3>
-            <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
+            <div className="flex md:flex-col gap-2 h-full overflow-y-auto overflow-x-hidden md:overflow-x-visible pb-6 mb-2">
               {seasons.map((season) => (
                 <button
                   key={season.season_number}

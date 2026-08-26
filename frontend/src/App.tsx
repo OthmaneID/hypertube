@@ -17,43 +17,46 @@ import Profile from "./page/Profile";
 import PublicOnlyRoute from "./components/PublicOnlyRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthProvider from "./global/authProvider";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function App() {
   return (
     <div className="bg-black p-0 m-0 min-h-screen">
-      <AuthProvider>
-        <UserProvider>
-          <ImageConfigProvider>
-            <div className="flex flex-row gap-0 w-full h-screen">
-              <Router>
-                <Sidebar />
-                <div
-                  className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth"
-                  id="scrollContainer"
-                >
-                  <Routes>
-                    <Route element={<ProtectedRoute />}>
-                      <Route index path="/" element={<Home />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/movies" element={<Movies />} />
-                      <Route path="/series" element={<Series />} />
-                      {/* <Route path="/discover" element={<Discover/>} */}
-                      <Route path="/movies/:id" element={<MovieDetails />} />
-                      <Route path="/series/:id" element={<SerieDetails />} />
-                      <Route path="/profile" element={<Profile />} />
-                    </Route>
-                    <Route element={<PublicOnlyRoute />}>
-                      <Route path="/signin" element={<SignIn />} />
-                      <Route path="/register" element={<Register />} />
-                    </Route>
-                  </Routes>
-                </div>
-              </Router>
-            </div>
-          </ImageConfigProvider>
-        </UserProvider>
-      </AuthProvider>
-      <ToastContainer position="top-center" delay={1500}/>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <AuthProvider>
+          <UserProvider>
+            <ImageConfigProvider>
+              <div className="flex flex-row gap-0 w-full h-screen">
+                <Router>
+                  <Sidebar />
+                  <div
+                    className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth"
+                    id="scrollContainer"
+                  >
+                    <Routes>
+                      <Route element={<ProtectedRoute />}>
+                        <Route index path="/" element={<Home />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/movies" element={<Movies />} />
+                        <Route path="/series" element={<Series />} />
+                        {/* <Route path="/discover" element={<Discover/>} */}
+                        <Route path="/movies/:id" element={<MovieDetails />} />
+                        <Route path="/series/:id" element={<SerieDetails />} />
+                        <Route path="/profile" element={<Profile />} />
+                      </Route>
+                      <Route element={<PublicOnlyRoute />}>
+                        <Route path="/signin" element={<SignIn />} />
+                        <Route path="/register" element={<Register />} />
+                      </Route>
+                    </Routes>
+                  </div>
+                </Router>
+              </div>
+            </ImageConfigProvider>
+          </UserProvider>
+        </AuthProvider>
+      </GoogleOAuthProvider>
+      <ToastContainer position="top-center" delay={1500} />
     </div>
   );
 }

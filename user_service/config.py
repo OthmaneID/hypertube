@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 from dotenv import load_dotenv
 load_dotenv(".env")
@@ -9,26 +9,35 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 DB_HOST = os.getenv("POSTGRES_HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
 
-API_BASE_URL = url = "https://api.themoviedb.org/3/"
-TMDB_KEY = os.getenv("TMDB_ACCESS_KEY")
-JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION", 3600))
-JWT_REFRESH_EXPIRATION = int(os.getenv("JWT_REFRESH_EXPIRATION", 86400))
-USER_SERVICE_PORT = int(os.getenv("USER_SERVICE_PORT", 8020))
-HASH_SALT = int(os.getenv("HASH_SALT", 78))
+# API_BASE_URL = url = "https://api.themoviedb.org/3/"
+# TMDB_KEY = os.getenv("TMDB_ACCESS_KEY")
+# JWT_SECRET = os.getenv("JWT_SECRET")
+# JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION", 3600))
+# JWT_REFRESH_EXPIRATION = int(os.getenv("JWT_REFRESH_EXPIRATION", 86400))
+# USER_SERVICE_PORT = int(os.getenv("USER_SERVICE_PORT", 8020))
+# HASH_SALT = int(os.getenv("HASH_SALT", 78))
 
 
 class Settings(BaseSettings):
-    database_url: str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    api_base_url: str = API_BASE_URL
-    tmdb_key: str = TMDB_KEY
-    jwt_secret: str = JWT_SECRET
-    jwt_expiration: int = JWT_EXPIRATION
-    jwt_refresh_expiration: int = JWT_REFRESH_EXPIRATION
-    user_service_port: int = USER_SERVICE_PORT
-    hash_salt: int = HASH_SALT
-
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8"
+    )
+    
+    database_url : str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    api_base_url: str = "https://api.themoviedb.org/3/"
+    tmdb_key: str
+    jwt_secret: str = "thisissecret"
+    jwt_expiration: int = 3600
+    jwt_refresh_expiration: int = 86400
+    user_service_port: int = 8020
+    hash_salt: int = 78
+    google_client_id: str
+    google_client_secret: str
+    forty_two_client_id: str
+    forty_two_client_secret: str
+    forty_two_redirect_uri: str = "http://localhost:8020/auth/42"
+    frontend_url: str = "http://localhost:3000"
+    
 
 settings = Settings()

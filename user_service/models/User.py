@@ -9,7 +9,7 @@ from typing import List, Dict
 class oauthEnum(enum.Enum):
     EMAIL = "email"
     GOOGLE = "google"
-    INTRA = "42"
+    FORTY_TWO = "42"
 
 
 

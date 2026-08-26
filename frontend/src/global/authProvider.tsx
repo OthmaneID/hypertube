@@ -1,30 +1,37 @@
 import { toast } from "react-toast"
-import { emailLogin, emailRegister } from "../utils/api/userService/authAPi"
+import { emailLogin, emailRegister, get_current_user, googleLogin, user_logout } from "../utils/api/userService/authAPi"
 import { AuthContext } from "./authContext"
 import { useEffect, useState } from "react"
 import type { AuthResponse, User } from "../utils/interfaces"
 import { Navigate } from "react-router-dom"
+import type { TokenResponse } from "@react-oauth/google"
 
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
 
-    const [user, setUser] = useState<User | null>(null)
-    const [token, setToken] = useState<string | null>(null)
+    const [user, setUser] = useState<User | null>(localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null)
+    // const [token, setToken] = useState<string | null>(localStorage.getItem("token") || null)
     const [loading, setLoading] = useState<boolean>(true)
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
     const params = new URLSearchParams(window.location.search);
     const back_to_url = params.get('back_to') || "/"
 
     useEffect(() => {
-        const token = localStorage.getItem("token")
-        if (token && token !== "undefined" && user) {
-            setToken(token)
+        if (user) {
+            // setToken(token)
             const user = localStorage.getItem("user")
             setUser(JSON.parse(user))
             setIsAuthenticated(true)
             setLoading(false)
         } else {
-            logout()
+            get_current_user().then((user) => {
+                setUser(user)
+                setIsAuthenticated(true)
+                setLoading(false)
+            }).catch((error: any) => {
+                console.log("error : ", error)
+                logout()
+            })
         }
     }, [])
 
@@ -41,10 +48,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
                 setLoading(false)
                 return
             }
-            setUser(data.user)
-            localStorage.setItem("user", JSON.stringify(data.user))
-            setToken(data.access_token)
-            localStorage.setItem("token", data.access_token)
+            get_current_user().then((user) => {
+                setUser(user)
+                localStorage.setItem("user", JSON.stringify(user))
+            })
             setIsAuthenticated(true)
             setLoading(false)
             console.log("data : ", data)
@@ -54,6 +61,32 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             Navigate({ to: back_to_url })
         }).finally(() => {
             setLoading(false)
+        })
+    }
+
+
+    function Glogin(googleResponse: TokenResponse) {
+        googleLogin(googleResponse).then((data)=>{
+            console.log("GLogin data : ", data)
+            if (data.error) {
+                toast.error(data.error)
+                return
+            }
+            get_current_user().then((user: User) => {
+                console.log("user : ", user)
+                setUser(user)
+                localStorage.setItem("user", JSON.stringify(user))
+            })
+            // setToken(data.access_token)
+            // localStorage.setItem("token", data.access_token)
+            setIsAuthenticated(true)
+            setLoading(false)
+            console.log(back_to_url)
+
+            toast.success("Logged in successfully")
+            Navigate({ to: back_to_url })
+        }).catch((error)=>{
+            console.log("error : ", error)
         })
     }
 
@@ -74,13 +107,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
                 setLoading(false)
                 return
             }
-            if (data.access_token) {
-                localStorage.setItem("token", data.access_token)
-            }
-            setUser(data.user)
-            localStorage.setItem("user", JSON.stringify(data.user))
-            setToken(data.access_token)
-            setIsAuthenticated(true)
+            get_current_user().then((user) => {
+                setUser(user)
+                localStorage.setItem("user", JSON.stringify(user))
+                setIsAuthenticated(true)
+            }).catch((error) => {
+                console.log("error : ", error)
+            })
+            // setToken(data.access_token)
         }).finally(() => {
             setLoading(false)
         })
@@ -88,15 +122,15 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
     function logout() {
         setUser(null)
-        setToken(null)
+        // setToken(null)
         setIsAuthenticated(false)
         setLoading(false)
-        localStorage.removeItem("token")
         localStorage.removeItem("user")
+        user_logout()
     }
 
     return (
-        <AuthContext.Provider value={{ user, token, isAuthenticated, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, Glogin, register, logout }}>
             {children}
         </AuthContext.Provider>
     )

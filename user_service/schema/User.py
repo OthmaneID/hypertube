@@ -18,7 +18,7 @@ class UserCreate(UserBase):
 
 
 class UserResponse(UserBase):
-    id : int
+    id: int
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -26,3 +26,22 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
     model_config = ConfigDict(from_attributes=True)
+
+
+class GoogleTokenResponse(BaseModel):
+    access_token: str
+    expires_in: int
+    hd: str | None = None
+    prompt: str
+    token_type: str
+    scope: str
+    state: str | None = None
+    error: str | None = None
+    error_description: str | None = None
+    error_uri: str | None = None
+    scope: str
+    state: str | None = None
+    error: str | None = None
+    error_description: str | None = None
+    error_uri: str | None = None
+

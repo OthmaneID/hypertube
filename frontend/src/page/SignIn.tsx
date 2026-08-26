@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../global/authContext";
-
+import { useGoogleLogin, type TokenResponse } from "@react-oauth/google"
+// import 
 
 function SignIn() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const { login } = useAuth()
+  const { login, Glogin } = useAuth()
 
 
 
@@ -15,6 +16,14 @@ function SignIn() {
     login(email, password)
   }
 
+  const google_login = useGoogleLogin({
+    onSuccess: (response: TokenResponse) => {
+      Glogin(response)
+    },
+    onError: (error: any) => {
+      console.log(error)
+    }
+  })
 
   return (
     <div className="min-h-screen w-full bg-inherit px-4 py-10 sm:px-6 lg:px-8 flex justify-center ">
@@ -95,13 +104,22 @@ function SignIn() {
               </div>
             </div>
 
-            {/* add 42 intra auth */}
-            <button
-              type="button"
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10"
-            >
-              Continue with Google
-            </button>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => google_login()}
+                className="w-full cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10"
+              >
+                Continue with Google
+              </button>
+              <a href={import.meta.env.VITE_USER_SERVICE_URL + "/auth/redirect/42"} className="w-full flex flex-row flex-nowrap items-center justify-center cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10">
+                Sign in with
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -200 960 960" width="20" height="20" className="dark:text-white text-black ml-2" style={{marginLeft: '8px'}}>
+                  <path fill="white" d="M32 412.6h330.1V578h164.7V279.1H197.3L526.8-51.1H362.1L32 279.1zm565.9-298.4L762.7-51.1H597.9zm164.8 0L597.9 279.1v164.8h164.8V279.1L928 114.2V-51.1H762.7z"></path>
+                  <path fill="white" d="M928 279.1L762.7 443.9H928z"></path>
+                </svg>
+              </a>
+            </div>
 
             <p className="mt-6 text-center text-sm text-gray-400">
               New here?{" "}

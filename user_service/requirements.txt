@@ -9,6 +9,9 @@ pydantic-settings
 pydantic[email]
 
 python-dotenv
+authlib
+oauthlib
+httpx
 
 redis
 sqlalchemy

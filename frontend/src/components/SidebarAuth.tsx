@@ -8,8 +8,6 @@ import { useAuth } from "../global/authContext"
 function SidebarAuth() {
     const {user, logout} = useAuth()
 
-    console.log(user)
-
     return (
         <div className="h-full w-full flex items-end">
             {user ? (
