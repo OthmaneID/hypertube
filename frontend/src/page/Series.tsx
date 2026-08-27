@@ -64,7 +64,6 @@ function Series() {
           const uniqueMap = new Map(combined.map((serie) => [serie.id, serie]));
           return Array.from(uniqueMap.values());
         });
-        console.log("data: ", data);
         setTotalPages(data.total_pages);
         totalPagesRef.current = data.total_pages;
         setCurrentPage(data.page);
@@ -87,7 +86,6 @@ function Series() {
         hasMorePagesRef.current
       ) {
         setCurrentPage((prev) => prev + 1);
-        console.log("fetching next page of series : ", currentPageRef.current + 1);
       }
     });
   }
@@ -138,10 +136,6 @@ function Series() {
           )}
         </div>
       </div>
-      {
-        // console.log(scrollContainer?.scroll)
-        // scrollContainer?.scrollHeight
-      }
       <div
         onClick={scrollBackUp}
         id="GoTopBtn"

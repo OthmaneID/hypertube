@@ -34,7 +34,7 @@ function Register() {
   return (
     <div className="min-h-screen w-full bg-inherit px-4 py-10 sm:px-6 lg:px-8 flex justify-center ">
       <div className="mx-auto flex w-full max-w-5xl overflow-hidden rounded-4xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl">
-        <div className="flex flex-1 flex-col justify-between bg-gray-900 p-8 sm:p-10 lg:p-12">
+        <div className="max-md:hidden flex flex-1 flex-col justify-between bg-gray-900 p-8 sm:p-10 lg:p-12">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Welcome

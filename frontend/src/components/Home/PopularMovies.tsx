@@ -24,7 +24,7 @@ function PopularMovies() {
         <h4 className="text-4xl text-white font-thin">Popular - Movies</h4>
         <Link
           to="/movies"
-          className="text-lg text-gray-400 hover:text-white transition duration-300"
+          className="text-lg flex flex-nowrap items-center text-nowrap text-gray-400 hover:text-white transition duration-300"
         >
           See All <BiChevronRight className="ml-1" />
         </Link>

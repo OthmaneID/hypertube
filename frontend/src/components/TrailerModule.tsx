@@ -42,7 +42,6 @@ function TrailerModule({
             return 0;
           });
 
-          console.log("trailers", trailers.current);
 
           setCurrentIndex(0);
         })
@@ -71,7 +70,6 @@ function TrailerModule({
             return 0;
           });
 
-          console.log("trailers", trailers.current);
 
           setCurrentIndex(0);
         })

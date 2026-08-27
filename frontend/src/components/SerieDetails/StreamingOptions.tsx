@@ -3,12 +3,16 @@ import StreamOption from "../StreamOption";
 interface StreamingOptionsProps {
   serie_id: number;
   serie_name: string;
+  seasonNumber: number;
+  episodeNumber: number;
 }
 
 function StreamingOptions({ serie_id, serie_name, seasonNumber, episodeNumber }: StreamingOptionsProps) {
   // Mock data - replace with actual API calls
   serie_id;
   serie_name;
+  seasonNumber;
+  episodeNumber;
   const mockStreams = [
     {
       provider: "Netflix",
@@ -49,7 +53,6 @@ function StreamingOptions({ serie_id, serie_name, seasonNumber, episodeNumber }:
   ];
 
   const handleStreamClick = (provider: string) => {
-    console.log(`Streaming from ${provider}`);
     // Add your streaming logic here
   };
 

@@ -2,6 +2,7 @@ import json
 from authlib.integrations.starlette_client import OAuth
 from authlib import oauth2
 from fastapi import Depends, HTTPException, Request, Response
+from redis import Redis
 from database import get_db
 from config import settings
 from schema.User import GoogleTokenResponse, UserCreate, UserLogin, UserResponse
@@ -20,41 +21,96 @@ def hashPass(password: str) -> str:
     hashed_pass = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed_pass.decode("utf-8")
 
-def createTokens(user: UserResponse):
+def createTokens(user_email: str):
     
     payload = {
-        "user_email": user.email,
+        "user_email": user_email,
         "exp": datetime.now().timestamp() + settings.jwt_expiration
     }
 
     access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
     
     refresh_payload = {
-        "user_email": user.email,
+        "user_email": user_email,
         "exp" : datetime.now().timestamp() + settings.jwt_refresh_expiration
     }
     refresh_token = jwt.encode(refresh_payload, settings.jwt_secret, algorithm="HS256")
     return access_token, refresh_token
     
+def refreshToken(request: Request):
+    try:
+        refresh_token = request.cookies.get("refresh_token")
+        if not refresh_token:
+            raise HTTPException(401, "No refresh token found")
+        token = jwt.decode(refresh_token, settings.jwt_secret, algorithms=["HS256"])
+        user_email = token.get("user_email")
+        if not user_email:
+            raise HTTPException(401, "Invalid refresh token")
+        tokens = createTokens(user_email)
+        response = Response(media_type="application/json")
+        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
+        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+        return response
+    except jwt.PyJWTError as e:
+        print("JWT error : ", e)
+        raise HTTPException(401, "Invalid or expired refresh token")
+    except Exception as e:
+        print("error while refreshing token : ", e)
+        raise HTTPException(500, "Internal server error")
 
 def get_current_user(request:Request, db:Session = Depends(get_db)):
     try:
         access_token = request.cookies.get("access_token")
         if not access_token:
             raise HTTPException(401, "No access token found")
-        payload = jwt.decode(access_token, settings.jwt_secret, algorithms=["HS256"])
+        
+        token_refreshed = False
+        new_tokens = None
+        
+        try:
+            payload = jwt.decode(access_token, settings.jwt_secret, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            refresh_token = request.cookies.get("refresh_token")
+            if not refresh_token:
+                raise HTTPException(401, "No refresh token found")
+            
+            try:
+                refresh_payload = jwt.decode(refresh_token, settings.jwt_secret, algorithms=["HS256"])
+                user_email = refresh_payload.get("user_email")
+                if not user_email:
+                    raise HTTPException(401, "Invalid refresh token")
+                
+                new_access_token, new_refresh_token = createTokens(user_email)
+                new_tokens = {
+                    "access_token": new_access_token,
+                    "refresh_token": new_refresh_token
+                }
+                token_refreshed = True
+                payload = {"user_email": user_email}
+            except jwt.PyJWTError:
+                raise HTTPException(401, "Invalid or expired refresh token")
+        
         user_email = payload.get("user_email")
+
         if not user_email:
             raise HTTPException(401, "Invalid token")
+        redis : Redis = request.app.state.redis
+        if redis:
+            user = redis.get(user_email)
+            if user:
+                return user
         user = db.query(User).filter(User.email == user_email).first()
         if not user:
             raise HTTPException(404, "User not found")
         user_serialized = UserResponse.model_validate(user)
-        print("current user : ", user_serialized.model_dump())
+        if redis:
+            redis.setex(user_email, 60 * 60 * 24, user_serialized.model_dump_json())
+        request.state.token_refreshed = token_refreshed
+        request.state.new_tokens = new_tokens
+        
         return user_serialized
-    except jwt.PyJWTError as e:
-        print("JWT error : ", e)
-        raise HTTPException(401, "Invalid or expired session")
+    except HTTPException:
+        raise
     except Exception as e:
         print("Exception : ", e)
         raise HTTPException(500, "Internal server error")
@@ -78,16 +134,12 @@ def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider
         db.refresh(user_db)
 
         user_serialized = UserResponse.model_validate(user_db)
-        tokens = createTokens(user_serialized)
+        tokens = createTokens(user_serialized.email)
         http_response = Response(media_type="application/json")
         http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
+        http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+
         return http_response
-        # payload = {
-        #     "access_token": tokens[0],
-        #     "user": user_serialized
-        # }
-        # later save refresh token in the db so when requested it can be sent
-        return payload
     except Exception as e:
         print(e)
         return {"error": "Internal server error", "details": str(e)}
@@ -104,16 +156,12 @@ def loginEmail(request: Request, user: UserLogin, db:Session):
         if not check_pass or user_db.oauth_provider != oauthEnum.EMAIL:
             return {"error": "email/password is not correct"}
         user_serialized = UserResponse.model_validate(user_db)
-        tokens = createTokens(user_serialized)
+        tokens = createTokens(user_serialized.email)
 
         http_response = Response(media_type="application/json")
         http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
+        http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
         return http_response
-        # payload = {
-        #     "access_token": tokens[0],
-        #     "user": user_serialized
-        # }
-        # return payload
     except Exception as e:
         print(f"error while login: {e}")
         return {"error": "Internal server error", "details": str(e)}
@@ -144,16 +192,10 @@ async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session,
                 user_serialized = UserResponse.model_validate(user)
             else:
                 user_serialized = UserResponse.model_validate(user_db)
-            tokens = createTokens(user_serialized)
-            print("tokens : ", tokens)
+            tokens = createTokens(user_serialized.email)
             http_response = Response(media_type="application/json")
             http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
             return http_response
-            # payload = {
-            #     "access_token": tokens[0],
-            #     "user": user_serialized
-            # }
-            # return payload
     except Exception as e:
         print("error while googleLogin : ", e)
         return {"error": "Internal server error", "details": str(e)}
@@ -171,11 +213,9 @@ async def getFortyTwoData(code:str):
         if res.status_code != 200:
             return {"error": "Invalid token"}
         token = res.json()
-        print("42 token: ", token)
         res = await client.get("https://api.intra.42.fr/v2/me", headers={
             "Authorization": f"Bearer {token['access_token']}"
         })
-        print("42 user: ", res.json())
         return res.json()
 
 
@@ -199,14 +239,10 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
             user_serialized = UserResponse.model_validate(user)
         else:
             user_serialized = UserResponse.model_validate(user_db)
-        tokens = createTokens(user_serialized)
-        print("42 user data: ", user_data)
-        # payload = {
-        #         "access_token": tokens[0],
-        #         "user": user_serialized
-        #     }
+        tokens = createTokens(user_serialized.email)
         response = responses.RedirectResponse(url=f"{settings.frontend_url}/signin")
         response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
+        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
         return response
     except Exception as e:
         print("error while login using 42: ", e)

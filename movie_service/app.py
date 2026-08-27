@@ -23,7 +23,6 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: fastapi.FastAPI):
     try:
         app.state.redis = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
-        print("redis state: ", app.state.redis.ping())
     except Exception as e:
         print(f"Error while connecting to redis : {e}")
         app.state.redis = None

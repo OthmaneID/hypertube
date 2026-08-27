@@ -139,8 +139,11 @@ function MovieDetails() {
       <div className="relative z-30 w-full h-full overflow-auto">
         {/* movie details section*/}
         <div className="h-full py-5 px-6 flex flex-col justify-between w-full">
-          <div className="pt-5 gap-6 flex flex-row w-full justify-between">
+          <div className="pt-5 gap-6 flex flex-row-reverse flex-wrap w-full justify-between">
             {/* here should be the logo */}
+            <span className="px-2 py-2 text-white font-bold text-2xl  h-8 rounded-xl bg-gray-700 flex items-center justify-start">
+              {movie?.status}
+            </span>
             {titleLogo?.file_path ? (
               <img
                 src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
@@ -154,15 +157,12 @@ function MovieDetails() {
                 {movie?.title}
               </span>
             )}
-            <span className="px-4 py-2 text-white font-bold text-2xl  h-8 rounded-xl bg-gray-700 flex items-center justify-center">
-              {movie?.status}
-            </span>
           </div>
           {/* runtime, date, vote, trailer, streams */}
-          <div className="flex flex-row justify-between  text-gray-200 font-bold text-3xl  mt-6">
-            <div className="flex flex-row gap-6 items-center">
-              <span>{movie?.runtime} min</span>
-              <span>
+          <div className="flex flex-row flex-wrap justify-between  text-gray-200 font-bold text-3xl  mt-6">
+            <div className="flex flex-row gap-6 items-center w-1/2 min-w-50 max-md:w-full">
+              <span className="text-nowrap">{movie?.runtime} min</span>
+              <span className="text-nowrap">
                 {new Date(movie?.release_date ?? "").getFullYear().toString()}
               </span>
               <span className="flex flex-row">
@@ -170,7 +170,7 @@ function MovieDetails() {
                 <BiStar className="text-yellow-400" />
               </span>
             </div>
-            <div className="flex flex-row gap-5 items-center">
+            <div className="flex flex-row justify-end gap-5 items-center w-1/2 min-w-50 max-md:w-full">
               <div>
                 <span
                   className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
@@ -217,7 +217,7 @@ function MovieDetails() {
                 {movie?.genres?.map((genre, index) => {
                   return (
                     <span
-                      className="px-3 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center shrink-0"
+                      className="px-1.5 py-1 rounded-xl bg-gray-500/50 text-gray-200 text-lg font-bold text-center shrink-0"
                       key={index}
                     >
                       {genre.name}
@@ -242,7 +242,7 @@ function MovieDetails() {
                 {credits?.cast?.map((cast, index) => {
                   return (
                     <div
-                      className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left shrink-0 flex flex-col justify-center"
+                      className="px-1.5 h-17.5 w-50 rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left shrink-0 flex flex-col justify-center"
                       key={index}
                     >
                       <span className="text-base">{cast.name}</span>
@@ -270,7 +270,7 @@ function MovieDetails() {
                 {credits?.crew?.map((crew, index) => {
                   return (
                     <div
-                      className="px-3 h-[70px] w-[200px] rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left shrink-0 flex flex-col justify-center"
+                      className="px-1.5 h-17.5 w-50 rounded-xl bg-gray-500/50 text-gray-200 text-sm font-bold text-left shrink-0 flex flex-col justify-center"
                       key={index}
                     >
                       <span className="text-base">{crew.name}</span>

@@ -11,7 +11,6 @@ class History(Base):
     watcher_id : Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     watched_duration: Mapped[float] = mapped_column(FLOAT, nullable=True)
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-
     watcher : Mapped["User"] = relationship(back_populates="watched_history")
 
 # Late import to avoid circular dependency

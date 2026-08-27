@@ -1,9 +1,9 @@
 from database import Base
-from sqlalchemy import Integer, String, ARRAY, DateTime, func, Boolean, JSON, Column, Enum, LargeBinary
+from sqlalchemy import Integer, String, ARRAY, DateTime, Boolean, Column, Enum
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 import enum
 from datetime import datetime
-from typing import List, Dict
+from typing import List
 # from models.Comment import Comment
 
 class oauthEnum(enum.Enum):
@@ -25,12 +25,10 @@ class User(Base):
     oauth_provider: Mapped[oauthEnum] = Column(Enum(oauthEnum), insert_default=oauthEnum.EMAIL)
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     deleted : Mapped[bool] = mapped_column(Boolean, default=False)
-    favorite_movies: Mapped[List[int]] = mapped_column(ARRAY(Integer), default=[])
-    favorite_series: Mapped[List[int]] = mapped_column(ARRAY(Integer), default=[])
-    # history: Mapped[List[Dict[str, str]]] = mapped_column(JSON, default=[])
-    # refresh_token
+    favorites : Mapped[List["Favorites"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     watched_history : Mapped[List["History"]] = relationship(back_populates="watcher", cascade="all, delete-orphan")
     comments : Mapped[List["Comment"]] = relationship( back_populates="owner", cascade="all, delete-orphan")
 
 # Late import to avoid circular dependency
 from models.History import History
+from models.Favorites import Favorites

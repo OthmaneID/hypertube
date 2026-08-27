@@ -54,8 +54,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             })
             setIsAuthenticated(true)
             setLoading(false)
-            console.log("data : ", data)
-            console.log(back_to_url)
 
             toast.success("Logged in successfully")
             Navigate({ to: back_to_url })
@@ -67,21 +65,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
     function Glogin(googleResponse: TokenResponse) {
         googleLogin(googleResponse).then((data)=>{
-            console.log("GLogin data : ", data)
             if (data.error) {
                 toast.error(data.error)
                 return
             }
             get_current_user().then((user: User) => {
-                console.log("user : ", user)
                 setUser(user)
                 localStorage.setItem("user", JSON.stringify(user))
             })
-            // setToken(data.access_token)
-            // localStorage.setItem("token", data.access_token)
             setIsAuthenticated(true)
             setLoading(false)
-            console.log(back_to_url)
 
             toast.success("Logged in successfully")
             Navigate({ to: back_to_url })
@@ -114,7 +107,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             }).catch((error) => {
                 console.log("error : ", error)
             })
-            // setToken(data.access_token)
         }).finally(() => {
             setLoading(false)
         })
@@ -122,7 +114,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
     function logout() {
         setUser(null)
-        // setToken(null)
         setIsAuthenticated(false)
         setLoading(false)
         localStorage.removeItem("user")

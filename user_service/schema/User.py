@@ -5,7 +5,7 @@ from models.User import oauthEnum
 
 
 class UserBase(BaseModel):
-    username: str = Field(..., min_length=4, max_length=15)
+    username: str = Field(..., min_length=4, max_length=50)
     email: EmailStr
     picture: str = "Default_pfp.svg"
     oauth_provider: oauthEnum = oauthEnum.EMAIL

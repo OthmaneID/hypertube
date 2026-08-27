@@ -87,7 +87,6 @@ function StreamingOptions({
   }, [setShowStreams]);
 
   const handleStreamClick = (provider: string) => {
-    console.log(`Streaming from ${provider}`);
     // Add your streaming logic here
   };
 

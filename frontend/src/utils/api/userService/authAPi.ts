@@ -58,3 +58,13 @@ export async function user_logout(): Promise<any> {
         throw new Error(error.message)
     }
 }
+
+export async function refresh_token():Promise<any> {
+    try{
+        const res = await axios.post("/auth/refresh")
+        return res.data
+    } catch (error: any) {
+        console.log("error while refreshing token :", error.message)
+        throw new Error(error.message)
+    }
+}

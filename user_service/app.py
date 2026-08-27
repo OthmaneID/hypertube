@@ -9,6 +9,7 @@ import redis
 from database import Base, engine
 import models
 from authlib.integrations.starlette_client import OAuth
+from middlewares.auth import AuthMiddleware
 
 PORT = settings.user_service_port
 
@@ -21,7 +22,6 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: fastapi.FastAPI):
     try:
         app.state.redis = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)
-        print("redis state: ", app.state.redis.ping())
     except Exception as e:
         print(f"Error while connecting to redis : {e}")
         app.state.redis = None
@@ -54,6 +54,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router)
 
