@@ -1,4 +1,4 @@
-import {axiosMovieService} from "../../axiosInstance";
+import {axiosInstance} from "../../axiosInstance";
 import type { Credits, MovieDetails, MovieTrailers, PopularMoviesResponse } from "../../interfaces";
 
 
@@ -6,7 +6,7 @@ import type { Credits, MovieDetails, MovieTrailers, PopularMoviesResponse } from
 
 export async function getPopularMovies(page: number): Promise<PopularMoviesResponse> {
   try {
-    const res = await axiosMovieService.get("/movies/popular?page=" + page);
+    const res = await axiosInstance.get("/movies/popular?page=" + page);
     return res.data;
   } catch (error: any) {
     console.log("error while fetchin popular movies . ", error.message);
@@ -17,7 +17,7 @@ export async function getPopularMovies(page: number): Promise<PopularMoviesRespo
 
 export async function getMovieDetails(movie_id: number): Promise<MovieDetails> {
   try {
-    const res = await axiosMovieService.get(`/movies/details/${movie_id}`);
+    const res = await axiosInstance.get(`/movies/details/${movie_id}`);
     return res.data;
   } catch (error: any) {
     console.log("error while fetching movie details : ", error.message);
@@ -28,7 +28,7 @@ export async function getMovieDetails(movie_id: number): Promise<MovieDetails> {
 
 export async function getMovieCredits(movie_id: number): Promise<Credits> {
   try {
-    const res = await axiosMovieService.get(`/movies/credits/${movie_id}`)
+    const res = await axiosInstance.get(`/movies/credits/${movie_id}`)
     return res.data
   } catch (error: any) {
     console.log("error while fetching movie cast : ", error.message)
@@ -39,7 +39,7 @@ export async function getMovieCredits(movie_id: number): Promise<Credits> {
 
 export async function getMovieTrailers(movie_id: number): Promise<MovieTrailers>{
   try {
-    const res = await axiosMovieService.get(`/movies/videos/${movie_id}`);
+    const res = await axiosInstance.get(`/movies/videos/${movie_id}`);
     return res.data
     
   } catch (error: any) {

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "thisissecret"
     jwt_expiration: int = 3600
     jwt_refresh_expiration: int = 86400
-    user_service_port: int = 8020
+    backend_port: int = 8000
     hash_salt: int = 78
     google_client_id: str
     google_client_secret: str

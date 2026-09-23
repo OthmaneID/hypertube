@@ -211,7 +211,8 @@ async def getFortyTwoData(code:str):
             "grant_type": "authorization_code"
         })
         if res.status_code != 200:
-            return {"error": "Invalid token"}
+            print("res.status_code: ", res.status_code)
+            raise Exception({"error": "Invalid token", "status_code": res.status_code})
         token = res.json()
         res = await client.get("https://api.intra.42.fr/v2/me", headers={
             "Authorization": f"Bearer {token['access_token']}"

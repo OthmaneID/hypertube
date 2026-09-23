@@ -112,9 +112,9 @@ function SignIn() {
               >
                 Continue with Google
               </button>
-              <a href={import.meta.env.VITE_USER_SERVICE_URL + "/auth/redirect/42"} className="w-full flex flex-row flex-nowrap items-center justify-center cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10">
+              <a href={import.meta.env.VITE_BACKEND_URL + "/auth/redirect/42"} className="w-full flex flex-row flex-nowrap items-center justify-center cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10">
                 Sign in with
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -200 960 960" width="20" height="20" className="dark:text-white text-black ml-2" style={{marginLeft: '8px'}}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -200 960 960" width="20" height="20" className="dark:text-white text-black ml-2" style={{ marginLeft: '8px' }}>
                   <path fill="white" d="M32 412.6h330.1V578h164.7V279.1H197.3L526.8-51.1H362.1L32 279.1zm565.9-298.4L762.7-51.1H597.9zm164.8 0L597.9 279.1v164.8h164.8V279.1L928 114.2V-51.1H762.7z"></path>
                   <path fill="white" d="M928 279.1L762.7 443.9H928z"></path>
                 </svg>

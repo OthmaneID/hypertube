@@ -11,7 +11,13 @@ import models
 from authlib.integrations.starlette_client import OAuth
 from middlewares.auth import AuthMiddleware
 
-PORT = settings.user_service_port
+from routes.movies import router as movie_router
+from routes.series import router as series_router
+from routes.images import router as image_conf_router
+
+
+
+PORT = settings.backend_port
 
 Base.metadata.create_all(bind=engine)
 
@@ -57,6 +63,12 @@ app.add_middleware(
 app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router)
+
+app.include_router(movie_router)
+app.include_router(series_router)
+
+app.include_router(image_conf_router)
+
 
 
 

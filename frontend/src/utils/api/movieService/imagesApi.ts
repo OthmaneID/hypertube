@@ -1,9 +1,9 @@
-import {axiosMovieService} from "../../axiosInstance";
+import {axiosInstance} from "../../axiosInstance";
 import type { ImageConfig, MovieImages } from "../../interfaces";
 
 export async function getImageConfig(): Promise<ImageConfig> {
   try {
-    const res = await axiosMovieService.get("/images/config");
+    const res = await axiosInstance.get("/images/config");
     return res.data;
   } catch (error: any) {
     console.log("error while fetching images configuration : ", error.message);
@@ -13,7 +13,7 @@ export async function getImageConfig(): Promise<ImageConfig> {
 
 export async function getMovieImages(movie_id: number): Promise<MovieImages> {
   try {
-    const res = await axiosMovieService.get(`/images/movie/${movie_id}`);
+    const res = await axiosInstance.get(`/images/movie/${movie_id}`);
     return res.data;
   } catch (error: any) {
     console.log("error while fetching movie details : ", error.message);
@@ -24,7 +24,7 @@ export async function getMovieImages(movie_id: number): Promise<MovieImages> {
 
 export async function getSerieImages(serie_id: number): Promise<MovieImages> {
   try {
-    const res = await axiosMovieService.get(`/images/serie/${serie_id}`);
+    const res = await axiosInstance.get(`/images/serie/${serie_id}`);
     return res.data;
   } catch (error: any) {
     console.log("error while fetching serie details : ", error.message);

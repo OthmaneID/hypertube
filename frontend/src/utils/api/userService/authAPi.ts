@@ -1,5 +1,5 @@
 import type { TokenResponse } from "@react-oauth/google";
-import { axiosUserService as axios } from "../../axiosInstance";
+import { axiosInstance as axios } from "../../axiosInstance";
 import type { AuthResponse, User } from "../../interfaces";
 
 

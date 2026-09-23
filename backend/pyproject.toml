@@ -1,0 +1,33 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "hypertube backend"
+readme = "README.md"
+authors = [
+    { name = "OthmaneID", email = "othmanid5@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "bcrypt>=5.0.0",
+    "fastapi>=0.141.1",
+    "pydantic[email]>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "pyjwt>=2.14.0",
+    "requests>=2.34.2",
+    "uvicorn>=0.53.0",
+    "python-dotenv>=1.2.3",
+    "authlib>=1.8.0",
+    "oauthlib>=3.3.1",
+    "redis>=8.1.0",
+    "sqlalchemy>=2.0.54",
+    "asyncpg>=0.31.0",
+    "psycopg2-binary>=2.9.13",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+backend = "backend:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
