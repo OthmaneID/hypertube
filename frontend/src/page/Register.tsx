@@ -7,6 +7,8 @@ import { useGoogleLogin, type TokenResponse } from "@react-oauth/google";
 function Register() {
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [emailError, setEmailError] = useState("")
   const [password, setPassword] = useState("")
@@ -17,7 +19,7 @@ function Register() {
 
   function submit(e: Event) {
     e.preventDefault()
-    register(username, email, password, confirmPassword)
+    register(username, email, password, confirmPassword, firstName, lastName)
   }
 
 
@@ -81,6 +83,32 @@ function Register() {
               <span>
                 {usernameError}
               </span>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  onChange={(e) => setFirstName(e.target.value)}
+                  value={firstName}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  onChange={(e) => setLastName(e.target.value)}
+                  value={lastName}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
+                />
+              </div>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">

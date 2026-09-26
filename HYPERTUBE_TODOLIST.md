@@ -31,9 +31,9 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 
 1. [*] Add missing fields to User model (first_name, last_name, preferred_language)
 2. [*] Update database schema migration for new user fields
-3. [ ] Update UserCreate/UserResponse schemas with new fields
-4. [ ] Update registration form to include first_name, last_name
-5. [ ] Add SMTP configuration to .env file
+3. [*] Update UserCreate/UserResponse schemas with new fields
+4. [*] Update registration form to include first_name, last_name
+5. [*] Add SMTP configuration to .env file
 6. [ ] Create password reset service with email sending
 7. [ ] Add POST /auth/forgot-password endpoint
 8. [ ] Add POST /auth/reset-password endpoint

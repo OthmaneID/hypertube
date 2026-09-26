@@ -4,14 +4,14 @@ import type { AuthResponse, User } from "../../interfaces";
 
 
 
-export async function emailRegister(username:string, email:string, password:string): Promise<AuthResponse>{
+export async function emailRegister(username:string, email:string, password:string, firstName: string, lastName: string): Promise<AuthResponse>{
     try {
-        const res = await axios.post("/auth/register", { username, email, password })
+        const res = await axios.post("/auth/register", { username, email, password, first_name: firstName, last_name: lastName })
         return res.data
     }catch(error:any) {
         console.log("error while email registering  : ", error.message)
         return {error: error.message}
-    }       
+    }
 }
 
 

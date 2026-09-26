@@ -1,7 +1,7 @@
 import { toast } from "react-toast"
 import { emailLogin, emailRegister, get_current_user, googleLogin, user_logout } from "../utils/api/userService/authAPi"
 import { AuthContext } from "./authContext"
-import { useEffect, useState } from "react"
+import { useEffect,useRef, useState } from "react"
 import type { AuthResponse, User } from "../utils/interfaces"
 import { Navigate } from "react-router-dom"
 import type { TokenResponse } from "@react-oauth/google"
@@ -9,7 +9,10 @@ import type { TokenResponse } from "@react-oauth/google"
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
 
-    const [user, setUser] = useState<User | null>(localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null)
+    const storedUser = localStorage.getItem("user")
+    // const [user, setUser] = useState<User | null>(storedUser ? JSON.parse(storedUser) : null)
+    const userRef = useRef<User | null>(storedUser ? JSON.parse(storedUser) : null)
+
     // const [token, setToken] = useState<string | null>(localStorage.getItem("token") || null)
     const [loading, setLoading] = useState<boolean>(true)
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -17,15 +20,17 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const back_to_url = params.get('back_to') || "/"
 
     useEffect(() => {
-        if (user) {
+        if (userRef.current) {
             // setToken(token)
             const user = localStorage.getItem("user")
-            setUser(JSON.parse(user))
+            // setUser(user ? JSON.parse(user) : null)
+            userRef.current = user ? JSON.parse(user) : null
             setIsAuthenticated(true)
             setLoading(false)
         } else {
-            get_current_user().then((user) => {
-                setUser(user)
+            get_current_user().then((user: any) => {
+                // setUser(user)
+                userRef.current = user ? JSON.parse(user) : null
                 setIsAuthenticated(true)
                 setLoading(false)
             }).catch((error: any) => {
@@ -48,12 +53,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
                 setLoading(false)
                 return
             }
-            get_current_user().then((user) => {
-                setUser(user)
+            get_current_user().then((user:any) => {
+                userRef.current = user ? JSON.parse(user) : null
                 localStorage.setItem("user", JSON.stringify(user))
             })
             setIsAuthenticated(true)
-            setLoading(false)
+            // setLoading(false)
 
             toast.success("Logged in successfully")
             Navigate({ to: back_to_url })
@@ -64,13 +69,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
     function Glogin(googleResponse: TokenResponse) {
-        googleLogin(googleResponse).then((data)=>{
+        googleLogin(googleResponse).then((data) => {
             if (data.error) {
                 toast.error(data.error)
                 return
             }
             get_current_user().then((user: User) => {
-                setUser(user)
+                userRef.current = user
                 localStorage.setItem("user", JSON.stringify(user))
             })
             setIsAuthenticated(true)
@@ -78,12 +83,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
             toast.success("Logged in successfully")
             Navigate({ to: back_to_url })
-        }).catch((error)=>{
+        }).catch((error) => {
             console.log("error : ", error)
         })
     }
 
-    function register(username: string, email: string, password: string, confirmPassword: string) {
+    function register(username: string, email: string, password: string, confirmPassword: string, firstName: string, lastName: string) {
 
         if (!username || !email || !password || !confirmPassword) {
             toast.error("Please fill in all fields")
@@ -94,14 +99,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             return
         }
         setLoading(true)
-        emailRegister(username, email, password).then((data: AuthResponse) => {
+        emailRegister(username, email, password, firstName, lastName).then((data: AuthResponse) => {
             if (data.error) {
                 toast.error(data.error)
                 setLoading(false)
                 return
             }
             get_current_user().then((user) => {
-                setUser(user)
+                userRef.current = user
                 localStorage.setItem("user", JSON.stringify(user))
                 setIsAuthenticated(true)
             }).catch((error) => {
@@ -113,15 +118,24 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     function logout() {
-        setUser(null)
+        // setUser(null)
+        userRef.current = null
         setIsAuthenticated(false)
         setLoading(false)
         localStorage.removeItem("user")
         user_logout()
     }
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+            </div>
+        )
+    }
+
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, loading, login, Glogin, register, logout }}>
+        <AuthContext.Provider value={{ user: userRef.current || undefined, isAuthenticated, loading, login, Glogin, register, logout }}>
             {children}
         </AuthContext.Provider>
     )

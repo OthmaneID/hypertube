@@ -1,11 +1,14 @@
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import List
-from models.User import oauthEnum 
+from models.User import oauthEnum , preferredLanguageEnum
 
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=4, max_length=50)
+    first_name: str 
+    last_name: str 
+    preferred_language : preferredLanguageEnum = preferredLanguageEnum.EN
     email: EmailStr
     picture: str = "Default_pfp.svg"
     oauth_provider: oauthEnum = oauthEnum.EMAIL
