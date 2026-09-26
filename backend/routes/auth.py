@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth")
 
 @router.post("/register")
 def register_email(request:Request, user: UserCreate , db: Session = Depends(get_db)):
-    # print()
+    print("registering user : ", user)
     return registerUser(request=request, user=user, db=db) 
 
 @router.post("/login")
