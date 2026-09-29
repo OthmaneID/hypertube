@@ -14,6 +14,7 @@ from middlewares.auth import AuthMiddleware
 from routes.movies import router as movie_router
 from routes.series import router as series_router
 from routes.images import router as image_conf_router
+from routes.comments import router as comments_router
 
 
 
@@ -48,7 +49,7 @@ async def lifespan(app: fastapi.FastAPI):
     yield
 
     if app.state.redis:
-        await app.state.redis.close()
+        app.state.redis.close()
 
 app = fastapi.FastAPI(lifespan=lifespan)
 
@@ -68,6 +69,7 @@ app.include_router(movie_router)
 app.include_router(series_router)
 
 app.include_router(image_conf_router)
+app.include_router(comments_router)
 
 
 

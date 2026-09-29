@@ -29,12 +29,16 @@ class User(Base):
     picture : Mapped[str] = mapped_column(String, default="Default_pfp.svg")
     password : Mapped[str] = mapped_column(String, nullable=True)
     oauth_provider: Mapped[oauthEnum] = Column(Enum(oauthEnum), insert_default=oauthEnum.EMAIL)
+    is_verified : Mapped[bool] = mapped_column(Boolean, default=False)
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     deleted : Mapped[bool] = mapped_column(Boolean, default=False)
     favorites : Mapped[List["Favorites"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     watched_history : Mapped[List["History"]] = relationship(back_populates="watcher", cascade="all, delete-orphan")
     comments : Mapped[List["Comment"]] = relationship( back_populates="owner", cascade="all, delete-orphan")
+    tokens : Mapped[List["Token"]] = relationship(back_populates="user", cascade="all, delete-orphan" )
 
 # Late import to avoid circular dependency
 from models.History import History
 from models.Favorites import Favorites
+from models.Comment import Comment
+from models.Token import Token

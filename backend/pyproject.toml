@@ -23,6 +23,9 @@ dependencies = [
     "asyncpg>=0.31.0",
     "psycopg2-binary>=2.9.13",
     "httpx>=0.28.1",
+    "httpx2>=2.13.1",
+    "python-multipart>=0.0.32",
+    "aiofiles>=25.1.0",
 ]
 
 [project.scripts]

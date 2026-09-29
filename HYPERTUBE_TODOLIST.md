@@ -34,11 +34,11 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 3. [*] Update UserCreate/UserResponse schemas with new fields
 4. [*] Update registration form to include first_name, last_name
 5. [*] Add SMTP configuration to .env file
-6. [ ] Create password reset service with email sending
-7. [ ] Add POST /auth/forgot-password endpoint
-8. [ ] Add POST /auth/reset-password endpoint
-9. [ ] Add frontend password reset form
-10. [ ] Implement PATCH /user/me endpoint for profile updates
+6. [*] Create password reset service with email sending
+7. [*] Add POST /auth/forgot-password endpoint
+8. [*] Add POST /auth/reset-password endpoint
+9. [*] Add frontend password reset form
+10. [*] Implement PATCH /user/me endpoint for profile updates
 11. [ ] Add profile picture upload functionality
 12. [ ] Implement GET /user/:id endpoint for viewing other profiles
 13. [ ] Ensure email is private in other users' profile views

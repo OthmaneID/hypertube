@@ -19,6 +19,8 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
 
+# class UserUpdate(UserBase):
+#     pass
 
 class UserResponse(UserBase):
     id: int
@@ -30,21 +32,9 @@ class UserLogin(BaseModel):
     password: str
     model_config = ConfigDict(from_attributes=True)
 
-
-class GoogleTokenResponse(BaseModel):
-    access_token: str
-    expires_in: int
-    hd: str | None = None
-    prompt: str
-    token_type: str
-    scope: str
-    state: str | None = None
-    error: str | None = None
-    error_description: str | None = None
-    error_uri: str | None = None
-    scope: str
-    state: str | None = None
-    error: str | None = None
-    error_description: str | None = None
-    error_uri: str | None = None
-
+class UserUpdate(UserBase):
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    preferred_language : preferredLanguageEnum | None = None
+    picture: str | None = None
