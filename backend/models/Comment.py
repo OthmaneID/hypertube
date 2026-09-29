@@ -1,5 +1,5 @@
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import Integer, String, ForeignKey, DateTime
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Boolean
 from database import Base
 from datetime import datetime
 # from models.User import User
@@ -11,5 +11,6 @@ class Comment(Base):
     content : Mapped[str] = mapped_column(String, nullable=False)
     owner_id : Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     movie_id : Mapped[int] = mapped_column(Integer, nullable = False)
+    is_deleted : Mapped[bool] = mapped_column(Boolean, default=False)
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     owner : Mapped["User"] = relationship(back_populates="comments")

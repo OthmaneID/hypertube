@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from services.auth import get_current_user
 from services.Comments import AddComment, getComments
+from schema.User import UserResponse
 
 router = APIRouter(prefix="/comments")
 
@@ -16,4 +17,7 @@ def get_comments(movie_id: int, limit: int = 20, offset: int = 0, db: Session = 
 
 @router.post("/{movie_id}")
 def add_comment(movie_id: int, content: str, request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    # get_current_user returns a raw JSON string when the user is cached in Redis
+    if isinstance(user, str):
+        user = UserResponse.model_validate_json(user)
     return AddComment(comment=content, owner_id=user.id, movie_id=movie_id, db=db)

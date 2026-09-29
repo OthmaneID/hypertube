@@ -19,6 +19,7 @@ import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getMovieCredits, getMovieDetails } from "../utils/api/movieService/moviesApi";
 import TrailerModule from "../components/TrailerModule";
+import Comments from "../components/Comments";
 
 function MovieDetails() {
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
@@ -35,6 +36,7 @@ function MovieDetails() {
   const [showModule, setShowModule] = useState(false)
   const [showStreams, setShowStreams] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+const [showComments, setShowComments] = useState(false)
 
   const genresRef = useRef<HTMLDivElement | null>(null);
   const castRef = useRef<HTMLDivElement | null>(null);
@@ -185,6 +187,11 @@ function MovieDetails() {
                   View trailer
                 </span>
               </div>
+              <span onClick={() => setShowComments(true)}>Comments</span>
+{showComments && (
+  <Comments movieId={movieId} show={showComments} setShow={setShowComments} />
+)}
+
               <div>
                 <span
                   className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
