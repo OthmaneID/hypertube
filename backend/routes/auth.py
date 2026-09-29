@@ -4,9 +4,9 @@ from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
 from schema.User import GoogleTokenResponse, UserCreate, UserLogin, UserResponse
 from database import get_db
-from fastapi import Depends, Response
+from fastapi import Body, Depends, Response
 from sqlalchemy.orm import Session
-from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken , forgotPassword
+from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken , forgotPassword, resetPassword
 
 import json
 from config import settings
@@ -57,5 +57,10 @@ def logout(request: Request):
 
 
 @router.post("/forgot-password")
-def forgotPassword(request: Request, email : EmailStr, db: Session = Depends(get_db)):
-    return forgotPassword(request, email, db)
+def forgot_password(request: Request, email: EmailStr = Body(embed=True), db: Session = Depends(get_db)):
+    forgotPassword(request, email, db)
+    return {"message": "if an account exists, we've sent a link"}
+
+@router.post("/reset-password")
+def reset_password(request: Request, token: str = Body(embed=True), new_pass: str = Body(embed=True), db:Session = Depends(get_db)):
+    return resetPassword(request, token, new_pass, db)

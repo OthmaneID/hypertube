@@ -18,6 +18,8 @@ import PublicOnlyRoute from "./components/PublicOnlyRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthProvider from "./global/authProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import ForgotPass from "./page/ForgotPass";
+import ResetPass from "./page/ResetPass";
 
 function App() {
   return (
@@ -45,6 +47,8 @@ function App() {
                         <Route path="/profile" element={<Profile />} />
                       </Route>
                       <Route element={<PublicOnlyRoute />}>
+                        <Route path="/forgot-password" element={<ForgotPass />} />
+                        <Route path="/reset-password" element={<ResetPass />} />
                         <Route path="/signin" element={<SignIn />} />
                         <Route path="/register" element={<Register />} />
                       </Route>

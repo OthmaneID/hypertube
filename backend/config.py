@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     forty_two_client_secret: str
     forty_two_redirect_uri: str = "http://localhost:8020/auth/42"
     frontend_url: str = "http://localhost:3000"
+    smtp_google_pass : str
+    smtp_google_email : str
     
 
 settings = Settings()

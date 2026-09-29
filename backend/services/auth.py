@@ -10,10 +10,16 @@ from sqlalchemy.orm import Session
 import jwt
 import bcrypt
 from models.User import User, oauthEnum
-import httpx
+from models.Token import Token, tokenTypeEnum
+import httpx2
 from fastapi import responses
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import EmailStr
+from utils.emailing import sendEmail
+import secrets
+import base64
+
+
 
 def hashPass(password: str) -> str:
 
@@ -59,6 +65,8 @@ def refreshToken(request: Request):
         print("error while refreshing token : ", e)
         raise HTTPException(500, "Internal server error")
 
+
+# need to put this function in a dependencies folder or similar
 def get_current_user(request:Request, db:Session = Depends(get_db)):
     try:
         access_token = request.cookies.get("access_token")
@@ -170,7 +178,7 @@ def loginEmail(request: Request, user: UserLogin, db:Session):
 
 async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session, google_auth: OAuth):
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx2.AsyncClient() as client:
             res = await client.get(
                 "https://www.googleapis.com/oauth2/v3/userinfo",
                 headers={"Authorization": f"Bearer {token.access_token}"}
@@ -183,6 +191,8 @@ async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session,
                 user_data = {
                     "email": user_info["email"],
                     "username": user_info["name"],
+                    "first_name": user_info.get("given_name", ""),
+                    "last_name": user_info.get("family_name", ""),
                     "oauth_provider": oauthEnum.GOOGLE,
                     "picture": user_info["picture"]
                 }
@@ -255,7 +265,45 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
 
 def forgotPassword(request: Request, email: EmailStr, db : Session):
     try:
-        pass
+        user_db = db.query(User).filter(User.email == email).first()
+        if not user_db:
+            return Response(content=json.dumps({"message": "if an account exists, we've sent a link"}), media_type="application/json", status_code=200)
+        if user_db.oauth_provider != oauthEnum.EMAIL:
+            return Response(content=json.dumps({"message": "if an account exists, we've sent a link"}), media_type="application/json", status_code=200)
+        token = secrets.token_hex(32)
+        hashed_token = hashPass(token)
+        url_safe_token = base64.urlsafe_b64encode(hashed_token.encode()).decode("utf-8")
+
+        # token_db = db.query(Token)
+        token_db = Token(hashed_token=hashed_token, user_id=user_db.id, expires_at=datetime.now() + timedelta(hours=1), token_type=tokenTypeEnum.PASSWORD_RESET)
+        db.add(token_db)
+        db.commit()
+        db.refresh(token_db)
+        # res = Response()
+        reset_link = f"{settings.frontend_url}/reset-password?token={url_safe_token}"
+        email_subject = "Password Reset Request"
+        email_content = f"Hello {user_db.username},\n\nYou requested a password reset. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.\n\nThank you."
+        sendEmail(email=email, subject=email_subject, content=email_content)
+
     except Exception as e:
         print("[forgot Password error] : ", e)
         return {"error" : "Internal server error", "details": str(e)}
+
+def resetPassword(request: Request, token: str, new_pass: str, db:Session):
+    try:
+        token = base64.urlsafe_b64decode(token).decode("utf-8")
+        token_db = db.query(Token).filter(Token.hashed_token == token).first()
+        print(token_db)
+        # check if token is expired
+        if not token_db or token_db.expires_at < datetime.now():
+            return Response(content=json.dumps())
+        user_db = token_db.user
+        user_db.password = hashPass(new_pass)
+        db.delete(token_db)
+        db.commit()
+        db.refresh(user_db)
+        user_db = db.query(User).filter(User.email == user_db.email).first()
+        return {"message": "password updated successfully"}
+    except Exception as e:
+        print("[resetPassword error] : ", e)
+        return {"error": "Internal server error", "details": str(e)}

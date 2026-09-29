@@ -23,3 +23,5 @@ class AuthMiddleware(BaseHTTPMiddleware):
             )
         
         return response
+
+# def get_user()
