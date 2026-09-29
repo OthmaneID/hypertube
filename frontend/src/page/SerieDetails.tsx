@@ -17,7 +17,7 @@ import {
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
 import EpisodeSelectorModal from "../components/SerieDetails/EpisodeSelectorModal";
-import { BiCameraMovie, BiPlay, BiStar } from "react-icons/bi";
+import { BiCameraMovie, BiPlay, BiStar, BiMessageRoundedDots } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import {
@@ -25,6 +25,7 @@ import {
   getSerieDetails,
 } from "../utils/api/movieService/seriesApi";
 import TrailerModule from "../components/TrailerModule";
+import Comments from "../components/Comments";
 
 function SerieDetails() {
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
@@ -44,6 +45,7 @@ function SerieDetails() {
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const genresRef = useRef<HTMLDivElement | null>(null);
   const castRef = useRef<HTMLDivElement | null>(null);
@@ -238,6 +240,18 @@ function SerieDetails() {
                     Select Episode
                   </span>
                 </div>
+                <div>
+                  <span
+                    className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
+                    title="Comments"
+                    onClick={() => setShowComments(true)}
+                  >
+                    <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
+                  </span>
+                  <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                    Comments
+                  </span>
+                </div>
               </div>
             </div>
             <div className="w-full flex flex-col gap-4 items-start">
@@ -354,6 +368,8 @@ function SerieDetails() {
           onEpisodeSelect={handleEpisodeSelect}
         />
       )}
+      {/* comments sidebar */}
+      <Comments movieId={serieId} show={showComments} setShow={setShowComments} />
       {/* trailer module */}
       {showModule && (
         <TrailerModule

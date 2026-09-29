@@ -25,6 +25,7 @@ dependencies = [
     "httpx2>=2.13.1",
     "python-multipart>=0.0.32",
     "aiofiles>=25.1.0",
+    "google-genai>=2.25.0",
 ]
 
 [project.scripts]

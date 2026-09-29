@@ -1,9 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
-import { BiX, BiSend } from "react-icons/bi";
+import { BiX, BiSend, BiTrash } from "react-icons/bi";
+import { AuthContext } from "../global/authContext";
 
 const BACKEND_URL = "http://localhost:8000";
 const LIMIT = 20;
+
+interface CommentOwner {
+    id: number;
+    username: string;
+    picture: string;
+    first_name: string;
+    last_name: string;
+}
 
 interface Comment {
     id: number;
@@ -11,6 +21,7 @@ interface Comment {
     owner_id: number;
     content: string;
     created_at: string;
+    owner: CommentOwner;
 }
 
 interface Props {
@@ -20,6 +31,7 @@ interface Props {
 }
 
 export default function Comments({ movieId, show, setShow }: Props) {
+    const { user } = useContext(AuthContext); // Get current logged-in user
     const [comments, setComments] = useState<Comment[]>([]);
     const [commentInput, setCommentInput] = useState("");
     const [isFetching, setIsFetching] = useState(false);
@@ -108,6 +120,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
 
     const addComment = async () => {
         if (commentInput.trim() === "") return;
+        setIsError(false); // Reset previous errors
         try {
             const response = await axios.post(
                 `${BACKEND_URL}/comments/${movieId}`,
@@ -120,10 +133,33 @@ export default function Comments({ movieId, show, setShow }: Props) {
             // Append at the top (since it's a new comment)
             setComments((prev) => [response.data, ...prev]);
             setCommentInput("");
-        } catch (err) {
+        } catch (err: any) {
             console.log(err);
             setIsError(true);
-            setError("Failed to post comment");
+            if (err.response?.status === 400) {
+                // If it's the NSFW error from our new AI check
+                setError("Comment blocked: Please keep it clean and appropriate.");
+            } else {
+                setError("Failed to post comment");
+            }
+        }
+    };
+
+    const handleDelete = async (commentId: number) => {
+        try {
+            await axios.delete(`${BACKEND_URL}/comments/${commentId}`, {
+                withCredentials: true,
+            });
+            
+            // Optimistically update the UI to show [deleted]
+            setComments((prev) => 
+                prev.map((c) => 
+                    c.id === commentId ? { ...c, content: "[deleted]", owner_id: -1 } : c
+                )
+            );
+        } catch (err) {
+            console.log(err);
+            alert("Failed to delete comment");
         }
     };
 
@@ -176,17 +212,79 @@ export default function Comments({ movieId, show, setShow }: Props) {
                         </p>
                     )}
                     
-                    {comments.map((comment, idx) => (
-                        <div
-                            key={`${comment.id}-${idx}`}
-                            className="bg-gray-800/60 rounded-xl px-4 py-3 flex flex-col gap-1"
-                        >
-                            <p className="text-gray-200 text-sm">{comment.content}</p>
-                            <span className="text-gray-500 text-xs">
-                                {new Date(comment.created_at).toLocaleDateString()}
-                            </span>
-                        </div>
-                    ))}
+                    {comments.map((comment, idx) => {
+                        const isDeleted = comment.content === "[deleted]";
+                        const isOwner = user?.id === comment.owner_id;
+
+                        // Ensure we construct the correct picture URL if it's not an absolute URL (like Google/42 pictures)
+                        let pictureUrl = comment.owner.picture;
+                        if (pictureUrl && !pictureUrl.startsWith("http")) {
+                            pictureUrl = `${BACKEND_URL}/${pictureUrl}`; // Adjust based on how you serve static files
+                        }
+
+                        return (
+                            <div
+                                key={`${comment.id}-${idx}`}
+                                className={`bg-gray-800/60 rounded-xl px-4 py-3 flex flex-col gap-2 relative group ${
+                                    isDeleted ? "opacity-60" : ""
+                                }`}
+                            >
+                                {/* Owner info header */}
+                                <div className="flex items-center gap-2">
+                                    {isDeleted ? (
+                                        <>
+                                            <img
+                                                src="/Default_pfp.svg"
+                                                alt="Deleted user"
+                                                className="w-8 h-8 rounded-full object-cover"
+                                            />
+                                            <span className="text-gray-300 text-sm font-semibold">
+                                                Deleted user
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <Link 
+                                            to={`/profile/${comment.owner.username}`}
+                                            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                        >
+                                            <img
+                                                src={pictureUrl || "/Default_pfp.svg"}
+                                                alt={comment.owner.username}
+                                                className="w-8 h-8 rounded-full object-cover"
+                                                onError={(e) => (e.currentTarget.src = "/Default_pfp.svg")}
+                                            />
+                                            <span className="text-gray-300 text-sm font-semibold hover:underline">
+                                                @{comment.owner.username}
+                                            </span>
+                                        </Link>
+                                    )}
+                                </div>
+
+                                {/* Comment content */}
+                                <p className={`text-sm ${isDeleted ? "text-gray-400 italic" : "text-gray-200"}`}>
+                                    {comment.content}
+                                </p>
+                                
+                                {/* Footer */}
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-gray-500 text-xs">
+                                        {new Date(comment.created_at).toLocaleDateString()}
+                                    </span>
+                                    
+                                    {/* Delete Button - Shows on hover if user is owner */}
+                                    {isOwner && !isDeleted && (
+                                        <button
+                                            onClick={() => handleDelete(comment.id)}
+                                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                            title="Delete comment"
+                                        >
+                                            <BiTrash className="text-lg" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
                     
                     {/* Infinite scroll loader indicator */}
                     {isFetchingMore && (
@@ -197,27 +295,48 @@ export default function Comments({ movieId, show, setShow }: Props) {
                 </div>
 
                 {/* Input area */}
-                <div className="px-5 py-4 border-t border-gray-700/50 flex flex-row gap-3 items-end">
-                    <textarea
-                        className="flex-1 bg-gray-800/60 text-gray-200 text-sm rounded-xl px-4 py-3 resize-none outline-none placeholder-gray-500 focus:ring-1 focus:ring-gray-500 transition-all"
-                        placeholder="Write a comment..."
-                        rows={2}
-                        value={commentInput}
-                        onChange={(e) => setCommentInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                addComment();
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={addComment}
-                        className="bg-gray-700/60 hover:bg-gray-600/70 active:scale-95 text-white rounded-xl p-3 text-xl transition-all duration-200"
-                        title="Send"
-                    >
-                        <BiSend />
-                    </button>
+                <div className="px-5 py-4 border-t border-gray-700/50 flex flex-col gap-3">
+                    {user ? (
+                        <>
+                            {/* Error Message Display */}
+                            {isError && (
+                                <div className="text-red-400 text-xs font-semibold px-2">
+                                    ⚠️ {error}
+                                </div>
+                            )}
+                            <div className="flex flex-row gap-3 items-end">
+                                <textarea
+                                    className={`flex-1 bg-gray-800/60 text-gray-200 text-sm rounded-xl px-4 py-3 resize-none outline-none placeholder-gray-500 transition-all ${isError ? 'ring-1 ring-red-500' : 'focus:ring-1 focus:ring-gray-500'}`}
+                                    placeholder="Write a comment..."
+                                    rows={2}
+                                    value={commentInput}
+                                    onChange={(e) => setCommentInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            addComment();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={addComment}
+                                    className="bg-gray-700/60 hover:bg-gray-600/70 active:scale-95 text-white rounded-xl p-3 text-xl transition-all duration-200"
+                                    title="Send"
+                                >
+                                    <BiSend />
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-2">
+                            <p className="text-gray-400 text-sm">
+                                <Link to="/signin" className="text-gray-300 font-semibold hover:underline">
+                                    Sign in
+                                </Link>{" "}
+                                to leave a comment
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

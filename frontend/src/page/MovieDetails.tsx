@@ -14,7 +14,7 @@ import { getImageConfig, getMovieImages } from "../utils/api/movieService/images
 
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiCameraMovie, BiPlay, BiStar } from "react-icons/bi";
+import { BiCameraMovie, BiPlay, BiStar, BiMessageRoundedDots } from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
 import { getMovieCredits, getMovieDetails } from "../utils/api/movieService/moviesApi";
@@ -187,10 +187,18 @@ const [showComments, setShowComments] = useState(false)
                   View trailer
                 </span>
               </div>
-              <span onClick={() => setShowComments(true)}>Comments</span>
-{showComments && (
-  <Comments movieId={movieId} show={showComments} setShow={setShowComments} />
-)}
+              <div>
+                <span
+                  onClick={() => setShowComments(true)}
+                  className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
+                  title="Comments"
+                >
+                  <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
+                </span>
+                <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
+                  Comments
+                </span>
+              </div>
 
               <div>
                 <span
@@ -303,6 +311,8 @@ const [showComments, setShowComments] = useState(false)
           <StreamingOptions movie_id={movieId} movie_name={movie?.title ?? ""} setShowStreams={setShowStreams} showStreams={showStreams} />
         )
       }
+      {/* comments sidebar */}
+      <Comments movieId={movieId} show={showComments} setShow={setShowComments} />
       {/* trailer module */}
       {showModule && (
         <TrailerModule
