@@ -19,7 +19,7 @@ from pydantic import EmailStr
 from utils.emailing import sendEmail
 import secrets
 import base64
-from utils.auth import hashPass, createTokens
+from utils.auth import hashPass, createTokens, refreshToken
 
 
 
@@ -115,7 +115,9 @@ def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider
 
 def loginEmail(request: Request, user: UserLogin, db:Session):
     try:
-        user_db : User = db.query(User).filter(User.email == user.email).first()
+        if not user.email or not user.password:
+            return {"error": "email/password is not correct"}
+        user_db = db.query(User).filter(User.email == user.email).first()
         if not user_db:
             return {"error": "email/password is not correct"}
         check_pass = bcrypt.checkpw(password=user.password.encode("utf-8"), hashed_password=user_db.password.encode("utf-8"))
@@ -170,7 +172,7 @@ async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session,
 
 
 async def getFortyTwoData(code:str): 
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         res = await client.post("https://api.intra.42.fr/oauth/token", data={
             "client_id": settings.forty_two_client_id,
             "client_secret": settings.forty_two_client_secret,
@@ -253,7 +255,7 @@ def resetPassword(request: Request, token: str, new_pass: str, db:Session):
         print(token_db)
         # check if token is expired
         if not token_db or token_db.expires_at < datetime.now():
-            return Response(content=json.dumps())
+            return Response(content=json.dumps({"error": "Invalid or expired token"}), media_type="application/json", status_code=400)
         user_db = token_db.user
         user_db.password = hashPass(new_pass)
         db.delete(token_db)
