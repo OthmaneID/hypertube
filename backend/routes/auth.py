@@ -1,11 +1,13 @@
 from fastapi.routing import APIRouter
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
+from pydantic import EmailStr
 from schema.User import GoogleTokenResponse, UserCreate, UserLogin, UserResponse
 from database import get_db
 from fastapi import Depends, Response
 from sqlalchemy.orm import Session
-from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken
+from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken , forgotPassword
+
 import json
 from config import settings
 from urllib.parse import quote
@@ -52,3 +54,8 @@ def logout(request: Request):
     response = Response(content=json.dumps({"message": "Logged out successfully"}), media_type="application/json")
     response.delete_cookie(key="access_token")
     return response
+
+
+@router.post("/forgot-password")
+def forgotPassword(request: Request, email : EmailStr, db: Session = Depends(get_db)):
+    return forgotPassword(request, email, db)

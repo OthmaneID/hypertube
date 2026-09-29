@@ -305,6 +305,9 @@ export interface User {
   id?: number;
   email?: string;
   username?: string;
+  first_name?: string;
+  last_name?: string;
+  preferred_language?: string;
   picture?: string;
   oauth_provider?: string;
   created_at?: string;
@@ -326,7 +329,7 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => void;
   Glogin: (token: TokenResponse) => void;
-  register: (username: string, email: string, password: string, confirmPassword: string) => void;
+  register: (username: string, email: string, password: string, confirmPassword: string, firstName: string, lastName: string) => void;
   logout: () => void;
 }
 

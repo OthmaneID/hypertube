@@ -13,6 +13,7 @@ from models.User import User, oauthEnum
 import httpx
 from fastapi import responses
 from datetime import datetime
+from pydantic import EmailStr
 
 def hashPass(password: str) -> str:
 
@@ -123,7 +124,7 @@ def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider
         usr = db.query(User).filter(User.email == user.email).first()
         if usr:
             return {"error": "email already exists"}
-        user_data = user.model_dump()
+        user_data = user.model_dump(exclude={"favorite_movies", "favorite_series"})
         if oauth_provider == oauthEnum.EMAIL:
             user_data["password"] = hashPass(user_data["password"])
         user_data["oauth_provider"] = oauth_provider
@@ -226,6 +227,8 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
         user_info = await getFortyTwoData(code)
         user_data = {
             "username": user_info["login"],
+            "first_name": user_info["first_name"],
+            "last_name": user_info["last_name"],
             "email": user_info["email"],
             "oauth_provider": oauthEnum.FORTY_TWO,
             "picture": user_info["image"]["link"]
@@ -247,4 +250,12 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
         return response
     except Exception as e:
         print("error while login using 42: ", e)
+        return {"error" : "Internal server error", "details": str(e)}
+
+
+def forgotPassword(request: Request, email: EmailStr, db : Session):
+    try:
+        pass
+    except Exception as e:
+        print("[forgot Password error] : ", e)
         return {"error" : "Internal server error", "details": str(e)}

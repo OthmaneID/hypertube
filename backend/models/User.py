@@ -11,6 +11,9 @@ class oauthEnum(enum.Enum):
     GOOGLE = "google"
     FORTY_TWO = "42"
 
+class preferredLanguageEnum(enum.Enum):
+    FR = "fr"
+    EN = "en"
 
 
 
@@ -19,7 +22,10 @@ class User(Base):
     __tablename__ = "users"
     id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     email : Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    first_name : Mapped[str] = mapped_column(String, nullable=False)
+    last_name : Mapped[str] = mapped_column(String, nullable= False)
     username : Mapped[str] = mapped_column(String, nullable=False)
+    preferred_language : Mapped[preferredLanguageEnum] = Column(Enum(preferredLanguageEnum), insert_default=preferredLanguageEnum.EN)
     picture : Mapped[str] = mapped_column(String, default="Default_pfp.svg")
     password : Mapped[str] = mapped_column(String, nullable=True)
     oauth_provider: Mapped[oauthEnum] = Column(Enum(oauthEnum), insert_default=oauthEnum.EMAIL)
