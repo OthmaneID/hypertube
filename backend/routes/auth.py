@@ -2,7 +2,8 @@ from fastapi.routing import APIRouter
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
 from pydantic import EmailStr
-from schema.User import GoogleTokenResponse, UserCreate, UserLogin, UserResponse
+from schema.User import UserCreate, UserLogin, UserResponse
+from schema.GoogleToken import GoogleTokenResponse
 from database import get_db
 from fastapi import Body, Depends, Response
 from sqlalchemy.orm import Session

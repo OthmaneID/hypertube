@@ -38,7 +38,7 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 7. [*] Add POST /auth/forgot-password endpoint
 8. [*] Add POST /auth/reset-password endpoint
 9. [*] Add frontend password reset form
-10. [ ] Implement PATCH /user/me endpoint for profile updates
+10. [*] Implement PATCH /user/me endpoint for profile updates
 11. [ ] Add profile picture upload functionality
 12. [ ] Implement GET /user/:id endpoint for viewing other profiles
 13. [ ] Ensure email is private in other users' profile views
