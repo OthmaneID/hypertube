@@ -26,6 +26,7 @@ dependencies = [
     "python-multipart>=0.0.32",
     "aiofiles>=25.1.0",
     "google-genai>=2.25.0",
+    "libtorrent>=2.1.1",
 ]
 
 [project.scripts]

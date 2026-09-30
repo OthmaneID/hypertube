@@ -80,18 +80,18 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 
 ### COMMENTS SYSTEM (10 tasks)
 
-43. [ ] Complete Comment schema definitions
-44. [ ] Add movie_id to Comment model for relationship
-45. [ ] Create GET /comments endpoint (latest comments)
-46. [ ] Create GET /comments/:id endpoint (single comment)
-47. [ ] Create POST /comments endpoint
-48. [ ] Create POST /movies/:movie_id/comments endpoint
-49. [ ] Create PATCH /comments/:id endpoint
-50. [ ] Create DELETE /comments/:id endpoint
-51. [ ] Add authorization checks (users can only edit their own comments)
-52. [ ] Add comments section to MovieDetails frontend component
-53. [ ] Add comment form for posting new comments
-54. [ ] Display existing comments with author and timestamp
+43. [*] Complete Comment schema definitions
+44. [*] Add movie_id to Comment model for relationship
+45. [*] Create GET /comments endpoint (latest comments)
+46. [*] Create GET /comments/:id endpoint (single comment)
+47. [*] Create POST /comments endpoint
+48. [*] Create POST /movies/:movie_id/comments endpoint
+49. [*] Create PATCH /comments/:id endpoint
+50. [*] Create DELETE /comments/:id endpoint
+51. [*] Add authorization checks (users can only edit their own comments)
+52. [*] Add comments section to MovieDetails frontend component
+53. [*] Add comment form for posting new comments
+54. [*] Display existing comments with author and timestamp
 
 ### RESTFUL API (16 tasks)
 

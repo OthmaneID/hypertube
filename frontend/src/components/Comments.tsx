@@ -1,7 +1,7 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { BiX, BiSend, BiTrash } from "react-icons/bi";
+import { BiX, BiSend, BiTrash, BiDotsVerticalRounded } from "react-icons/bi";
 import { AuthContext } from "../global/authContext";
 
 const BACKEND_URL = "http://localhost:8000";
@@ -30,6 +30,96 @@ interface Props {
     setShow: (value: boolean) => void;
 }
 
+// ─── Confirmation Dialog ────────────────────────────────────────────────────
+function ConfirmDeleteDialog({
+    onConfirm,
+    onCancel,
+}: {
+    onConfirm: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={onCancel}
+            />
+            {/* Dialog card */}
+            <div className="relative z-10 bg-gray-900 border border-gray-700/60 rounded-2xl shadow-2xl p-6 w-full max-w-xs flex flex-col gap-4" style={{animation:'fadeInScale 0.2s ease'}}>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/15">
+                        <BiTrash className="text-red-400 text-xl" />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-semibold text-sm">Delete comment</h3>
+                        <p className="text-gray-400 text-xs mt-0.5">This action cannot be undone.</p>
+                    </div>
+                </div>
+                <div className="flex gap-2 mt-1">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 py-2 rounded-xl bg-gray-700/60 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-all active:scale-95"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-all active:scale-95"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Three-dot dropdown menu (mobile) ──────────────────────────────────────
+function CommentMenu({ onDelete }: { onDelete: () => void }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [open]);
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                onClick={() => setOpen((v) => !v)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all active:scale-95"
+                title="Options"
+                aria-label="Comment options"
+            >
+                <BiDotsVerticalRounded className="text-xl" />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 bottom-full mb-1 w-36 bg-gray-800 border border-gray-700/60 rounded-xl shadow-2xl overflow-hidden z-10" style={{animation:'fadeInDown 0.15s ease'}}>
+                    <button
+                        onClick={() => {
+                            setOpen(false);
+                            onDelete();
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                    >
+                        <BiTrash className="text-base flex-shrink-0" />
+                        Delete
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Comments({ movieId, show, setShow }: Props) {
     const { user } = useContext(AuthContext); // Get current logged-in user
     const [comments, setComments] = useState<Comment[]>([]);
@@ -40,6 +130,8 @@ export default function Comments({ movieId, show, setShow }: Props) {
     const [error, setError] = useState("");
     const [offset, setOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
+    // Confirmation dialog: holds the id of the comment pending deletion
+    const [confirmCommentId, setConfirmCommentId] = useState<number | null>(null);
 
     // Fetch comments when the sidebar opens or movieId changes
     useEffect(() => {
@@ -48,14 +140,20 @@ export default function Comments({ movieId, show, setShow }: Props) {
         }
     }, [show, movieId]);
 
-    // Close on Escape key
+    // Close on Escape key — dismiss confirm dialog first if open
     useEffect(() => {
         const handleKeydown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setShow(false);
+            if (e.key === "Escape") {
+                if (confirmCommentId !== null) {
+                    setConfirmCommentId(null);
+                } else {
+                    setShow(false);
+                }
+            }
         };
         document.addEventListener("keydown", handleKeydown);
         return () => document.removeEventListener("keydown", handleKeydown);
-    }, [setShow]);
+    }, [setShow, confirmCommentId]);
 
     const getComments = async () => {
         try {
@@ -160,10 +258,21 @@ export default function Comments({ movieId, show, setShow }: Props) {
         } catch (err) {
             console.log(err);
             alert("Failed to delete comment");
+        } finally {
+            setConfirmCommentId(null);
         }
     };
 
     return (
+        <>
+        {/* ── Confirmation Dialog ── */}
+        {confirmCommentId !== null && (
+            <ConfirmDeleteDialog
+                onConfirm={() => handleDelete(confirmCommentId)}
+                onCancel={() => setConfirmCommentId(null)}
+            />
+        )}
+
         <div
             className={
                 "absolute w-full h-screen z-60 top-0 left-0 duration-500 flex justify-end " +
@@ -271,15 +380,26 @@ export default function Comments({ movieId, show, setShow }: Props) {
                                         {new Date(comment.created_at).toLocaleDateString()}
                                     </span>
                                     
-                                    {/* Delete Button - Shows on hover if user is owner */}
+                                    {/* Delete controls — desktop hover button + mobile three-dot menu */}
                                     {isOwner && !isDeleted && (
-                                        <button
-                                            onClick={() => handleDelete(comment.id)}
-                                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                            title="Delete comment"
-                                        >
-                                            <BiTrash className="text-lg" />
-                                        </button>
+                                        <>
+                                            {/* Desktop: trash icon appears on hover */}
+                                            <button
+                                                onClick={() => setConfirmCommentId(comment.id)}
+                                                className="hidden sm:flex items-center text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1"
+                                                title="Delete comment"
+                                                aria-label="Delete comment"
+                                            >
+                                                <BiTrash className="text-lg" />
+                                            </button>
+
+                                            {/* Mobile: always-visible three-dot menu */}
+                                            <div className="sm:hidden">
+                                                <CommentMenu
+                                                    onDelete={() => setConfirmCommentId(comment.id)}
+                                                />
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -340,5 +460,18 @@ export default function Comments({ movieId, show, setShow }: Props) {
                 </div>
             </div>
         </div>
+
+        {/* Keyframe animations */}
+        <style>{`
+            @keyframes fadeInScale {
+                from { opacity: 0; transform: scale(0.95); }
+                to   { opacity: 1; transform: scale(1); }
+            }
+            @keyframes fadeInDown {
+                from { opacity: 0; transform: translateY(-4px); }
+                to   { opacity: 1; transform: translateY(0); }
+            }
+        `}</style>
+        </>
     );
 }
