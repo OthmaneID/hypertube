@@ -21,6 +21,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import ForgotPass from "./page/ForgotPass";
 // import 
 import ResetPass from "./page/ResetPass";
+import EmailVerification from "./page/EmailVerification";
 // import { QueryClient } from "@tanstack/react-query ";
 
 // const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ function App() {
                     id="scrollContainer"
                   >
                     <Routes>
+                      <Route path="/verify-email" element={<EmailVerification />} />
                       <Route element={<ProtectedRoute />}>
                         <Route index path="/" element={<Home />} />
                         <Route path="/settings" element={<Settings />} />

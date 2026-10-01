@@ -26,7 +26,7 @@ class User(Base):
     last_name : Mapped[str] = mapped_column(String, nullable= False)
     username : Mapped[str] = mapped_column(String, nullable=False)
     preferred_language : Mapped[preferredLanguageEnum] = Column(Enum(preferredLanguageEnum), insert_default=preferredLanguageEnum.EN)
-    picture : Mapped[str] = mapped_column(String, default="Default_pfp.svg")
+    picture : Mapped[str] = mapped_column(String, default="/uploads/default/Default_pfp.svg")
     password : Mapped[str] = mapped_column(String, nullable=True)
     oauth_provider: Mapped[oauthEnum] = Column(Enum(oauthEnum), insert_default=oauthEnum.EMAIL)
     is_verified : Mapped[bool] = mapped_column(Boolean, default=False)

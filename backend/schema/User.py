@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     last_name: str 
     preferred_language : preferredLanguageEnum = preferredLanguageEnum.EN
     email: EmailStr
-    picture: str = "Default_pfp.svg"
+    picture: str = "/uploads/default/Default_pfp.svg"
     oauth_provider: oauthEnum = oauthEnum.EMAIL
     favorite_movies: List[int] = []
     favorite_series: List[int] = []
@@ -24,6 +24,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+    is_verified: bool
     model_config = ConfigDict(from_attributes=True)
 
 

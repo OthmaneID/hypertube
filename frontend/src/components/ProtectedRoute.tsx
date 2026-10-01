@@ -4,7 +4,7 @@ import { useAuth } from "../global/authContext";
 import { Navigate, Outlet } from "react-router-dom";
 
 function ProtectedRoute() {
-    const { isAuthenticated, loading } = useAuth()
+    const { isAuthenticated, loading, user } = useAuth()
 
     useEffect(() => {
         if (!isAuthenticated && !loading) {
@@ -20,6 +20,10 @@ function ProtectedRoute() {
 
     if (!isAuthenticated) {
         return <Navigate to={`/signin?back_url=${window.location.pathname}`} />
+    }
+
+    if (user?.oauth_provider === "email" && user.is_verified !== true) {
+        return <Navigate to="/verify-email" replace />
     }
 
     return (

@@ -7,7 +7,7 @@ import {
   user_logout,
 } from "../utils/api/userService/authAPi";
 import { AuthContext } from "./authContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AuthResponse, User } from "../utils/interfaces";
 import type { TokenResponse } from "@react-oauth/google";
 
@@ -22,22 +22,17 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const back_to_url = params.get("back_to") || "/";
 
   useEffect(() => {
-    if (user) {
-      setIsAuthenticated(true);
-      setLoading(false);
-    } else {
-      get_current_user()
-        .then((user: any) => {
-          setUser(user);
-          localStorage.setItem("user", JSON.stringify(user));
-          setIsAuthenticated(true);
-          setLoading(false);
-        })
-        .catch((error: any) => {
-          console.log("error : ", error);
-          logout();
-        });
-    }
+    get_current_user()
+      .then((user: any) => {
+        setUser(user);
+        localStorage.setItem("user", JSON.stringify(user));
+        setIsAuthenticated(true);
+        setLoading(false);
+      })
+      .catch((error: any) => {
+        console.log("error : ", error);
+        logout();
+      });
   }, []);
 
   function login(email: string, password: string) {
@@ -138,10 +133,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     user_logout();
   }
 
-  function setUserOverride(userData: User) {
+  const setUserOverride = useCallback((userData: User) => {
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
-  }
+  }, []);
 
   if (loading) {
     return (

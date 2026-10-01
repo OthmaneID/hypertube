@@ -135,7 +135,7 @@ async def uploadProfilePicture(request: Request, file: UploadFile, db: Session, 
         # Delete only a previous local upload, not the default or a remote image.
         if (
             user_db.picture
-            and user_db.picture != "Default_pfp.svg"
+            and user_db.picture != "/uploads/default/Default_pfp.svg"
             and not user_db.picture.startswith(("http://", "https://"))
         ):
             old_file_path = f"./{os.path.join(upload_dir, os.path.basename(user_db.picture))}"

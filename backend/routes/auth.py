@@ -7,7 +7,7 @@ from schema.GoogleToken import GoogleTokenResponse
 from database import get_db
 from fastapi import Body, Depends, Response
 from sqlalchemy.orm import Session
-from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken , forgotPassword, resetPassword
+from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken , forgotPassword, resetPassword, verifyEmail, resendVerificationEmail
 
 import json
 from config import settings
@@ -65,3 +65,15 @@ def forgot_password(request: Request, email: EmailStr = Body(embed=True), db: Se
 @router.post("/reset-password")
 def reset_password(request: Request, token: str = Body(embed=True), new_pass: str = Body(embed=True), db:Session = Depends(get_db)):
     return resetPassword(request, token, new_pass, db)
+
+@router.get("/verify-email")
+def verify_email(request: Request, token: str, db: Session = Depends(get_db)):
+    return verifyEmail(request, token, db)
+
+@router.post("/verify-email/resend")
+def resend_verification_email(
+    request: Request,
+    user: UserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return resendVerificationEmail(user, db)

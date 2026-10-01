@@ -89,3 +89,13 @@ export async function reset_password(token: string, newPass: string): Promise<an
         throw new Error(error.message);
     }
 }
+
+export async function verify_email(token: string): Promise<{ message: string; user: User }> {
+    const res = await axios.get("/auth/verify-email", { params: { token } });
+    return res.data;
+}
+
+export async function resend_verification_email(): Promise<{ message: string }> {
+    const res = await axios.post("/auth/verify-email/resend");
+    return res.data;
+}

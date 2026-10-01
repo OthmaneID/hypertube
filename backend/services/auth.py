@@ -10,6 +10,7 @@ from schema.GoogleToken import GoogleTokenResponse
 from sqlalchemy.orm import Session
 import jwt
 import bcrypt
+import hashlib
 from models.User import User, oauthEnum
 from models.Token import Token, tokenTypeEnum
 import httpx2
@@ -19,6 +20,7 @@ from pydantic import EmailStr
 from utils.emailing import sendEmail
 import secrets
 import base64
+from urllib.parse import quote
 from utils.auth import hashPass, createTokens, refreshToken
 
 
@@ -64,7 +66,10 @@ def get_current_user(request:Request, db:Session = Depends(get_db)):
         if redis:
             user = redis.get(user_email)
             if user:
-                return UserResponse.model_validate(json.loads(user))
+                cached_user = json.loads(user)
+                if "is_verified" in cached_user:
+                    return UserResponse.model_validate(cached_user)
+                redis.delete(user_email)
         user = db.query(User).filter(User.email == user_email).first()
         if not user:
             raise HTTPException(404, "User not found")
@@ -84,6 +89,85 @@ def get_current_user(request:Request, db:Session = Depends(get_db)):
 
 
 
+def sendVerificationEmail(user: User, db: Session):
+    db.query(Token).filter(
+        Token.user_id == user.id,
+        Token.token_type == tokenTypeEnum.EMAIL,
+    ).delete(synchronize_session=False)
+
+    raw_token = secrets.token_urlsafe(32)
+    token_db = Token(
+        hashed_token=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+        user_id=user.id,
+        expires_at=datetime.now() + timedelta(hours=24),
+        token_type=tokenTypeEnum.EMAIL,
+    )
+    db.add(token_db)
+    db.commit()
+
+    verification_link = f"{settings.frontend_url}/verify-email?token={quote(raw_token, safe='')}"
+    email_result = sendEmail(
+        email=user.email,
+        subject="Verify your Hypertube email",
+        content=(
+            f"Hello {user.username},\n\n"
+            "Please verify your email address by opening this link:\n\n"
+            f"{verification_link}\n\n"
+            "This link expires in 24 hours.\n\n"
+            "If you did not create this account, you can ignore this email."
+        ),
+    )
+    return not (isinstance(email_result, dict) and email_result.get("error"))
+
+
+def verifyEmail(request: Request, raw_token: str, db: Session):
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    token_db = db.query(Token).filter(
+        Token.hashed_token == token_hash,
+        Token.token_type == tokenTypeEnum.EMAIL,
+    ).first()
+
+    if not token_db:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    user_db = token_db.user
+    if token_db.used_at:
+        if user_db.is_verified:
+            return {
+                "message": "Email already verified",
+                "user": UserResponse.model_validate(user_db),
+            }
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    if not token_db.expires_at or token_db.expires_at <= datetime.now():
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link")
+
+    user_db.is_verified = True
+    token_db.used_at = datetime.now()
+    db.commit()
+    db.refresh(user_db)
+
+    redis = getattr(request.app.state, "redis", None)
+    if redis:
+        redis.delete(user_db.email)
+
+    return {
+        "message": "Email verified successfully",
+        "user": UserResponse.model_validate(user_db),
+    }
+
+
+def resendVerificationEmail(current_user: UserResponse, db: Session):
+    user_db = db.query(User).filter(User.id == current_user.id).first()
+    if not user_db:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user_db.oauth_provider != oauthEnum.EMAIL or user_db.is_verified:
+        return {"message": "Email verification is not required"}
+    if not sendVerificationEmail(user_db, db):
+        raise HTTPException(status_code=502, detail="Could not send verification email")
+    return {"message": "Verification email sent"}
+
+
 def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider: oauthEnum = oauthEnum.EMAIL):
     try:
         usr = db.query(User).filter(User.email == user.email).first()
@@ -98,6 +182,9 @@ def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider
         db.add(user_db)
         db.commit()
         db.refresh(user_db)
+
+        if oauth_provider == oauthEnum.EMAIL and not sendVerificationEmail(user_db, db):
+            return {"error": "Could not send verification email. Sign in to request another link."}
 
         user_serialized = UserResponse.model_validate(user_db)
         tokens = createTokens(user_serialized.email)
@@ -153,7 +240,8 @@ async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session,
                     "first_name": user_info.get("given_name", ""),
                     "last_name": user_info.get("family_name", ""),
                     "oauth_provider": oauthEnum.GOOGLE,
-                    "picture": user_info["picture"]
+                    "picture": user_info["picture"],
+                    "is_verified": True,
                 }
                 user = User(**user_data)
                 db.add(user)
@@ -161,7 +249,13 @@ async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session,
                 db.refresh(user)
                 user_serialized = UserResponse.model_validate(user)
             else:
+                user_db.is_verified = True
+                db.commit()
+                db.refresh(user_db)
                 user_serialized = UserResponse.model_validate(user_db)
+            redis = getattr(request.app.state, "redis", None)
+            if redis:
+                redis.delete(user_serialized.email)
             tokens = createTokens(user_serialized.email)
             http_response = Response(media_type="application/json")
             http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
@@ -200,7 +294,8 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
             "last_name": user_info["last_name"],
             "email": user_info["email"],
             "oauth_provider": oauthEnum.FORTY_TWO,
-            "picture": user_info["image"]["link"]
+            "picture": user_info["image"]["link"],
+            "is_verified": True,
         }
 
         user_db = db.query(User).filter(User.email == user_data["email"]).first()
@@ -211,7 +306,13 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
             db.refresh(user)
             user_serialized = UserResponse.model_validate(user)
         else:
+            user_db.is_verified = True
+            db.commit()
+            db.refresh(user_db)
             user_serialized = UserResponse.model_validate(user_db)
+        redis = getattr(request.app.state, "redis", None)
+        if redis:
+            redis.delete(user_serialized.email)
         tokens = createTokens(user_serialized.email)
         response = responses.RedirectResponse(url=f"{settings.frontend_url}/signin")
         response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
@@ -251,10 +352,14 @@ def forgotPassword(request: Request, email: EmailStr, db : Session):
 def resetPassword(request: Request, token: str, new_pass: str, db:Session):
     try:
         token = base64.urlsafe_b64decode(token).decode("utf-8")
-        token_db = db.query(Token).filter(Token.hashed_token == token).first()
+        token_db = db.query(Token).filter(
+            Token.hashed_token == token,
+            Token.token_type == tokenTypeEnum.PASSWORD_RESET,
+            Token.used_at.is_(None),
+        ).first()
         print(token_db)
         # check if token is expired
-        if not token_db or token_db.expires_at < datetime.now():
+        if not token_db or not token_db.expires_at or token_db.expires_at <= datetime.now():
             return Response(content=json.dumps({"error": "Invalid or expired token"}), media_type="application/json", status_code=400)
         user_db = token_db.user
         user_db.password = hashPass(new_pass)
