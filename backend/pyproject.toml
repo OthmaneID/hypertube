@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "OthmaneID", email = "othmanid5@gmail.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "bcrypt>=5.0.0",
     "fastapi>=0.141.1",
@@ -26,7 +26,6 @@ dependencies = [
     "python-multipart>=0.0.32",
     "aiofiles>=25.1.0",
     "google-genai>=2.25.0",
-    "libtorrent>=2.1.1",
 ]
 
 [project.scripts]
