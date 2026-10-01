@@ -17,6 +17,7 @@ from routes.series import router as series_router
 from routes.images import router as image_conf_router
 from routes.comments import router as comments_router
 from routes.user import router as user_router
+from routes.search import router as search_router
 
 
 
@@ -76,6 +77,7 @@ app.include_router(series_router)
 
 app.include_router(image_conf_router)
 app.include_router(comments_router)
+app.include_router(search_router)
 
 
 

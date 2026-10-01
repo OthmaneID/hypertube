@@ -119,87 +119,107 @@ function Movies() {
   }
 
   return (
-    <div className="p-4 flex flex-col">
+    <div className="p-4 flex flex-col w-full max-w-7xl mx-auto">
       {/* Header + Search bar */}
-      <div className="w-full flex flex-col gap-4 py-5">
-        <div className="flex items-center justify-center">
-          <span className="text-4xl text-gray-200 font-thin">
-            {isSearchMode ? "Search Results" : "Popular \u00b7 Movies"}
-          </span>
+      <div className="w-full flex flex-col gap-6 py-8">
+        <div className="flex flex-col items-center justify-center gap-2 mb-2 mt-4">
+          <h1 className="text-4xl md:text-5xl text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-blue-400 font-extrabold tracking-tight">
+            {isSearchMode ? "Search Movies" : "Popular Movies"}
+          </h1>
+          <p className="text-gray-400 text-sm md:text-base font-medium">
+            {isSearchMode 
+              ? "Find your favorite films and public domain classics" 
+              : "Discover trending films around the world"}
+          </p>
         </div>
 
         {/* Search input */}
-        <div className="relative max-w-xl mx-auto w-full">
-          <BiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl pointer-events-none" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search movies..."
-            className="w-full bg-gray-800/70 text-gray-100 placeholder-gray-500 rounded-2xl pl-11 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-gray-600 transition-all"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-            >
-              <BiX className="text-xl" />
-            </button>
-          )}
+        <div className="relative max-w-3xl mx-auto w-full group mt-2 mb-4">
+          <div className="absolute -inset-1 bg-linear-to-r from-purple-600/50 to-blue-600/50 rounded-3xl blur-lg opacity-40 group-focus-within:opacity-100 transition duration-500"></div>
+          <div className="relative flex items-center bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/10">
+            <BiSearch className="absolute left-6 text-gray-400 text-2xl pointer-events-none group-focus-within:text-purple-400 transition-colors" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search for movies..."
+              className="w-full bg-transparent text-gray-100 placeholder-gray-500 rounded-2xl pl-16 pr-14 py-5 text-lg outline-none transition-all"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-4 p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <BiX className="text-2xl" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Source badges when in search mode */}
         {isSearchMode && searchSources.length > 0 && (
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <span className="text-gray-500 text-xs">Sources:</span>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <span className="text-gray-400 text-sm font-medium">Results from:</span>
             {searchSources.map((src) => (
-              <span
+              <div
                 key={src}
-                className="px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 text-xs font-medium"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-semibold tracking-wide shadow-lg transition-transform hover:scale-105 ${
+                  src === "archive.org"
+                    ? "bg-amber-900/30 border-amber-500/30 text-amber-300"
+                    : "bg-blue-900/30 border-blue-500/30 text-blue-300"
+                }`}
               >
-                {src === "archive.org" ? "\ud83c\udfd9\ufe0f archive.org" : "\ud83c\udfa5 TMDB"}
-              </span>
+                {src === "archive.org" ? "🏛️ Archive.org" : "🎬 TMDB"}
+              </div>
             ))}
           </div>
         )}
       </div>
 
       {/* Grid */}
-      <div className="p-2 flex flex-row flex-wrap w-full">
+      <div className="p-2 flex flex-row flex-wrap w-full justify-center gap-y-8 gap-x-4">
 
         {/* Search mode */}
         {isSearchMode && (
           <>
             {isSearching && (
-              <div className="w-full flex justify-center items-center py-20">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">Searching...</span>
-                </div>
+              <div className="w-full flex flex-row flex-wrap justify-center gap-x-4 gap-y-8 py-10">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg relative bg-gray-800/40 animate-pulse border border-white/5">
+                    <div className="absolute inset-0 bg-linear-to-t from-gray-900/90 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
+                      <div className="h-4 bg-gray-700/80 rounded-md w-3/4"></div>
+                      <div className="h-3 bg-gray-700/80 rounded-md w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             {!isSearching && searchResults.length === 0 && (
-              <span className="text-xl text-gray-400 text-center w-full py-20">
-                No results found for "{debouncedQuery}"
-              </span>
+              <div className="flex flex-col items-center justify-center w-full py-32 opacity-80">
+                <BiSearch className="text-7xl text-gray-600 mb-4" />
+                <span className="text-2xl text-gray-400 font-medium">
+                  No results found for "{debouncedQuery}"
+                </span>
+                <p className="text-gray-500 mt-2">Try adjusting your keywords.</p>
+              </div>
             )}
-            {!isSearching &&
-              searchResults.map((item, index) => (
-                <Card
-                  key={`${item.source}-${item.id ?? item.archive_identifier}-${index}`}
-                  url={
-                    item.source === "archive"
-                      ? (item.archive_url ?? "#")
-                      : `/movies/${item.id}`
-                  }
-                  id={item.id ?? undefined}
-                  poster={item.poster_path ?? undefined}
-                  title={item.title}
-                  vote={item.vote_average}
-                  year={item.release_date ? item.release_date.slice(0, 4) : undefined}
-                  isExternal={item.source === "archive"}
-                />
-              ))}
+            {!isSearching && searchResults.map((item, index) => (
+              <Card
+                key={`${item.source}-${item.id ?? item.archive_identifier}-${index}`}
+                url={
+                  item.source === "archive"
+                    ? (item.archive_url ?? "#")
+                    : `/movies/${item.id}`
+                }
+                id={item.id ?? undefined}
+                poster={item.poster_path ?? undefined}
+                title={item.title}
+                vote={item.vote_average}
+                year={item.release_date ? item.release_date.slice(0, 4) : undefined}
+                isExternal={item.source === "archive"}
+              />
+            ))}
           </>
         )}
 
@@ -207,14 +227,16 @@ function Movies() {
         {!isSearchMode && (
           <>
             {movies.length === 0 && !isMoviesLoading ? (
-              <span className="text-xl text-gray-400 text-center w-full">
-                No movies found. Please try again later.
-              </span>
+              <div className="flex flex-col items-center justify-center w-full py-32 opacity-80">
+                <span className="text-2xl text-gray-400 font-medium">
+                  No movies found. Please try again later.
+                </span>
+              </div>
             ) : (
               movies.map((movie, index) => (
                 <Card
-                  url={"/movies/" + movie.id}
                   key={index}
+                  url={"/movies/" + movie.id}
                   id={movie.id}
                   poster={movie.poster_path}
                   title={movie.title}
@@ -229,11 +251,16 @@ function Movies() {
             )}
             <div className="w-full h-1" id="intersectionChecker"></div>
             {isMoviesLoading && (
-              <div className="w-full flex justify-center items-center py-20">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">Loading movies...</span>
-                </div>
+              <div className="w-full flex flex-row flex-wrap justify-center gap-x-4 gap-y-8 py-10">
+                {[...Array(4)].map((_, i) => (
+                  <div key={`loading-${i}`} className="w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg relative bg-gray-800/40 animate-pulse border border-white/5">
+                    <div className="absolute inset-0 bg-linear-to-t from-gray-900/90 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
+                      <div className="h-4 bg-gray-700/80 rounded-md w-3/4"></div>
+                      <div className="h-3 bg-gray-700/80 rounded-md w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </>
@@ -244,7 +271,7 @@ function Movies() {
       <div
         onClick={scrollBackUp}
         id="GoTopBtn"
-        className="active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500 rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer"
+        className="active:scale-95 hover:bg-purple-400 transition-all duration-300 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] rounded-full w-14 h-14 flex items-center justify-center text-3xl cursor-pointer text-white"
         title="Back to top"
       >
         <BiArrowToTop />

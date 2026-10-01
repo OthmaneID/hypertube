@@ -1,33 +1,36 @@
-# Hypertube Implementation Todolist
+# Hypertube — Project TODO
 
-This todolist covers all requirements from the Hypertube subject PDF and is organized to guide implementation in a logical order.
+> Last updated: 2026-09-30  
+> Cross-referenced against the subject PDF (v7.1) and the actual codebase.
 
-## ✅ ALREADY IMPLEMENTED
+---
 
-### User Authentication:
-- ✅ User registration with email, username, password
-- ✅ User login with email/password  
-- ✅ Google OAuth integration
-- ✅ 42 OAuth integration
-- ✅ JWT token authentication with refresh tokens
-- ✅ Password hashing with bcrypt
-- ✅ Redis caching for user sessions
-- ✅ Logout functionality
+## Legend
+| Symbol | Meaning |
+|--------|---------|
+| ✅ | Done and working |
+| 🟡 | Partially done / needs polish |
+| ❌ | Not started |
 
-### Basic Infrastructure:
-- ✅ FastAPI backend with PostgreSQL database
-- ✅ React frontend with TypeScript
-- ✅ Docker setup with docker-compose
-- ✅ TMDB API integration for movies/series
-- ✅ Basic movie/series browsing with pagination
-- ✅ Movie details page with cast, crew, trailers
-- ✅ User model with favorites and history tracking
-- ✅ CORS middleware
-- ✅ Basic routing structure
+---
 
-## ❌ MISSING IMPLEMENTATION (95 tasks)
+## 1. User Interface & Authentication
 
-### USER MANAGEMENT (14 tasks)
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 1.1 | Register: email, username, first_name, last_name, password | ✅ | Register.tsx + /auth/register |
+| 1.2 | Password hashed (bcrypt) | ✅ | utils/auth.py |
+| 1.3 | OAuth — 42 strategy | ✅ | /auth/redirect/42 + /auth/42 |
+| 1.4 | OAuth — Google strategy | ✅ | /auth/google |
+| 1.5 | Login with username + password | ✅ | /auth/login |
+| 1.6 | Forgot password (email reset link) | ✅ | /auth/forgot-password + email service |
+| 1.7 | Reset password via token | ✅ | /auth/reset-password |
+| 1.8 | Logout from any page (one click) | ✅ | /auth/logout + sidebar button |
+| 1.9 | Preferred language field (defaults to English) | 🟡 | Model has preferred_language; no UI switcher yet |
+| 1.10 | Edit email, profile picture, user info (settings page) | ❌ | Settings.tsx is a placeholder; PATCH /user/me exists but UI is missing |
+| 1.11 | Profile picture upload | ❌ | Backend route stub exists, no upload logic or UI |
+| 1.12 | View other user public profile (picture + info, email hidden) | ❌ | Profile.tsx is a placeholder; no GET /user/:username route |
+| 1.13 | /profile/:username route wired in frontend | ❌ | Route defined as /profile only (no param) |
 
 1. [*] Add missing fields to User model (first_name, last_name, preferred_language)
 2. [*] Update database schema migration for new user fields
@@ -44,141 +47,161 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 13. [ ] Ensure email is private in other users' profile views
 14. [*] Create frontend profile page with edit functionality
 15. [ ] Add email verification step during registration (send verification email with token)
+---
 
-### LIBRARY/SEARCH (12 tasks)
+## 2. Library (Movies & Series pages)
 
-15. [ ] Add search input field to Movies/Series pages
-16. [ ] Create search service that queries TMDB API
-17. [ ] Add torrent source integration (legittorrents.info or archive.org)
-18. [ ] Create backend search endpoint combining multiple sources
-19. [ ] Update frontend to display search results
-20. [ ] Add production year display to movie cards
-21. [ ] Add IMDb/OMDb rating display to movie cards
-22. [ ] Implement watched status tracking in History model
-23. [ ] Add visual differentiation for watched/unwatched movies
-24. [ ] Add sorting controls (name, genre, rating, year)
-25. [ ] Add genre filter dropdown
-26. [ ] Add year range filter
-27. [ ] Add rating range filter
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 2.1 | Auth-protected library section | ✅ | ProtectedRoute wraps /movies, /series |
+| 2.2 | Search field on library pages | ❌ | No search input exists yet |
+| 2.3 | Search queries 2+ external royalty-free sources | ❌ | Only TMDB (commercial) used; need archive.org or legittorrents |
+| 2.4 | Results displayed as thumbnails sorted by name | ❌ | Depends on search (2.2/2.3) |
+| 2.5 | Default view: most popular videos | ✅ | TMDB popular endpoint used |
+| 2.6 | Thumbnail shows: title, production year | 🟡 | Title shown; year missing on Card.tsx |
+| 2.7 | Thumbnail shows: IMDb/TMDb rating | 🟡 | Vote stored but not shown on card |
+| 2.8 | Thumbnail shows: cover image | ✅ | Poster image rendered |
+| 2.9 | Watched / unwatched visual differentiation on cards | ❌ | History model exists; no UI badge |
+| 2.10 | Infinite scroll pagination (no load-more button) | ✅ | IntersectionObserver approach |
+| 2.11 | Sorting: name, genre, rating, year | ❌ | No sort controls |
+| 2.12 | Filtering: genre, rating range, year range | ❌ | No filter controls |
 
-### TORRENT/STREAMING (15 tasks)
+---
 
-28. [ ] Install libtorrent or transmission library
-29. [ ] Create torrent download service
-30. [ ] Implement background torrent download with progress tracking
-31. [ ] Add video streaming endpoint for downloaded files
-32. [ ] Integrate video player component in frontend
-33. [ ] Add streaming from partial downloads (chunked streaming)
-34. [ ] Create download cache directory structure
-35. [ ] Implement movie file persistence after download
-36. [ ] Add cron job/scheduler to delete unwatched movies after 1 month
-37. [ ] Add subtitle search service (OpenSubtitles)
-38. [ ] Download and save subtitles for movies
-39. [ ] Add subtitle selection in video player
-40. [ ] Install FFmpeg for video conversion
-41. [ ] Create video conversion service (mkv to mp4/webm)
-42. [ ] Implement on-the-fly conversion for streaming
+## 3. Video / Movie Detail Page
 
-### COMMENTS SYSTEM (10 tasks)
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 3.1 | Detail page: title, summary, year, runtime, rating, poster | ✅ | MovieDetails.tsx / SerieDetails.tsx |
+| 3.2 | Casting: director, producer, main cast | ✅ | Cast + crew scrollable rows |
+| 3.3 | Comments section on movie/series page | ✅ | Comments.tsx sidebar |
+| 3.4 | Post a comment | ✅ | Comment form + NSFW check |
+| 3.5 | Torrent search -> launch download on server | ❌ | StreamingOptions shows mock data only |
+| 3.6 | Stream video as it downloads (chunked / byte-range) | ❌ | No torrent or streaming backend |
+| 3.7 | Non-blocking background torrent download | ❌ | |
+| 3.8 | Persist downloaded movie; serve from disk on re-watch | ❌ | |
+| 3.9 | Auto-delete movie if unwatched for 1 month | ❌ | Cron/scheduler not implemented |
+| 3.10 | English subtitles auto-downloaded when available | ❌ | |
+| 3.11 | Subtitles in user preferred language if available | ❌ | |
+| 3.12 | Subtitle selector in video player | ❌ | |
+| 3.13 | On-the-fly transcoding for non-native formats (mkv -> mp4/webm min.) | ❌ | FFmpeg not integrated |
+| 3.14 | Video player embedded in the site | ❌ | Player component does not exist yet |
+| 3.15 | Mark movie as watched in History after viewing | ❌ | Model exists; no trigger |
 
-43. [*] Complete Comment schema definitions
-44. [*] Add movie_id to Comment model for relationship
-45. [*] Create GET /comments endpoint (latest comments)
-46. [*] Create GET /comments/:id endpoint (single comment)
-47. [*] Create POST /comments endpoint
-48. [*] Create POST /movies/:movie_id/comments endpoint
-49. [*] Create PATCH /comments/:id endpoint
-50. [*] Create DELETE /comments/:id endpoint
-51. [*] Add authorization checks (users can only edit their own comments)
-52. [*] Add comments section to MovieDetails frontend component
-53. [*] Add comment form for posting new comments
-54. [*] Display existing comments with author and timestamp
+---
 
-### RESTFUL API (16 tasks)
+## 4. RESTful API (with OAuth2)
 
-55. [ ] Create separate API router with /api prefix
-56. [ ] Implement OAuth2 token authentication middleware
-57. [ ] Create POST /api/oauth/token endpoint
-58. [ ] Create GET /api/users endpoint (list users)
-59. [ ] Create GET /api/users/:id endpoint (user details)
-60. [ ] Create PATCH /api/users/:id endpoint (update profile)
-61. [ ] Add 403 restriction for modifying other users' profiles
-62. [ ] Create GET /api/movies endpoint (frontpage movies)
-63. [ ] Create GET /api/movies/:id endpoint (movie details)
-64. [ ] Create GET /api/comments endpoint (latest comments)
-65. [ ] Create GET /api/comments/:id endpoint (comment details)
-66. [ ] Create POST /api/comments endpoint
-67. [ ] Create POST /api/movies/:movie_id/comments endpoint
-68. [ ] Create PATCH /api/comments/:id endpoint
-69. [ ] Create DELETE /api/comments/:id endpoint
-70. [ ] Return appropriate HTTP codes for unauthorized requests
+> Subject requires a separate RESTful API with OAuth2 Bearer token auth.
+> Currently all routes use session-cookie auth and no /api prefix.
 
-### SECURITY (10 tasks)
+| # | Endpoint | Status | Notes |
+|---|----------|--------|-------|
+| 4.1 | POST /api/oauth/token — issue Bearer token (client + secret) | ❌ | |
+| 4.2 | OAuth2 Bearer middleware for /api/* routes | ❌ | |
+| 4.3 | GET /api/users — list (id + username) | ❌ | |
+| 4.4 | GET /api/users/:id — username + avatar (no email unless self) | ❌ | |
+| 4.5 | PATCH /api/users/:id — update own profile only; 403 for others | ❌ | |
+| 4.6 | GET /api/movies — frontpage movies (id + name) | ❌ | |
+| 4.7 | GET /api/movies/:id — name, id, rating, year, length, subtitles, comment count | ❌ | |
+| 4.8 | GET /api/comments — latest comments (author, date, content, id) | ❌ | |
+| 4.9 | GET /api/comments/:id — single comment | ❌ | |
+| 4.10 | PATCH /api/comments/:id — edit comment (own only) | ❌ | |
+| 4.11 | DELETE /api/comments/:id | ❌ | |
+| 4.12 | POST /api/comments OR POST /api/movies/:movie_id/comments | ❌ | |
+| 4.13 | Any other API call returns appropriate HTTP error code | ❌ | |
 
-71. [ ] Add input validation to all form fields
-72. [ ] Add email validation with regex
-73. [ ] Add password strength validation
-74. [ ] Add SQL injection protection (parameterized queries)
-75. [ ] Add XSS protection for user-generated content
-76. [ ] Add CSRF protection for state-changing operations
-77. [ ] Add security headers (CSP, X-Frame-Options, etc.)
-78. [ ] Add rate limiting to prevent abuse
-79. [ ] Verify .env is in .gitignore
-80. [ ] Remove any hardcoded credentials from code
-81. [ ] Add file upload validation for profile pictures
+---
 
-### FRONTEND/RESPONSIVE (5 tasks)
+## 5. Security (Eliminatory Items)
 
-82. [ ] Test responsive design on mobile devices
-83. [ ] Fix layout issues on small screens (<768px)
-84. [ ] Ensure touch targets are large enough for mobile
-85. [ ] Test horizontal scrolling on mobile movie lists
-86. [ ] Optimize images for mobile loading
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 5.1 | No plain-text passwords in DB | ✅ | bcrypt throughout |
+| 5.2 | SQL injection protection (ORM parameterized queries) | ✅ | SQLAlchemy ORM used |
+| 5.3 | XSS protection (no raw HTML injection of user input) | 🟡 | React escapes by default; verify no dangerouslySetInnerHTML |
+| 5.4 | Form validation — frontend | 🟡 | Register/login have some; Settings/profile forms missing |
+| 5.5 | Form validation — backend (Pydantic) | 🟡 | Schemas exist; comment content not length-validated |
+| 5.6 | CSRF protection | ❌ | No CSRF tokens; cookies are httponly but no double-submit |
+| 5.7 | Profile picture upload validation (type + size) | ❌ | Not implemented |
+| 5.8 | Rate limiting on auth endpoints | ❌ | |
+| 5.9 | Security headers (CSP, X-Frame-Options, X-Content-Type) | ❌ | |
+| 5.10 | .env excluded from git | ✅ | In .gitignore |
+| 5.11 | No hardcoded credentials in source code | ✅ | All via config.py / settings |
 
-### QUALITY/TESTING (4 tasks)
+---
 
-87. [ ] Run browser console and fix all errors/warnings
-88. [ ] Add error boundaries for React components
-89. [ ] Add loading states for all async operations
-90. [ ] Test application in Chrome and Firefox
+## 6. Frontend / Responsive Design
 
-### LANGUAGE/INTERNATIONALIZATION (5 tasks)
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 6.1 | Mobile-usable layout | 🟡 | Basic responsiveness exists; needs audit |
+| 6.2 | Header present | ✅ | Sidebar acts as nav |
+| 6.3 | Footer present | ❌ | No footer component anywhere |
+| 6.4 | Sidebar / nav accessible on mobile | 🟡 | Sidebar collapses but needs testing |
+| 6.5 | Comments delete button accessible on mobile (three-dot menu) | ✅ | Fixed in latest update |
+| 6.6 | Delete confirmation dialog on all screen sizes | ✅ | Fixed in latest update |
+| 6.7 | Touch targets >= 44px | 🟡 | Not audited |
+| 6.8 | Works on latest Chrome AND Firefox | 🟡 | Not tested cross-browser |
+| 6.9 | No console errors or warnings | ❌ | Not audited — eliminatory rule |
 
-91. [ ] Add language preference field to user settings
-92. [ ] Create language translation files (i18n)
-93. [ ] Implement language switcher component
-94. [ ] Set English as default language
-95. [ ] Add language detection from browser preferences
+---
 
-## 🎯 RECOMMENDED IMPLEMENTATION ORDER
+## 7. Internationalization (i18n)
 
-### Phase 1: Foundation (User Management)
-- Tasks 1-14: Complete user profile system
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 7.1 | User can select preferred language (defaults EN) | ❌ | DB field exists; no UI |
+| 7.2 | UI strings translated (at least EN + 1 other) | ❌ | No i18n library integrated |
+| 7.3 | Language auto-detected from browser | ❌ | |
 
-### Phase 2: Core Features (Library & Search)  
-- Tasks 15-27: Search, filtering, sorting functionality
+---
 
-### Phase 3: Advanced Features (Torrent/Streaming)
-- Tasks 28-42: Core Hypertube functionality
+## 8. Quality / Eliminatory Rules
 
-### Phase 4: Social Features (Comments)
-- Tasks 43-54: Comment system
+| # | Requirement | Status | Notes |
+|---|-------------|--------|-------|
+| 8.1 | Zero server-side errors/warnings in logs | 🟡 | Debug print statements remain |
+| 8.2 | Zero browser console errors/warnings | ❌ | Not audited — eliminatory |
+| 8.3 | Compatible with Chrome (latest) | 🟡 | Not formally tested |
+| 8.4 | Compatible with Firefox (latest) | 🟡 | Not formally tested |
+| 8.5 | All async operations have loading states | 🟡 | Movie lists have spinners; profile/settings do not |
 
-### Phase 5: API Requirements
-- Tasks 55-70: RESTful API implementation
+---
 
-### Phase 6: Security & Quality
-- Tasks 71-90: Security hardening and testing
+## Recommended Execution Order
 
-### Phase 7: Polish
-- Tasks 91-95: Internationalization
+```
+Phase 1 — User profiles & settings UI       (1.9–1.13)
+Phase 2 — Library: search, cards, filters   (2.2–2.12)
+Phase 3 — Torrent + Video streaming         (3.5–3.15)  <- hardest / most time
+Phase 4 — RESTful API with OAuth2           (4.1–4.13)
+Phase 5 — Security hardening               (5.3–5.9)
+Phase 6 — Frontend polish & responsive     (6.1–6.9)
+Phase 7 — i18n                              (7.1–7.3)
+Phase 8 — Final QA (zero console errors)   (8.1–8.5)
+```
 
-## 📝 NOTES
+---
 
-- The project uses a hybrid approach: both TMDB API streaming and actual torrent functionality
-- RESTful API will be implemented as separate /api/* endpoints with OAuth2 token authentication
-- Email functionality will use existing SMTP credentials
-- Full user profile system includes first name, last name, and language preferences
-- Security is critical - no plain text passwords, proper validation, and CSRF protection required
-- Mobile responsiveness is mandatory for the project
-- No console errors or warnings allowed in browser during evaluation
+## CRITICAL / Eliminatory Risks
+
+> These will give an automatic 0 if not fixed before evaluation:
+
+1. Zero console errors — run full DevTools audit before defense
+2. Torrent streaming — the entire core feature of the project is NOT yet implemented
+3. RESTful API — completely missing; evaluators will test every endpoint
+4. CSRF protection — at minimum use SameSite=Strict + verify cookies
+5. Upload validation — profile picture upload has no type/size checks
+
+---
+
+## Missing Dependencies / Tools
+
+| Tool | Needed For | Status |
+|------|-----------|--------|
+| libtorrent Python binding | Torrent downloading | Not installed |
+| FFmpeg | mkv to mp4/webm transcoding | Not in Dockerfile |
+| OpenSubtitles API or similar | Subtitle download | Not integrated |
+| i18next or react-intl | Frontend i18n | Not installed |
+| archive.org / legittorrents | Legal torrent search (2nd source) | Not integrated |
