@@ -5,8 +5,8 @@ from fastapi.requests import Request
 router = APIRouter(prefix="/movies")
 
 @router.get("/popular")
-def get_popular_movies(request:Request, page: int = 1):
-    return getMovies(request=request, page=page)
+def get_popular_movies(request:Request, page: int = 1, sort_by: str | None = None):
+    return getMovies(request=request, page=page, sort_by=sort_by)
 
 
 @router.get("/genres")

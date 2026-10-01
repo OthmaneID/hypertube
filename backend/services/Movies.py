@@ -39,18 +39,25 @@ def getGenres(request: Request) :
         return res.json()
 
 
-def getMovies(request : Request, category: str = "popular", page: int = 1):
-    # get populare movies in pagination
+def getMovies(request : Request, category: str = "popular", page: int = 1, sort_by: str | None = None):
+    # Use TMDB Discover when a sort order is requested; keep existing popular feeds unchanged.
     rd :redis.Redis= request.app.state.redis
+    cache_key = f"discover_movies_{sort_by}_{page}" if sort_by else f"{category}_movies_{page}"
+    request_url = f"{settings.api_base_url}discover/movie" if sort_by else f"{settings.api_base_url}movie/{category}?language=en&page={page}"
     try:
-        if rd is not None  and rd.get(f"{category}_movies_{page}"):
-            return json.loads(rd.get(f"{category}_movies_{page}"))
+        if rd is not None:
+            cached_movies = rd.get(cache_key)
+            if cached_movies is not None:
+                return json.loads(cached_movies)
     except Exception as e :
         pass
-    res = requests.get(f"{settings.api_base_url}movie/{category}?language=en&page={page}", headers=headers)
+    if sort_by:
+        res = requests.get(request_url, params={"language": "en-US", "page": page, "sort_by": sort_by}, headers=headers)
+    else:
+        res = requests.get(request_url, headers=headers)
     try:
         if res.json():
-            rd.setex(f"{category}_movies_{page}", 60 * 60 * 6, json.dumps(res.json()))
+            rd.setex(cache_key, 60 * 60 * 6, json.dumps(res.json()))
             return res.json()
     except Exception as e:
         print(f"Error while fetching Movies : {e}")

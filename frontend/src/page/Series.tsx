@@ -5,6 +5,7 @@ import Card from "../components/Card";
 import { BiArrowToTop } from "react-icons/bi";
 
 function Series() {
+  const [sortBy, setSortBy] = useState("popularity.desc");
   const [isSeriesLoading, setIsSeriesLoading] = useState(false);
   const [series, setSeries] = useState<PopularSeriesResponse["results"]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -15,6 +16,7 @@ function Series() {
   const totalPagesRef = useRef(totalPages);
   const hasMorePagesRef = useRef(hasMorePages);
   const isSeriesLoadingRef = useRef(isSeriesLoading);
+  const requestVersionRef = useRef(0);
   useEffect(() => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
@@ -56,9 +58,11 @@ function Series() {
     if (requestedPagesRef.current.has(currentPageRef.current)) return;
     requestedPagesRef.current.add(currentPageRef.current);
     setIsSeriesLoading(true);
+    const requestVersion = requestVersionRef.current;
 
-    getPopularSeries(currentPageRef.current)
+    getPopularSeries(currentPageRef.current, sortBy)
       .then((data) => {
+        if (requestVersion !== requestVersionRef.current) return;
         setSeries((prev) => {
           const combined = [...prev, ...data.results];
           const uniqueMap = new Map(combined.map((serie) => [serie.id, serie]));
@@ -76,7 +80,20 @@ function Series() {
 
   useEffect(() => {
     fetchPopularSeries();
-  }, [currentPage, hasMorePages, isSeriesLoading]);
+  }, [currentPage, hasMorePages, isSeriesLoading, sortBy]);
+
+  function handleSortChange(nextSortBy: string) {
+    requestVersionRef.current += 1;
+    requestedPagesRef.current.clear();
+    currentPageRef.current = 1;
+    totalPagesRef.current = 1;
+    hasMorePagesRef.current = true;
+    setSeries([]);
+    setCurrentPage(1);
+    setTotalPages(1);
+    setHasMorePages(true);
+    setSortBy(nextSortBy);
+  }
   function handleIntersection(entries: IntersectionObserverEntry[]) {
     entries.forEach((entry) => {
       if (
@@ -97,17 +114,44 @@ function Series() {
   }
   return (
     <div className="p-4 flex flex-col">
-      <div className="w-full flex flex-row justify-between items-center py-5 relative">
-        <div className="flex flex-row items-center justify-center gap-2 w-full">
+      <div className="w-full flex flex-col sm:flex-row sm:justify-between items-center gap-4 py-5">
+        <div className="flex flex-row items-center justify-center gap-2">
           <span className="text-4xl text-gray-200 font-thin">
-            Popular - Series
+            Discover Series
           </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <label
+            htmlFor="series-sort"
+            className="text-sm font-medium text-gray-400"
+          >
+            Sort by
+          </label>
+          <select
+            id="series-sort"
+            value={sortBy}
+            onChange={(event) => handleSortChange(event.target.value)}
+            className="rounded-md border border-white/15 bg-gray-900 px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/40"
+          >
+            <option value="first_air_date.asc">First air date (oldest)</option>
+            <option value="first_air_date.desc">First air date (newest)</option>
+            <option value="name.asc">Name (A-Z)</option>
+            <option value="name.desc">Name (Z-A)</option>
+            <option value="original_name.asc">Original name (A-Z)</option>
+            <option value="original_name.desc">Original name (Z-A)</option>
+            <option value="popularity.asc">Popularity (low to high)</option>
+            <option value="popularity.desc">Popularity (high to low)</option>
+            <option value="vote_average.asc">Rating (low to high)</option>
+            <option value="vote_average.desc">Rating (high to low)</option>
+            <option value="vote_count.asc">Vote count (low to high)</option>
+            <option value="vote_count.desc">Vote count (high to low)</option>
+          </select>
         </div>
       </div>
       {/* series */}
-      <div className="flex flex-row flex-nowrap">
-        <div className="p-2 flex flex-row flex-wrap w-full">
-          {series?.length === 0 ? (
+      <div className="flex flex-row flex-nowrap justify-center">
+        <div className="p-2 flex flex-row flex-wrap w-full justify-start gap-y-8 gap-x-4">
+          {series?.length === 0 && !isSeriesLoading ? (
             <span className="text-xl text-gray-400 text-center w-full">
               No series found. Please try again later.
             </span>

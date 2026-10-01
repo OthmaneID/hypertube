@@ -6,8 +6,8 @@ from services.Series import GetSeries, getSerieDetails, getSerieCredits, getSeri
 router = APIRouter(prefix="/series")
 
 @router.get("/popular")
-def get_popular_series(request: Request, page:int):
-    return GetSeries(request, "popular", page)
+def get_popular_series(request: Request, page:int, sort_by: str | None = None):
+    return GetSeries(request, "popular", page, sort_by=sort_by)
 
 
 @router.get("/details/{serie_id}")

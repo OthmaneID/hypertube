@@ -14,20 +14,26 @@ headers = {
 }
 
 
-def GetSeries(request: Request, category:str = "popular", page:int = 1):
-    request_url = f"{settings.api_base_url}/tv/{category}" + f"?language=en-US&page={page}"
+def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by: str | None = None):
+    cache_key = f"discover_series_{sort_by}_{page}" if sort_by else f"{category}_series_{page}"
+    request_url = f"{settings.api_base_url}/discover/tv" if sort_by else f"{settings.api_base_url}/tv/{category}?language=en-US&page={page}"
     rd:redis.Redis = request.app.state.redis
     try:
-        if rd is not None and rd.get(f"{category}_series_{page}"):
-            return json.loads(rd.get(f"{category}_series_{page}"))
+        if rd is not None:
+            cached_series = rd.get(cache_key)
+            if cached_series is not None:
+                return json.loads(cached_series)
     except Exception as e:
         pass
-    
-    res = requests.get(request_url, headers=headers)
+
+    if sort_by:
+        res = requests.get(request_url, params={"language": "en-US", "page": page, "sort_by": sort_by}, headers=headers)
+    else:
+        res = requests.get(request_url, headers=headers)
     data = res.json()
     try:
         if data:
-            rd.setex(f"{category}_series_{page}", 60 * 60 * 6, json.dumps(data))
+            rd.setex(cache_key, 60 * 60 * 6, json.dumps(data))
             return data
     except Exception as e:
         print("error while fetching movies: ", e)

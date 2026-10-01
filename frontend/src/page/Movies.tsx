@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { getPopularMovies } from "../utils/api/movieService/moviesApi";
-import { searchMovies, type SearchResultItem } from "../utils/api/movieService/searchApi";
+import {
+  searchMovies,
+  type SearchResultItem,
+} from "../utils/api/movieService/searchApi";
 import type { PopularMoviesResponse } from "../utils/interfaces";
 import { BiArrowToTop, BiSearch, BiX } from "react-icons/bi";
 import Card from "../components/Card";
@@ -17,6 +20,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 function Movies() {
   // Popular mode state
+  const [sortBy, setSortBy] = useState("popularity.desc");
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [movies, setMovies] = useState<PopularMoviesResponse["results"]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -27,6 +31,7 @@ function Movies() {
   const totalPagesRef = useRef(totalPages);
   const hasMorePagesRef = useRef(hasMorePages);
   const isMoviesLoadingRef = useRef(isMoviesLoading);
+  const requestVersionRef = useRef(0);
 
   // Search mode state
   const [query, setQuery] = useState("");
@@ -38,10 +43,18 @@ function Movies() {
   const isSearchMode = debouncedQuery.trim().length > 0;
 
   // Keep refs in sync
-  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
-  useEffect(() => { totalPagesRef.current = totalPages; }, [totalPages]);
-  useEffect(() => { hasMorePagesRef.current = hasMorePages; }, [hasMorePages]);
-  useEffect(() => { isMoviesLoadingRef.current = isMoviesLoading; }, [isMoviesLoading]);
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+  useEffect(() => {
+    totalPagesRef.current = totalPages;
+  }, [totalPages]);
+  useEffect(() => {
+    hasMorePagesRef.current = hasMorePages;
+  }, [hasMorePages]);
+  useEffect(() => {
+    isMoviesLoadingRef.current = isMoviesLoading;
+  }, [isMoviesLoading]);
 
   // Infinite scroll for popular mode
   const scrollContainer = document.getElementById("scrollContainer");
@@ -65,9 +78,11 @@ function Movies() {
 
     requestedPagesRef.current.add(currentPageRef.current);
     setIsMoviesLoading(true);
+    const requestVersion = requestVersionRef.current;
 
-    getPopularMovies(currentPageRef.current)
+    getPopularMovies(currentPageRef.current, sortBy)
       .then((data) => {
+        if (requestVersion !== requestVersionRef.current) return;
         setMovies((prev) => {
           const combined = [...prev, ...data.results];
           const uniqueMap = new Map(combined.map((movie) => [movie.id, movie]));
@@ -83,7 +98,20 @@ function Movies() {
 
   useEffect(() => {
     if (!isSearchMode) fetchPopularMovies();
-  }, [currentPage, hasMorePages, isMoviesLoading, isSearchMode]);
+  }, [currentPage, hasMorePages, isMoviesLoading, isSearchMode, sortBy]);
+
+  function handleSortChange(nextSortBy: string) {
+    requestVersionRef.current += 1;
+    requestedPagesRef.current.clear();
+    currentPageRef.current = 1;
+    totalPagesRef.current = 1;
+    hasMorePagesRef.current = true;
+    setMovies([]);
+    setCurrentPage(1);
+    setTotalPages(1);
+    setHasMorePages(true);
+    setSortBy(nextSortBy);
+  }
 
   function handleIntersection(entries: IntersectionObserverEntry[]) {
     entries.forEach((entry) => {
@@ -119,23 +147,22 @@ function Movies() {
   }
 
   return (
-    <div className="p-4 flex flex-col w-full max-w-7xl mx-auto">
+    <div className="p-4 flex flex-col w-full mx-auto">
       {/* Header + Search bar */}
       <div className="w-full flex flex-col gap-6 py-8">
         <div className="flex flex-col items-center justify-center gap-2 mb-2 mt-4">
-          <h1 className="text-4xl md:text-5xl text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-blue-400 font-extrabold tracking-tight">
-            {isSearchMode ? "Search Movies" : "Popular Movies"}
+          <h1 className="text-4xl md:text-5xl text-gray-100 font-extrabold tracking-tight">
+            {isSearchMode ? "Search Movies" : "Discover Movies"}
           </h1>
           <p className="text-gray-400 text-sm md:text-base font-medium">
-            {isSearchMode 
-              ? "Find your favorite films and public domain classics" 
+            {isSearchMode
+              ? "Find your favorite films and public domain classics"
               : "Discover trending films around the world"}
           </p>
         </div>
 
         {/* Search input */}
         <div className="relative max-w-3xl mx-auto w-full group mt-2 mb-4">
-          <div className="absolute -inset-1 bg-linear-to-r from-purple-600/50 to-blue-600/50 rounded-3xl blur-lg opacity-40 group-focus-within:opacity-100 transition duration-500"></div>
           <div className="relative flex items-center bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/10">
             <BiSearch className="absolute left-6 text-gray-400 text-2xl pointer-events-none group-focus-within:text-purple-400 transition-colors" />
             <input
@@ -156,10 +183,48 @@ function Movies() {
           </div>
         </div>
 
+        {!isSearchMode && (
+          <div className="flex items-center justify-center gap-3">
+            <label
+              htmlFor="movie-sort"
+              className="text-sm font-medium text-gray-400"
+            >
+              Sort by
+            </label>
+            <select
+              id="movie-sort"
+              value={sortBy}
+              onChange={(event) => handleSortChange(event.target.value)}
+              className="rounded-md border border-white/15 bg-gray-900 px-3 py-2 text-sm text-gray-100 outline-none focus:border-white/40"
+            >
+              <option value="original_title.asc">Original title (A-Z)</option>
+              <option value="original_title.desc">Original title (Z-A)</option>
+              <option value="popularity.asc">Popularity (low to high)</option>
+              <option value="popularity.desc">Popularity (high to low)</option>
+              <option value="revenue.asc">Revenue (low to high)</option>
+              <option value="revenue.desc">Revenue (high to low)</option>
+              <option value="primary_release_date.asc">
+                Release date (oldest)
+              </option>
+              <option value="primary_release_date.desc">
+                Release date (newest)
+              </option>
+              <option value="title.asc">Title (A-Z)</option>
+              <option value="title.desc">Title (Z-A)</option>
+              <option value="vote_average.asc">Rating (low to high)</option>
+              <option value="vote_average.desc">Rating (high to low)</option>
+              <option value="vote_count.asc">Vote count (low to high)</option>
+              <option value="vote_count.desc">Vote count (high to low)</option>
+            </select>
+          </div>
+        )}
+
         {/* Source badges when in search mode */}
         {isSearchMode && searchSources.length > 0 && (
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <span className="text-gray-400 text-sm font-medium">Results from:</span>
+            <span className="text-gray-400 text-sm font-medium">
+              Results from:
+            </span>
             {searchSources.map((src) => (
               <div
                 key={src}
@@ -177,16 +242,17 @@ function Movies() {
       </div>
 
       {/* Grid */}
-      <div className="p-2 flex flex-row flex-wrap w-full justify-center gap-y-8 gap-x-4">
-
+      <div className="p-2 flex flex-row flex-wrap w-full justify-start gap-y-8 gap-x-4">
         {/* Search mode */}
         {isSearchMode && (
           <>
             {isSearching && (
               <div className="w-full flex flex-row flex-wrap justify-center gap-x-4 gap-y-8 py-10">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg relative bg-gray-800/40 animate-pulse border border-white/5">
-                    <div className="absolute inset-0 bg-linear-to-t from-gray-900/90 to-transparent"></div>
+                  <div
+                    key={i}
+                    className="w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg relative bg-gray-800/40 animate-pulse border border-white/5"
+                  >
                     <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                       <div className="h-4 bg-gray-700/80 rounded-md w-3/4"></div>
                       <div className="h-3 bg-gray-700/80 rounded-md w-1/2"></div>
@@ -201,25 +267,32 @@ function Movies() {
                 <span className="text-2xl text-gray-400 font-medium">
                   No results found for "{debouncedQuery}"
                 </span>
-                <p className="text-gray-500 mt-2">Try adjusting your keywords.</p>
+                <p className="text-gray-500 mt-2">
+                  Try adjusting your keywords.
+                </p>
               </div>
             )}
-            {!isSearching && searchResults.map((item, index) => (
-              <Card
-                key={`${item.source}-${item.id ?? item.archive_identifier}-${index}`}
-                url={
-                  item.source === "archive"
-                    ? (item.archive_url ?? "#")
-                    : `/movies/${item.id}`
-                }
-                id={item.id ?? undefined}
-                poster={item.poster_path ?? undefined}
-                title={item.title}
-                vote={item.vote_average}
-                year={item.release_date ? item.release_date.slice(0, 4) : undefined}
-                isExternal={item.source === "archive"}
-              />
-            ))}
+            {!isSearching &&
+              searchResults.map((item, index) => (
+                <Card
+                  key={`${item.source}-${item.id ?? item.archive_identifier}-${index}`}
+                  url={
+                    item.source === "archive"
+                      ? (item.archive_url ?? "#")
+                      : `/movies/${item.id}`
+                  }
+                  id={item.id ?? undefined}
+                  poster={item.poster_path ?? undefined}
+                  title={item.title}
+                  vote={item.vote_average}
+                  year={
+                    item.release_date
+                      ? item.release_date.slice(0, 4)
+                      : undefined
+                  }
+                  isExternal={item.source === "archive"}
+                />
+              ))}
           </>
         )}
 
@@ -253,8 +326,10 @@ function Movies() {
             {isMoviesLoading && (
               <div className="w-full flex flex-row flex-wrap justify-center gap-x-4 gap-y-8 py-10">
                 {[...Array(4)].map((_, i) => (
-                  <div key={`loading-${i}`} className="w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg relative bg-gray-800/40 animate-pulse border border-white/5">
-                    <div className="absolute inset-0 bg-linear-to-t from-gray-900/90 to-transparent"></div>
+                  <div
+                    key={`loading-${i}`}
+                    className="w-45 h-67.5 rounded-2xl overflow-hidden shadow-lg relative bg-gray-800/40 animate-pulse border border-white/5"
+                  >
                     <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                       <div className="h-4 bg-gray-700/80 rounded-md w-3/4"></div>
                       <div className="h-3 bg-gray-700/80 rounded-md w-1/2"></div>
