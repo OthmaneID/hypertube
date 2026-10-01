@@ -19,7 +19,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AuthProvider from "./global/authProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import ForgotPass from "./page/ForgotPass";
+// import 
 import ResetPass from "./page/ResetPass";
+// import { QueryClient } from "@tanstack/react-query ";
+
+// const queryClient = new QueryClient();
 
 function App() {
   return (

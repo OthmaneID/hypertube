@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from typing import List
 from models.User import oauthEnum , preferredLanguageEnum
 
@@ -32,9 +32,17 @@ class UserLogin(BaseModel):
     password: str
     model_config = ConfigDict(from_attributes=True)
 
-class UserUpdate(UserBase):
-    username: str | None = None
+class UserUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    username: str | None = Field(default=None, min_length=4, max_length=50)
     first_name: str | None = None
     last_name: str | None = None
     preferred_language : preferredLanguageEnum | None = None
-    picture: str | None = None
+
+    @model_validator(mode="after")
+    def reject_explicit_nulls(self):
+        for field_name in self.model_fields_set:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null")
+        return self

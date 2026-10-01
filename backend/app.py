@@ -2,6 +2,7 @@ import fastapi
 from uvicorn import run
 from contextlib import asynccontextmanager
 from fastapi.middleware import cors
+from fastapi.staticfiles import StaticFiles
 
 from routes.auth import router as auth_router
 from config import settings
@@ -15,6 +16,7 @@ from routes.movies import router as movie_router
 from routes.series import router as series_router
 from routes.images import router as image_conf_router
 from routes.comments import router as comments_router
+from routes.user import router as user_router
 
 
 
@@ -63,7 +65,11 @@ app.add_middleware(
 
 app.add_middleware(AuthMiddleware)
 
+# Mount static files for profile pictures
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 app.include_router(auth_router)
+app.include_router(user_router)
 
 app.include_router(movie_router)
 app.include_router(series_router)

@@ -3,21 +3,21 @@ from models.Comment import Comment
 from schema.Comment import CommentResponse
 from fastapi import HTTPException
 
-from google import genai
+# from google import genai
 
-client = genai.Client()
+# client = genai.Client()
 
 
-def CheckCommentNSFW(comment: str) -> bool:
-    try:
-        interaction = client.interactions.create(
-            model="gemini-3.8-flash",
-            input="Check this comment if it contain any bad words or any nsfw content if it is in a language you do not understand or you are not sure about it just say False. Reply with exactly 'True' if it is and 'False' if it is not. Comment: " + comment
-        )
-        return "True" in interaction.output_text
-    except Exception as e:
-        print(f"error while checking comment nsfw: {e}")
-        return False
+# def CheckCommentNSFW(comment: str) -> bool:
+#     try:
+#         interaction = client.interactions.create(
+#             model="gemini-3.8-flash",
+#             input="Check this comment if it contain any bad words or any nsfw content if it is in a language you do not understand or you are not sure about it just say False. Reply with exactly 'True' if it is and 'False' if it is not. Comment: " + comment
+#         )
+#         return "True" in interaction.output_text
+#     except Exception as e:
+#         print(f"error while checking comment nsfw: {e}")
+#         return False
 
 
 def AddComment(comment: str, owner_id: int, movie_id: int, db: Session):

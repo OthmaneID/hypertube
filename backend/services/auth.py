@@ -64,7 +64,7 @@ def get_current_user(request:Request, db:Session = Depends(get_db)):
         if redis:
             user = redis.get(user_email)
             if user:
-                return user
+                return UserResponse.model_validate(json.loads(user))
         user = db.query(User).filter(User.email == user_email).first()
         if not user:
             raise HTTPException(404, "User not found")

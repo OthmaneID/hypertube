@@ -7,17 +7,13 @@ import {
   user_logout,
 } from "../utils/api/userService/authAPi";
 import { AuthContext } from "./authContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AuthResponse, User } from "../utils/interfaces";
-import { Navigate } from "react-router-dom";
 import type { TokenResponse } from "@react-oauth/google";
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const storedUser = localStorage.getItem("user");
-  // const [user, setUser] = useState<User | null>(storedUser ? JSON.parse(storedUser) : null)
-  const userRef = useRef<User | null>(
-    storedUser ? JSON.parse(storedUser) : null,
-  );
+  const [user, setUser] = useState<User | null>(storedUser ? JSON.parse(storedUser) : null);
 
   // const [token, setToken] = useState<string | null>(localStorage.getItem("token") || null)
   const [loading, setLoading] = useState<boolean>(true);
@@ -26,18 +22,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const back_to_url = params.get("back_to") || "/";
 
   useEffect(() => {
-    if (userRef.current) {
-      // setToken(token)
-      const user = localStorage.getItem("user");
-      // setUser(user ? JSON.parse(user) : null)
-      userRef.current = user ? JSON.parse(user) : null;
+    if (user) {
       setIsAuthenticated(true);
       setLoading(false);
     } else {
       get_current_user()
         .then((user: any) => {
-          // setUser(user)
-          userRef.current = user ? JSON.parse(user) : null;
+          setUser(user);
+          localStorage.setItem("user", JSON.stringify(user));
           setIsAuthenticated(true);
           setLoading(false);
         })
@@ -61,9 +53,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           return;
         }
-        get_current_user().then((user: any) => {
-          userRef.current = user ? JSON.parse(user) : null;
-          localStorage.setItem("user", JSON.stringify(user));
+        get_current_user().then((userData: any) => {
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
         });
         setIsAuthenticated(true);
         // setLoading(false)
@@ -83,10 +75,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           toast.error(data.error);
           return;
         }
-        get_current_user().then((user: any) => {
-          console.log("Glogin user : ", user);
-          userRef.current = user ? JSON.parse(user) : null;
-          localStorage.setItem("user", JSON.stringify(user));
+        get_current_user().then((userData: any) => {
+          console.log("Glogin user : ", userData);
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
         });
         setIsAuthenticated(true);
         setLoading(false);
@@ -124,9 +116,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         get_current_user()
-          .then((user) => {
-            userRef.current = user;
-            localStorage.setItem("user", JSON.stringify(user));
+          .then((userData: any) => {
+            setUser(userData);
+            localStorage.setItem("user", JSON.stringify(userData));
             setIsAuthenticated(true);
           })
           .catch((error) => {
@@ -139,12 +131,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function logout() {
-    // setUser(null)
-    userRef.current = null;
+    setUser(null);
     setIsAuthenticated(false);
     setLoading(false);
     localStorage.removeItem("user");
     user_logout();
+  }
+
+  function setUserOverride(userData: User) {
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
   }
 
   if (loading) {
@@ -158,13 +154,14 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user: userRef.current || undefined,
+        user: user || undefined,
         isAuthenticated,
         loading,
         login,
         Glogin,
         register,
         logout,
+        setUser: setUserOverride,
       }}
     >
       {children}

@@ -12,8 +12,10 @@ python-dotenv
 authlib
 oauthlib
 httpx
+python-multipart
+aiofiles
 
 redis
 sqlalchemy
-asyncpg 
+asyncpg
 psycopg2-binary

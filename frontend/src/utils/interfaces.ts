@@ -311,6 +311,8 @@ export interface User {
   picture?: string;
   oauth_provider?: string;
   created_at?: string;
+  is_verified?: boolean;
+  deleted?: boolean;
   error?: string;
 }
 
@@ -331,6 +333,7 @@ export interface AuthContextType {
   Glogin: (token: TokenResponse) => void;
   register: (username: string, email: string, password: string, confirmPassword: string, firstName: string, lastName: string) => void;
   logout: () => void;
+  setUser: (user: User) => void;
 }
 
 

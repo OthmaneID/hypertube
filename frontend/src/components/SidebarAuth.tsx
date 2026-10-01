@@ -6,24 +6,25 @@ import { useAuth } from "../global/authContext"
 
 
 function SidebarAuth() {
-    const {user, logout} = useAuth()
+    const { user, logout } = useAuth()
     return (
         <div className="h-full w-full flex items-end">
             {user ? (
                 <div className="w-full flex flex-col gap-2">
                     <div className="flex flex-col items-center justify-center p-2 hover:brightness-110 cursor-pointer hover:scale-105 duration-200 active:scale-110">
                         <Link to={"/profile"}>
-                        {user.picture ? (
-                            <img
-                            src={user.picture}
-                            alt="Profile"
-                            className="w-14 h-14 rounded-full object-cover border-2 border-gray-600"
-                            />
-                        ) : (
-                            <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center">
-                                <BiSolidUser className="text-gray-300 text-xl" />
-                            </div>
-                        )}
+                            {user.picture ? (
+                                <img
+                                    src={user.picture.startsWith("http") ? user.picture : `${import.meta.env.VITE_BACKEND_URL}${user.picture}`}
+                                    alt="Profile"
+                                    className="w-14 h-14 rounded-full object-cover border-2 border-gray-600"
+                                    referrerPolicy="no-referrer"
+                                />
+                            ) : (
+                                <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center">
+                                    <BiSolidUser className="text-gray-300 text-xl" />
+                                </div>
+                            )}
                         </Link>
                         <span className="text-xs text-gray-400 mt-1 truncate w-full text-center">
                             {user.username}
