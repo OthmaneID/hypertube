@@ -43,10 +43,10 @@
 9. [*] Add frontend password reset form
 10. [*] Implement PATCH /user/me endpoint for profile updates
 11. [*] Add profile picture upload functionality
-12. [ ] Implement GET /user/:id endpoint for viewing other profiles
-13. [ ] Ensure email is private in other users' profile views
+12. [*] Implement GET /user/:id endpoint for viewing other profiles
+13. [*] Ensure email is private in other users' profile views
 14. [*] Create frontend profile page with edit functionality
-15. [ ] Add email verification step during registration (send verification email with token)
+15. [*] Add email verification step during registration (send verification email with token)
 ---
 
 ## 2. Library (Movies & Series pages)

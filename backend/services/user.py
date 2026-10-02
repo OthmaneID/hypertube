@@ -7,10 +7,36 @@ from sqlalchemy.orm import Session
 
 from schema.User import UserResponse, UserUpdate
 from models.User import User, oauthEnum
+from models.Favorites import favoriteTypeEnum
 from utils.auth import hashPass
 import bcrypt
 
 
+
+
+
+def getUser(request: Request, user_id: int, db: Session, user: UserResponse):
+    try:
+        user_db = db.query(User).filter(User.id == user_id).first()
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_serialized = UserResponse.model_validate(user_db).model_dump(exclude={"password", "tokens", "watched_history", "email", "oauth_provider", "preferred_language"})
+        user_serialized["favorite_movies"] = [
+            favorite.favorite_id
+            for favorite in user_db.favorites
+            if favorite.favorite_type == favoriteTypeEnum.MOVIE
+        ]
+        user_serialized["favorite_series"] = [
+            favorite.favorite_id
+            for favorite in user_db.favorites
+            if favorite.favorite_type == favoriteTypeEnum.SERIES
+        ]
+        return user_serialized
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("[getUser error]:", e)
+        raise HTTPException(status_code=500, detail="Failed to fetch user")
 
 
 def updateUser(request: Request, user_update: UserUpdate,db :Session, user: UserResponse):
