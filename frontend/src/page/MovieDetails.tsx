@@ -36,7 +36,7 @@ function MovieDetails() {
   const [showModule, setShowModule] = useState(false)
   const [showStreams, setShowStreams] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(false)
 
   const genresRef = useRef<HTMLDivElement | null>(null);
   const castRef = useRef<HTMLDivElement | null>(null);
