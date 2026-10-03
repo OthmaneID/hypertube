@@ -312,6 +312,8 @@ export interface User {
   oauth_provider?: string;
   created_at?: string;
   is_verified?: boolean;
+  favorite_movies?: number[];
+  favorite_series?: number[];
   deleted?: boolean;
   error?: string;
 }

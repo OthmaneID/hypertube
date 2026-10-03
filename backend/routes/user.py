@@ -5,7 +5,7 @@ from database import get_db
 from models.Favorites import favoriteTypeEnum
 from schema.User import UserResponse, UserUpdate
 from services.auth import get_current_user
-from services.user import updatePassword, updateUser, uploadProfilePicture
+from services.user import updatePassword, updateUser, uploadProfilePicture, getUser
 from fastapi import Body
 
 router = APIRouter(prefix="/user")
@@ -21,6 +21,10 @@ router = APIRouter(prefix="/user")
 @router.get("/me")
 def get_me(request:Request, user: UserResponse = Depends(get_current_user)):
     return user
+
+@router.get("/{user_id}")
+def get_user(request:Request, user_id:int, db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
+    return getUser(request, user_id, db, user)
 
 @router.patch("/me")
 def update_user(request: Request, user_update: UserUpdate ,db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):

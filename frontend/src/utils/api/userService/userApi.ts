@@ -11,6 +11,16 @@ export async function getUserProfile(): Promise<User> {
     }
 }
 
+export async function getUserById(userId: number): Promise<User> {
+    try {
+        const res = await axios.get(`/user/${userId}`);
+        return res.data;
+    } catch (error: any) {
+        console.log(`Error while getting user profile for userId ${userId}:`, error.message);
+        throw new Error(error.message);
+    }
+}
+
 export async function updateUserProfile(userUpdate: Partial<User>): Promise<User> {
     try {
         const res = await axios.patch("/user/me", userUpdate);

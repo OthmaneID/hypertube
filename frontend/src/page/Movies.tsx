@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { getPopularMovies } from "../utils/api/movieService/moviesApi";
+import { getPopularMovies, getGenres } from "../utils/api/movieService/moviesApi";
 import { searchMovies, type SearchResultItem } from "../utils/api/movieService/searchApi";
 import type { PopularMoviesResponse } from "../utils/interfaces";
-import { BiArrowToTop, BiSearch, BiX } from "react-icons/bi";
+import { BiArrowToTop, BiSearch, BiX, BiFilterAlt } from "react-icons/bi";
 import Card from "../components/Card";
 
 // Debounce hook
@@ -14,6 +14,8 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return debounced;
 }
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 function Movies() {
   // Popular mode state
@@ -33,9 +35,63 @@ function Movies() {
   const debouncedQuery = useDebounce(query, 400);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchSources, setSearchSources] = useState<string[]>([]);
+
+  // Sort & Filter state
+  const [sortBy, setSortBy] = useState<"alpha" | "year" | "rating">("alpha");
+  const [showFilters, setShowFilters] = useState(false);
+  const [minRating, setMinRating] = useState(0);
+  const [minYear, setMinYear] = useState(1900);
+  const [maxYear, setMaxYear] = useState(CURRENT_YEAR);
+  
+  const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
+  const [selectedGenre, setSelectedGenre] = useState<number>(0);
 
   const isSearchMode = debouncedQuery.trim().length > 0;
+  const hasActiveFilters = minRating > 0 || minYear > 1900 || maxYear < CURRENT_YEAR || selectedGenre > 0;
+
+  useEffect(() => {
+    getGenres().then((data) => {
+      if (data && data.genres) {
+        setGenres(data.genres);
+      }
+    });
+  }, []);
+
+  // Sort + filter helper — works on both search results and popular movies
+  function processItems<T extends { title: string; release_date?: string; vote_average?: number; genre_ids?: number[] }>(items: T[]): T[] {
+    let result = [...items];
+
+    // Filter by genre
+    if (selectedGenre > 0) {
+      result = result.filter((i) => i.genre_ids?.includes(selectedGenre));
+    }
+
+    // Filter by rating
+    if (minRating > 0) {
+      result = result.filter((i) => (i.vote_average ?? 0) >= minRating);
+    }
+
+    // Filter by year
+    result = result.filter((i) => {
+      const year = parseInt(i.release_date?.slice(0, 4) || "0");
+      if (!year) return true; // no year data → don't exclude
+      return year >= minYear && year <= maxYear;
+    });
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === "alpha") return (a.title || "").localeCompare(b.title || "");
+      if (sortBy === "year") {
+        const ya = parseInt(a.release_date?.slice(0, 4) || "0");
+        const yb = parseInt(b.release_date?.slice(0, 4) || "0");
+        return yb - ya;
+      }
+      if (sortBy === "rating") return (b.vote_average ?? 0) - (a.vote_average ?? 0);
+      return 0;
+    });
+
+    return result;
+  }
 
   // Keep refs in sync
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
@@ -98,18 +154,17 @@ function Movies() {
     });
   }
 
-  // Search effect
+  // Search effect — only show TMDB results (filter out archive)
   useEffect(() => {
     if (!isSearchMode) {
       setSearchResults([]);
-      setSearchSources([]);
       return;
     }
     setIsSearching(true);
     searchMovies(debouncedQuery)
       .then((data) => {
-        setSearchResults(data.results);
-        setSearchSources(data.sources);
+        // Only show TMDB results — archive results don't have reliable metadata
+        setSearchResults(data.results.filter((r) => r.source === "tmdb"));
       })
       .finally(() => setIsSearching(false));
   }, [debouncedQuery]);
@@ -118,13 +173,23 @@ function Movies() {
     scrollContainer?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function resetFilters() {
+    setMinRating(0);
+    setMinYear(1900);
+    setMaxYear(CURRENT_YEAR);
+    setSelectedGenre(0);
+  }
+
+  const displayedSearch = processItems(searchResults);
+  const displayedMovies = processItems(movies);
+
   return (
     <div className="p-4 flex flex-col">
-      {/* Header + Search bar */}
-      <div className="w-full flex flex-col gap-4 py-5">
+      {/* Header */}
+      <div className="w-full flex flex-col gap-3 py-5">
         <div className="flex items-center justify-center">
           <span className="text-4xl text-gray-200 font-thin">
-            {isSearchMode ? "Search Results" : "Popular \u00b7 Movies"}
+            {isSearchMode ? "Search Results" : "Popular · Movies"}
           </span>
         </div>
 
@@ -148,18 +213,118 @@ function Movies() {
           )}
         </div>
 
-        {/* Source badges when in search mode */}
-        {isSearchMode && searchSources.length > 0 && (
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <span className="text-gray-500 text-xs">Sources:</span>
-            {searchSources.map((src) => (
-              <span
-                key={src}
-                className="px-2 py-0.5 rounded-full bg-gray-700/60 text-gray-300 text-xs font-medium"
+        {/* Sort + Filter row */}
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {/* Sort pills */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-gray-500 text-xs">Sort:</span>
+            {(["alpha", "year", "rating"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSortBy(s)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                  sortBy === s
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
+                }`}
               >
-                {src === "archive.org" ? "\ud83c\udfd9\ufe0f archive.org" : "\ud83c\udfa5 TMDB"}
-              </span>
+                {s === "alpha" ? "A–Z" : s === "year" ? "Newest" : "Rating ★"}
+              </button>
             ))}
+          </div>
+
+          {/* Filter toggle button */}
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+              showFilters || hasActiveFilters
+                ? "bg-purple-600 text-white"
+                : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
+            }`}
+          >
+            <BiFilterAlt />
+            Filters{hasActiveFilters ? " •" : ""}
+          </button>
+        </div>
+
+        {/* Filter panel */}
+        {showFilters && (
+          <div className="max-w-2xl mx-auto w-full bg-gray-900/80 border border-white/10 rounded-2xl px-6 py-4 flex flex-col gap-4 backdrop-blur-sm">
+            {/* Genre filter */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Genre</span>
+              </div>
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(parseInt(e.target.value))}
+                className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
+              >
+                <option value={0}>Any Genre</option>
+                {genres.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Rating filter */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Min Rating</span>
+                <span className="text-white font-semibold">{minRating > 0 ? `≥ ${minRating.toFixed(1)} ★` : "Any"}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={0.5}
+                value={minRating}
+                onChange={(e) => setMinRating(parseFloat(e.target.value))}
+                className="w-full accent-purple-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-gray-600">
+                <span>0</span><span>5</span><span>10</span>
+              </div>
+            </div>
+
+            {/* Year range filter */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Year Range</span>
+                <span className="text-white font-semibold">{minYear} – {maxYear}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min={1888}
+                  max={maxYear}
+                  value={minYear}
+                  onChange={(e) => setMinYear(Math.min(parseInt(e.target.value) || 1900, maxYear))}
+                  className="w-24 bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-purple-500"
+                />
+                <span className="text-gray-600 text-xs">to</span>
+                <input
+                  type="number"
+                  min={minYear}
+                  max={CURRENT_YEAR}
+                  value={maxYear}
+                  onChange={(e) => setMaxYear(Math.max(parseInt(e.target.value) || CURRENT_YEAR, minYear))}
+                  className="w-24 bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Reset */}
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="self-end text-xs text-gray-400 hover:text-white underline transition-colors"
+              >
+                Reset filters
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -178,26 +343,21 @@ function Movies() {
                 </div>
               </div>
             )}
-            {!isSearching && searchResults.length === 0 && (
+            {!isSearching && displayedSearch.length === 0 && (
               <span className="text-xl text-gray-400 text-center w-full py-20">
                 No results found for "{debouncedQuery}"
               </span>
             )}
             {!isSearching &&
-              searchResults.map((item, index) => (
+              displayedSearch.map((item, index) => (
                 <Card
-                  key={`${item.source}-${item.id ?? item.archive_identifier}-${index}`}
-                  url={
-                    item.source === "archive"
-                      ? (item.archive_url ?? "#")
-                      : `/movies/${item.id}`
-                  }
+                  key={`${item.source}-${item.id}-${index}`}
+                  url={`/movies/${item.id}`}
                   id={item.id ?? undefined}
                   poster={item.poster_path ?? undefined}
                   title={item.title}
                   vote={item.vote_average}
                   year={item.release_date ? item.release_date.slice(0, 4) : undefined}
-                  isExternal={item.source === "archive"}
                 />
               ))}
           </>
@@ -206,12 +366,12 @@ function Movies() {
         {/* Popular mode */}
         {!isSearchMode && (
           <>
-            {movies.length === 0 && !isMoviesLoading ? (
-              <span className="text-xl text-gray-400 text-center w-full">
-                No movies found. Please try again later.
+            {displayedMovies.length === 0 && !isMoviesLoading ? (
+              <span className="text-xl text-gray-400 text-center w-full py-20">
+                {hasActiveFilters ? "No movies match your filters." : "No movies found. Please try again later."}
               </span>
             ) : (
-              movies.map((movie, index) => (
+              displayedMovies.map((movie, index) => (
                 <Card
                   url={"/movies/" + movie.id}
                   key={index}
@@ -229,7 +389,7 @@ function Movies() {
             )}
             <div className="w-full h-1" id="intersectionChecker"></div>
             {isMoviesLoading && (
-              <div className="w-full flex justify-center items-center py-20">
+              <div className="w-full flex justify-center items-center py-10">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
                   <span className="text-gray-300">Loading movies...</span>

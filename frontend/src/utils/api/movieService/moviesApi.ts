@@ -58,3 +58,13 @@ export async function getMovieTrailers(
     return { error: error.message };
   }
 }
+
+export async function getGenres(): Promise<{ genres: Array<{ id: number; name: string }> }> {
+  try {
+    const res = await axiosInstance.get("/movies/genres");
+    return res.data;
+  } catch (error: any) {
+    console.log("error while fetching genres: ", error.message);
+    return { genres: [] };
+  }
+}

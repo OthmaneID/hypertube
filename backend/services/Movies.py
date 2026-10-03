@@ -65,59 +65,97 @@ def getMovies(request : Request, category: str = "popular", page: int = 1, sort_
     return {"page": 1, "results": [], "total_pages": 1, "total_results": 0}
 
 
-def getMovieDetails(request: Request, movie_id: int):
+def getMovieDetails(request: Request, movie_id: str):
     try:
         rd : redis.Redis = request.app.state.redis
         if rd is not None and rd.get(f"movie_{movie_id}"):
             return json.loads(rd.get(f"movie_{movie_id}"))
-    except Exception as e:
-        pass
+    except Exception:
+        rd = None
+
+    # Handle archive.org movies
+    if str(movie_id).startswith("archive-"):
+        identifier = str(movie_id).replace("archive-", "", 1)
+        try:
+            res = requests.get(f"https://archive.org/metadata/{identifier}", timeout=5)
+            meta = res.json().get("metadata", {})
+            desc = meta.get("description", "No description available.")
+            if isinstance(desc, list):
+                desc = desc[0] if desc else "No description available."
+            mapped = {
+                "id": movie_id,
+                "title": meta.get("title", identifier),
+                "overview": desc,
+                "release_date": meta.get("date", ""),
+                "runtime": 0,
+                "vote_average": 0,
+                "backdrop_path": None,
+                "poster_path": None,
+                "genres": [{"id": 0, "name": "Public Domain"}],
+                "status": "Released",
+                "source": "archive",
+                "archive_identifier": identifier,
+                "archive_url": f"https://archive.org/details/{identifier}",
+            }
+            try:
+                if rd is not None:
+                    rd.setex(f"movie_{movie_id}", 60 * 60 * 24, json.dumps(mapped))
+            except Exception:
+                pass
+            return mapped
+        except Exception as e:
+            print(f"[getMovieDetails] archive.org error: {e}")
+            return {"id": movie_id, "title": movie_id, "error": "Could not fetch archive metadata"}
+
     res = requests.get(f"{settings.api_base_url}movie/{movie_id}", headers=headers)
     try:
-        if res.json():
-            rd.setex(f"movie_{movie_id}", 60 * 60 * 24, json.dumps(res.json()))
-        return res.json()
+        data = res.json()
+        if data and rd is not None:
+            rd.setex(f"movie_{movie_id}", 60 * 60 * 24, json.dumps(data))
+        return data
     except Exception as e:
         print(f"Error while fetching Movie Details : {e}")
-        return res.json()
+        return {}
 
 
-def getMovieCredits(request: Request, movie_id: int):
+def getMovieCredits(request: Request, movie_id: str):
+    if str(movie_id).startswith("archive-"):
+        return {"cast": [], "crew": []}
     try:
         rd : redis.Redis = request.app.state.redis
         if rd is not None and rd.get(f"movie_cast_{movie_id}"):
             return json.loads(rd.get(f"movie_cast_{movie_id}"))
-    except Exception as e:
-        pass
+    except Exception:
+        rd = None
     res = requests.get(f"{settings.api_base_url}movie/{movie_id}/credits?language=en-US", headers=headers)
     data = res.json()
     try:
-        if data:
+        if data and rd is not None:
             rd.setex(f"movie_cast_{movie_id}", 60 * 60 * 24, json.dumps(data))
         return data
     except Exception as e:
-        print(f"Error while fetching Movie Details : {e}")
+        print(f"Error while fetching Movie Credits : {e}")
         return data
 
 
 
-def getMovieVideos(request: Request, movie_id: int):
+def getMovieVideos(request: Request, movie_id: str):
+    if str(movie_id).startswith("archive-"):
+        return {"results": []}
     request_url = f"{settings.api_base_url}movie/{movie_id}/videos?language=en-US"
     rd : redis.Redis = request.app.state.redis
     try:
         if rd is not None and rd.get(f"movie_{movie_id}_videos"):
             return json.loads(rd.get(f"movie_{movie_id}_videos"))
-    except Exception as e:
+    except Exception:
         pass
-
     res = requests.get(request_url, headers=headers)
     data = res.json()
     try:
-        if data:
+        if data and rd is not None:
             rd.setex(f"movie_{movie_id}_videos", 60 * 60 * 8, json.dumps(data))
     except Exception as e:
         print("error while getting movie trailers : ", e)
-        return data
     return data
 
     

@@ -15,15 +15,15 @@ def get_genres(request:Request):
 
 
 @router.get("/details/{movie_id}")
-def get_movie(request:Request, movie_id: int):
+def get_movie(request:Request, movie_id: str):
     return getMovieDetails(request=request, movie_id=movie_id)
 
 
 @router.get("/credits/{movie_id}")
-def get_movie_credits(request:Request, movie_id:int):
+def get_movie_credits(request:Request, movie_id: str):
     return getMovieCredits(request, movie_id)
 
 # get movie trailers and related videos that are provided by the tmdb api
 @router.get("/videos/{movie_id}")
-def get_movie_videos(request:Request, movie_id:int):
+def get_movie_videos(request:Request, movie_id: str):
     return getMovieVideos(request, movie_id)
