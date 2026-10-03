@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getPopularMovies, getGenres } from "../utils/api/movieService/moviesApi";
 import { searchMovies, type SearchResultItem } from "../utils/api/movieService/searchApi";
 import type { PopularMoviesResponse } from "../utils/interfaces";
@@ -29,10 +30,24 @@ function Movies() {
   const totalPagesRef = useRef(totalPages);
   const hasMorePagesRef = useRef(hasMorePages);
   const isMoviesLoadingRef = useRef(isMoviesLoading);
-
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   // Search mode state
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("search") || "";
+  });
   const debouncedQuery = useDebounce(query, 400);
+
+  // Sync URL with query
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      navigate(`/movies?search=${encodeURIComponent(debouncedQuery.trim())}`, { replace: true });
+    } else if (location.search.includes("search=")) {
+      navigate("/movies", { replace: true });
+    }
+  }, [debouncedQuery, navigate, location.search]);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -45,6 +60,7 @@ function Movies() {
   
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number>(0);
+  const [showTopBtn, setShowTopBtn] = useState(false);
 
   const isSearchMode = debouncedQuery.trim().length > 0;
   const hasActiveFilters = minRating > 0 || minYear > 1900 || maxYear < CURRENT_YEAR || selectedGenre > 0;
@@ -98,6 +114,15 @@ function Movies() {
   useEffect(() => { totalPagesRef.current = totalPages; }, [totalPages]);
   useEffect(() => { hasMorePagesRef.current = hasMorePages; }, [hasMorePages]);
   useEffect(() => { isMoviesLoadingRef.current = isMoviesLoading; }, [isMoviesLoading]);
+
+  // Handle showing/hiding the Go Top button
+  useEffect(() => {
+    const container = document.getElementById("scrollContainer");
+    if (!container) return;
+    const handleScroll = () => setShowTopBtn(container.scrollTop > 300);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Infinite scroll for popular mode
   const scrollContainer = document.getElementById("scrollContainer");
@@ -401,14 +426,16 @@ function Movies() {
       </div>
 
       {/* Back to top */}
-      <div
-        onClick={scrollBackUp}
-        id="GoTopBtn"
-        className="active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500 rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer"
-        title="Back to top"
-      >
-        <BiArrowToTop />
-      </div>
+      {showTopBtn && (
+        <div
+          onClick={scrollBackUp}
+          id="GoTopBtn"
+          className="active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500 rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer shadow-lg hover:bg-purple-400 transition-all"
+          title="Back to top"
+        >
+          <BiArrowToTop />
+        </div>
+      )}
     </div>
   );
 }
