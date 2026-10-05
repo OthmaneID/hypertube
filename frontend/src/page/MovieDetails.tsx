@@ -10,16 +10,30 @@ import {
   type Image,
   type MovieDetails as IMovieDetails,
 } from "../utils/interfaces";
-import { getImageConfig, getMovieImages } from "../utils/api/movieService/imagesApi";
+import {
+  getImageConfig,
+  getMovieImages,
+} from "../utils/api/movieService/imagesApi";
 
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
-import { BiCameraMovie, BiPlay, BiStar, BiMessageRoundedDots } from "react-icons/bi";
+import {
+  BiCameraMovie,
+  BiPlay,
+  BiStar,
+  BiMessageRoundedDots,
+} from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
 import type { Credits as ICredits } from "../utils/interfaces";
-import { getMovieCredits, getMovieDetails } from "../utils/api/movieService/moviesApi";
+import {
+  getMovieCredits,
+  getMovieDetails,
+} from "../utils/api/movieService/moviesApi";
 import TrailerModule from "../components/TrailerModule";
 import Comments from "../components/Comments";
+import { IoHeart, IoHeartOutline } from "react-icons/io5";
+import CustomButton from "../components/CustomButton";
+import { addFavorite, removeFavorite } from "../utils/api/userService/userApi";
 
 function MovieDetails() {
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
@@ -33,10 +47,10 @@ function MovieDetails() {
   const [movie, setMovie] = useState<IMovieDetails>();
   const [titleLogo, setTitleLogo] = useState<Image>();
   const [credits, setCredits] = useState<ICredits>();
-  const [showModule, setShowModule] = useState(false)
-  const [showStreams, setShowStreams] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-const [showComments, setShowComments] = useState(false)
+  const [showModule, setShowModule] = useState(false);
+  const [showStreams, setShowStreams] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const genresRef = useRef<HTMLDivElement | null>(null);
   const castRef = useRef<HTMLDivElement | null>(null);
@@ -73,12 +87,10 @@ const [showComments, setShowComments] = useState(false)
       movieImagesPromise,
       movieCreditsPromise,
     ]);
-    setIsLoading(true)
+    setIsLoading(true);
 
     allPromises.finally(() => setIsLoading(false));
   }, []);
-
-
 
   const startDragging = (
     event: MouseEvent<HTMLDivElement>,
@@ -107,6 +119,29 @@ const [showComments, setShowComments] = useState(false)
     dragState.current.isDragging = false;
   };
 
+  const handleAddToFavorites = async() => {
+    try{
+      const res = await addFavorite(movieId, "movie");
+      if (res && !res.error) {
+        setMovie(prevMovie => prevMovie ? { ...prevMovie, is_favorite: true } : prevMovie);
+      }
+    }
+    catch (error: any) {
+      console.log("Error while adding to favorites:", error.message);
+    }
+  }
+  const handleRemoveFromFavorites = async () => {
+    try {
+      const res = await removeFavorite(movieId, "movie");
+      if (res && !res.error) {
+        setMovie(prevMovie => prevMovie ? { ...prevMovie, is_favorite: false } : prevMovie);
+      }
+    }
+    catch (error: any) {
+      console.log("Error while removing from favorites:", error.message);
+    }
+  }
+
   if (isLoading)
     return (
       <div className="w-full flex justify-center items-center py-20">
@@ -120,7 +155,8 @@ const [showComments, setShowComments] = useState(false)
   return (
     <div className="relative select-none scroll-smooth h-full">
       {/* back button */}
-      <div className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "
+      <div
+        className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "
         onClick={() => window.history.back()}
       >
         <BsArrowLeft className="text-gray-300" />
@@ -143,9 +179,44 @@ const [showComments, setShowComments] = useState(false)
         <div className="h-full py-5 px-6 flex flex-col justify-between w-full">
           <div className="pt-5 gap-6 flex flex-row-reverse flex-wrap w-full justify-between">
             {/* here should be the logo */}
-            <span className="px-2 py-2 text-white font-bold text-2xl  h-8 rounded-xl bg-gray-700 flex items-center justify-start">
-              {movie?.status}
-            </span>
+
+            <div className="flex flex-row gap-3 items-center text-gray-200 font-bold text-3xl">
+              <button
+                type="button"
+                aria-label={
+                  movie?.is_favorite
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }
+                aria-pressed={Boolean(movie?.is_favorite)}
+                title={
+                  movie?.is_favorite
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }
+                onClick={() => {
+                  if (!movie?.is_favorite) {
+                    handleAddToFavorites();
+                  } else {
+                    handleRemoveFromFavorites()
+                  }
+                }}
+                className={`flex h-12 w-12 items-center justify-center rounded-full border transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                  movie?.is_favorite
+                    ? "border-rose-400/50 bg-rose-500/20 text-rose-400 hover:bg-rose-500/30"
+                    : "border-white/20 bg-black/40 text-gray-200 hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-400"
+                }`}
+              >
+                {movie?.is_favorite ? (
+                  <IoHeart aria-hidden="true" className="h-6 w-6" />
+                ) : (
+                  <IoHeartOutline aria-hidden="true" className="h-6 w-6" />
+                )}
+              </button>
+              <span className="px-2 py-2 text-white font-bold text-2xl  h-8 rounded-xl bg-gray-700 flex items-center justify-start">
+                {movie?.status}
+              </span>
+            </div>
             {titleLogo?.file_path ? (
               <img
                 src={image_baseUrl + poster_size + "/" + titleLogo?.file_path}
@@ -173,47 +244,33 @@ const [showComments, setShowComments] = useState(false)
               </span>
             </div>
             <div className="flex flex-row justify-end gap-5 items-center w-1/2 min-w-50 max-md:w-full">
-              <div>
-                <span
-                  className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                  title="Play Trailer"
-                  onClick={() => {
-                    setShowModule(true);
-                  }}
-                >
+              <CustomButton
+                text="View trailer"
+                onClick={() => {
+                  setShowModule(true);
+                }}
+                content={
                   <BiCameraMovie className="group-hover:text-white text-gray-300" />
-                </span>
-                <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                  View trailer
-                </span>
-              </div>
-              <div>
-                <span
-                  onClick={() => setShowComments(true)}
-                  className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                  title="Comments"
-                >
-                  <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
-                </span>
-                <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                  Comments
-                </span>
-              </div>
+                }
+              />
 
-              <div>
-                <span
-                  className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                  title="Stream Movie"
-                  onClick={() => {
-                    setShowStreams(true);
-                  }}
-                >
+              <CustomButton
+                text="Comments"
+                onClick={() => setShowComments(true)}
+                content={
+                  <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
+                }
+              />
+
+              <CustomButton
+                text="Stream Movie"
+                onClick={() => {
+                  setShowStreams(true);
+                }}
+                content={
                   <BiPlay className="group-hover:text-white text-gray-300" />
-                </span>
-                <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                  Stream Movie
-                </span>
-              </div>
+                }
+              />
             </div>
           </div>
           <div className="w-full flex flex-col gap-4 items-start">
@@ -243,9 +300,7 @@ const [showComments, setShowComments] = useState(false)
             </div>
 
             <div className="flex flex-col gap-2 w-full">
-              <span className="text-2xl text-gray-300 font-semibold">
-                Cast
-              </span>
+              <span className="text-2xl text-gray-300 font-semibold">Cast</span>
               <div
                 ref={castRef}
                 className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
@@ -271,9 +326,7 @@ const [showComments, setShowComments] = useState(false)
             </div>
 
             <div className="flex flex-col gap-2 w-full">
-              <span className="text-2xl text-gray-300 font-semibold">
-                Crew
-              </span>
+              <span className="text-2xl text-gray-300 font-semibold">Crew</span>
               <div
                 ref={crewRef}
                 className="flex flex-row gap-3 overflow-x-auto overflow-y-hidden pb-2 cursor-grab active:cursor-grabbing"
@@ -306,13 +359,20 @@ const [showComments, setShowComments] = useState(false)
         </div>
       </div>
       {/* streaming options section */}
-      {
-        showStreams && (
-          <StreamingOptions movie_id={movieId} movie_name={movie?.title ?? ""} setShowStreams={setShowStreams} showStreams={showStreams} />
-        )
-      }
+      {showStreams && (
+        <StreamingOptions
+          movie_id={movieId}
+          movie_name={movie?.title ?? ""}
+          setShowStreams={setShowStreams}
+          showStreams={showStreams}
+        />
+      )}
       {/* comments sidebar */}
-      <Comments movieId={movieId} show={showComments} setShow={setShowComments} />
+      <Comments
+        movieId={movieId}
+        show={showComments}
+        setShow={setShowComments}
+      />
       {/* trailer module */}
       {showModule && (
         <TrailerModule

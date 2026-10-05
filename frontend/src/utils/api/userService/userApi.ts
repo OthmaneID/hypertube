@@ -60,3 +60,28 @@ export async function changePassword(oldPassword: string, newPassword: string): 
         throw new Error(error.message);
     }
 }
+
+
+export async function addFavorite(id: number, type: "movie" | "series"): Promise<any> {
+    try {
+        const res = await axios.post(`user/favorites`, {
+            favorite_id : id,
+            favorite_type : type,
+        });
+        return res.data;
+    } catch (error: any) {
+        console.log(`Error while adding favorite ${type} with id ${id}:`, error.message);
+        throw new Error(error.message);
+    }
+}
+
+export async function removeFavorite(favorite_id: number, favorite_type: "movie" | "series"): Promise<any> {
+    try {
+        const res = await axios.delete(`user/favorites`, { data: { favorite_id, favorite_type } });
+        return res.data;
+    } catch (error: any) {
+        console.log(`Error while removing favorite ${favorite_type} with id ${favorite_id}:`, error.message);
+        throw new Error(error.message);
+    }
+
+};

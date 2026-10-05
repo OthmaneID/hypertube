@@ -4,6 +4,10 @@ import redis
 import json
 
 from config import settings
+from schema.User import UserResponse
+from sqlalchemy.orm import Session
+from models.User import User
+from models.Favorites import favoriteTypeEnum, Favorites
 
 
 #
@@ -41,23 +45,42 @@ def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by:
     return {"page": 1, "results": [], "total_pages": 1, "total_results": 0}
 
 
-def getSerieDetails(request: Request, serie_id: int):
-    rd : redis.Redis = request.app.state.redis
+def getSerieDetails(request: Request, serie_id: int, db: Session, user: UserResponse):
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
+    cache_key = f"serie_{serie_id}"
     request_url = f"{settings.api_base_url}/tv/{serie_id}"
+    data = None
     try:
-        if rd is not None and rd.get(f"serie_{serie_id}"):
-            return json.loads(rd.get(f"serie_{serie_id}"))
+        if rd is not None:
+            cached_data = rd.get(cache_key)
+            if isinstance(cached_data, (str, bytes, bytearray)):
+                data = json.loads(cached_data)
     except Exception as e:
-        pass
-    res = requests.get(request_url, headers=headers)
-    data = res.json()
-    try:
-        if data:
-            rd.setex(f"serie_{serie_id}", 60 * 60 * 24, json.dumps(data))
-        return data
-    except Exception as e:
-        print("error while fetching serie details : ", e)
-        return data
+        print(f"Error while reading cached serie details: {e}")
+
+    if data is None:
+        res = requests.get(request_url, headers=headers)
+        data = res.json()
+        if isinstance(data, dict) and data and rd is not None:
+            data.pop("is_favorite", None)
+            try:
+                rd.setex(cache_key, 60 * 60 * 24, json.dumps(data))
+            except Exception as e:
+                print(f"Error while caching serie details: {e}")
+
+    if isinstance(data, dict):
+        data["is_favorite"] = (
+            db.query(User)
+            .join(User.favorites)
+            .filter(
+                User.id == user.id,
+                Favorites.favorite_type == favoriteTypeEnum.SERIES,
+                Favorites.favorite_id == serie_id,
+            )
+            .first()
+            is not None
+        )
+    return data
 
 
 

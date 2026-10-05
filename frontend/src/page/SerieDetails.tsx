@@ -17,8 +17,14 @@ import {
 import { ImageConfigContext } from "../global/imageConfigContext";
 import StreamingOptions from "../components/MovieDetails/StreamingOptions";
 import EpisodeSelectorModal from "../components/SerieDetails/EpisodeSelectorModal";
-import { BiCameraMovie, BiPlay, BiStar, BiMessageRoundedDots } from "react-icons/bi";
+import {
+  BiCameraMovie,
+  BiPlay,
+  BiStar,
+  BiMessageRoundedDots,
+} from "react-icons/bi";
 import { BsArrowLeft } from "react-icons/bs";
+import { IoHeart, IoHeartOutline } from "react-icons/io5";
 import type { Credits as ICredits } from "../utils/interfaces";
 import {
   getSerieCredits,
@@ -26,6 +32,7 @@ import {
 } from "../utils/api/movieService/seriesApi";
 import TrailerModule from "../components/TrailerModule";
 import Comments from "../components/Comments";
+import { addFavorite, removeFavorite } from "../utils/api/userService/userApi";
 
 function SerieDetails() {
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
@@ -121,6 +128,31 @@ function SerieDetails() {
     setShowStreams(true);
   };
 
+  const handleAddToFavorites = async () => {
+    try {
+      const res = await addFavorite(serieId, "series");
+      if (res && !res.error) {
+        setSerie((prevSerie) =>
+          prevSerie ? { ...prevSerie, is_favorite: true } : prevSerie,
+        );
+      }
+    } catch (error: any) {
+      console.log("Error while adding to favorites:", error.message);
+    }
+  };
+  const handleRemoveFromFavorites = async () => {
+    try {
+      const res = await removeFavorite(serieId, "series");
+      if (res && !res.error) {
+        setSerie((prevSerie) =>
+          prevSerie ? { ...prevSerie, is_favorite: false } : prevSerie,
+        );
+      }
+    } catch (error: any) {
+      console.log("Error while removing from favorites:", error.message);
+    }
+  };
+
   if (isLoading)
     return (
       <div className="w-full flex justify-center items-center py-20">
@@ -158,9 +190,43 @@ function SerieDetails() {
           {/* serie details section*/}
           <div className="h-full py-5 px-6 flex flex-col justify-between w-full">
             <div className="pt-5 gap-6 flex flex-row-reverse flex-wrap w-full justify-between">
-              <span className="px-4 py-2 text-white font-bold text-2xl  h-8 rounded-xl bg-gray-700 flex items-center justify-center">
-                {serie?.status}
-              </span>
+              <div className="flex flex-row gap-3 items-center text-gray-200 font-bold text-3xl">
+                <button
+                  type="button"
+                  aria-label={
+                    serie?.is_favorite
+                      ? "Remove from favorites"
+                      : "Add to favorites"
+                  }
+                  aria-pressed={Boolean(serie?.is_favorite)}
+                  title={
+                    serie?.is_favorite
+                      ? "Remove from favorites"
+                      : "Add to favorites"
+                  }
+                  onClick={() => {
+                    if (!serie?.is_favorite) {
+                      handleAddToFavorites();
+                    } else {
+                      handleRemoveFromFavorites();
+                    }
+                  }}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                    serie?.is_favorite
+                      ? "border-rose-400/50 bg-rose-500/20 text-rose-400 hover:bg-rose-500/30"
+                      : "border-white/20 bg-black/40 text-gray-200 hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-400"
+                  }`}
+                >
+                  {serie?.is_favorite ? (
+                    <IoHeart aria-hidden="true" className="h-6 w-6" />
+                  ) : (
+                    <IoHeartOutline aria-hidden="true" className="h-6 w-6" />
+                  )}
+                </button>
+                <span className="px-2 py-2 text-white font-bold text-2xl h-8 rounded-xl bg-gray-700 flex items-center justify-start">
+                  {serie?.status}
+                </span>
+              </div>
               {/* here should be the logo */}
               {titleLogo?.file_path ? (
                 <img
@@ -186,13 +252,13 @@ function SerieDetails() {
                   <span> - </span>
                   {serie?.status === "Ended"
                     ? new Date(serie?.last_air_date ?? "")
-                      .getFullYear()
-                      .toString()
+                        .getFullYear()
+                        .toString()
                     : "..."}
                 </span>
                 <span className="text-2xl text-nowrap">
                   {serie?.number_of_seasons ??
-                    serie?.seasons?.filter((season) => season.season_number > 0)
+                    serie?.seasons?.filter((season) => season.season_number??0  > 0)
                       .length ??
                     0}{" "}
                   seasons
@@ -369,7 +435,11 @@ function SerieDetails() {
         />
       )}
       {/* comments sidebar */}
-      <Comments movieId={serieId} show={showComments} setShow={setShowComments} />
+      <Comments
+        movieId={serieId}
+        show={showComments}
+        setShow={setShowComments}
+      />
       {/* trailer module */}
       {showModule && (
         <TrailerModule

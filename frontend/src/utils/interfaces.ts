@@ -42,6 +42,7 @@ export interface ImageConfig {
 export interface MovieDetails {
   adult?: boolean;
   backdrop_path?: string;
+  is_favorite?: boolean;
   belongs_to_collection?: {
     id?: number;
     name?: string;
@@ -184,6 +185,7 @@ export interface PopularSeriesResponse {
 export interface SerieDetails {
   adult?: boolean;
   backdrop_path?: string;
+  is_favorite?: boolean;
   created_by?: Array<{
     id?: number;
     credit_id?: string;

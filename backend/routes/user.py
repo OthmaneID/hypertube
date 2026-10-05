@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.Favorites import favoriteTypeEnum
 from schema.User import UserResponse, UserUpdate
+from schema.Favorite import FavoritesCreate
 from services.auth import get_current_user
-from services.user import updatePassword, updateUser, uploadProfilePicture, getUser
+from services.user import updatePassword, updateUser, uploadProfilePicture, getUser, addFavorite, deleteFavorite
 from fastapi import Body
 
 router = APIRouter(prefix="/user")
@@ -45,13 +46,15 @@ async def update_picture(request: Request, file: UploadFile = File(...), user: U
     return await uploadProfilePicture(request, file, db, user)
 
 @router.get("/favorites")
-def get_favorites(request: Request, db : Session = Depends(get_db),  user: UserResponse = Depends(get_current_user)):
+def get_favorites(request: Request, favorite_type : favoriteTypeEnum, db : Session = Depends(get_db),  user: UserResponse = Depends(get_current_user)):
     pass
 
 @router.post("/favorites")
-def add_favorite(request: Request, favorite_id:int , favorite_type: favoriteTypeEnum ,db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
-    pass
+def add_favorite(request: Request, favorite_create: FavoritesCreate, db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
+    """
+    """
+    return addFavorite(request, favorite_create, user, db)
 
 @router.delete("/favorites")
-def delete_favorite(request: Request, id:int, db : Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
-    pass
+def delete_favorite(request: Request, favorite_create: FavoritesCreate, db : Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
+    return deleteFavorite(request, user, db, favorite_create)

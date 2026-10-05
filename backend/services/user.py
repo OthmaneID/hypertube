@@ -6,11 +6,29 @@ from fastapi import Request, UploadFile, HTTPException
 from sqlalchemy.orm import Session
 
 from schema.User import UserResponse, UserUpdate
+from schema.Favorite import FavoritesCreate, FavoritesResponse
 from models.User import User, oauthEnum
-from models.Favorites import favoriteTypeEnum
+from models.Favorites import favoriteTypeEnum, Favorites
 from utils.auth import hashPass
 import bcrypt
 
+
+def _invalidate_favorite_details_cache(
+    request: Request, favorite_id: int, favorite_type: favoriteTypeEnum
+) -> None:
+    redis = getattr(request.app.state, "redis", None)
+    if redis is None:
+        return
+
+    cache_key = (
+        f"movie_{favorite_id}"
+        if favorite_type == favoriteTypeEnum.MOVIE
+        else f"serie_{favorite_id}"
+    )
+    try:
+        redis.delete(cache_key)
+    except Exception as e:
+        print(f"[favorite cache invalidation error]: {e}")
 
 
 
@@ -87,18 +105,68 @@ def updatePassword(request: Request, old_pass: str, new_pass: str, db: Session, 
         return {"error": "internal server error", "details" : str(e)}
 
 
-def listFavorites(request: Request, user:UserResponse, db: Session):
-    pass
+def listFavorite(request: Request, user:UserResponse, db: Session, favorite_type: favoriteTypeEnum):
+    try:
+        favorites = db.query(User.favorites).filter(User.id == user.id, User.favorites.any(favorite_type=favorite_type)).all()
+        # maybe i should get the movie/serie details also in this function (thumbnail, title, created_at)
+        favorites_serialized = FavoritesResponse.model_validate(favorites)
+        return favorites_serialized
+    except Exception as e:
+        print("[listFavorites error]: ", e)
+        return {"error": "internal server error", "details" : str(e)}
+
+
+def addFavorite(request: Request, favorite_create: FavoritesCreate, user:UserResponse, db: Session):
+    try:
+        existing_favorite = db.query(User).join(User.favorites).filter(
+            User.id == user.id,
+            Favorites.favorite_id == favorite_create.favorite_id,
+            Favorites.favorite_type == favorite_create.favorite_type,
+        ).first()
+        if existing_favorite:
+            return {"message": "movie/serie is already in favorites"}
+        new_favorite = Favorites(**favorite_create.model_dump())
+        user_db = db.query(User).filter(User.id == user.id).first()
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        user_db.favorites.append(new_favorite)
+        db.commit()
+        db.refresh(user_db)
+        _invalidate_favorite_details_cache(
+            request, favorite_create.favorite_id, favorite_create.favorite_type
+        )
+        return {"message": "movie/serie added to favorites"}
+    except Exception as e:
+        db.rollback()
+        print("[addFavorite error]: ", e)
+        return {"error": "internal server error", "details" : str(e)}
 
 
 
-def addFavorite(request: Request, user:UserResponse, db: Session, favorite_id: int, favorite_type: str):
-    pass
-
-
-
-def deleteFavorite(request: Request, user:UserResponse, db: Session, id: int):
-    pass
+def deleteFavorite(
+    request: Request, user: UserResponse, db: Session, favorite_create: FavoritesCreate
+):
+    try:
+        user_db = db.query(User).filter(User.id == user.id).first()
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        favorite_to_delete = db.query(Favorites).filter(
+            Favorites.favorite_id == favorite_create.favorite_id,
+            Favorites.favorite_type == favorite_create.favorite_type,
+            Favorites.user_id == user.id,
+        ).first()
+        if not favorite_to_delete:
+            return {"message": "movie/serie is not in favorites"}
+        db.delete(favorite_to_delete)
+        db.commit()
+        _invalidate_favorite_details_cache(
+            request, favorite_create.favorite_id, favorite_create.favorite_type
+        )
+        return {"message": "movie/serie removed from favorites"}
+    except Exception as e:
+        db.rollback()
+        print("[deleteFavorite error]: ", e)
+        return {"error": "internal server error", "details" : str(e)}
 
 
 async def uploadProfilePicture(request: Request, file: UploadFile, db: Session, user: UserResponse):

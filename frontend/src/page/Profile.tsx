@@ -1,14 +1,28 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../global/authContext";
 import {
   getUserProfile,
+  getUserById,
   updateUserProfile,
   updateProfilePicture,
   changePassword,
 } from "../utils/api/userService/userApi";
+import { getMovieDetails } from "../utils/api/movieService/moviesApi";
+import { getSerieDetails } from "../utils/api/movieService/seriesApi";
 import type { User } from "../utils/interfaces";
-import { User as UserIcon, Globe, Lock, Save, Camera, X } from "lucide-react";
+import {
+  User as UserIcon,
+  Globe,
+  Lock,
+  Save,
+  Camera,
+  X,
+  Film,
+  Tv,
+} from "lucide-react";
 import { toast } from "react-toast";
+import Card from "../components/Card";
 
 function Profile() {
   const { user: authUser, setUser: setAuthUser } = useAuth();
@@ -33,6 +47,26 @@ function Profile() {
   const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
   const [updating, setUpdating] = useState(false);
   const isEmailAccount = user?.oauth_provider?.toLowerCase() === "email";
+  const profileUserId = user?.id;
+  const favoritesQuery = useQuery({
+    queryKey: ["profile-favorites", profileUserId],
+    enabled: typeof profileUserId === "number",
+    queryFn: async () => {
+      if (typeof profileUserId !== "number") {
+        throw new Error("User ID is unavailable");
+      }
+      const profile = await getUserById(profileUserId);
+      const [favoriteMovies, favoriteSeries] = await Promise.all([
+        Promise.all((profile.favorite_movies ?? []).map(getMovieDetails)),
+        Promise.all((profile.favorite_series ?? []).map(getSerieDetails)),
+      ]);
+
+      return {
+        favoriteMovies: favoriteMovies.filter((movie) => !movie.error),
+        favoriteSeries: favoriteSeries.filter((serie) => !serie.error),
+      };
+    },
+  });
 
   const getProviderLabel = () => {
     switch (user?.oauth_provider?.toLowerCase()) {
@@ -502,6 +536,85 @@ function Profile() {
             </form>
           </div>
         )}
+
+        <section className="mt-10 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl sm:p-8">
+          <h2 className="mb-7 text-2xl font-semibold text-white">Favorites</h2>
+          {favoritesQuery.isPending ? (
+            <p className="text-sm text-gray-400">Loading your favorites...</p>
+          ) : favoritesQuery.isError ? (
+            <p className="text-sm text-gray-400">
+              We couldn't load your favorites. Please try again later.
+            </p>
+          ) : (
+            <>
+              <div className="mb-8">
+                <div className="mb-5 flex items-center gap-3">
+                  <Film size={20} className="text-gray-400" />
+                  <h3 className="text-xl font-semibold text-white">
+                    Favorite movies
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {favoritesQuery.data.favoriteMovies.length}
+                  </span>
+                </div>
+                {favoritesQuery.data.favoriteMovies.length > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-x-5 gap-y-8 sm:justify-start">
+                    {favoritesQuery.data.favoriteMovies.map((movie) => (
+                      <Card
+                        key={movie.id}
+                        url={`/movies/${movie.id}`}
+                        id={movie.id}
+                        poster={movie.poster_path}
+                        title={movie.title}
+                        vote={movie.vote_average}
+                        year={
+                          movie.release_date
+                            ? String(movie.release_date).slice(0, 4)
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="border-t border-white/10 py-6 text-sm text-gray-400">
+                    No favorite movies yet.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div className="mb-5 flex items-center gap-3">
+                  <Tv size={20} className="text-gray-400" />
+                  <h3 className="text-xl font-semibold text-white">
+                    Favorite series
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {favoritesQuery.data.favoriteSeries.length}
+                  </span>
+                </div>
+                {favoritesQuery.data.favoriteSeries.length > 0 ? (
+                  <div className="flex flex-wrap justify-center gap-x-5 gap-y-8 sm:justify-start">
+                    {favoritesQuery.data.favoriteSeries.map((serie) => (
+                      <Card
+                        key={serie.id}
+                        url={`/series/${serie.id}`}
+                        id={serie.id}
+                        poster={serie.poster_path}
+                        title={serie.name}
+                        vote={serie.vote_average}
+                        year={serie.first_air_date?.slice(0, 4)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="border-t border-white/10 py-6 text-sm text-gray-400">
+                    No favorite series yet.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { BiX, BiSend, BiTrash } from "react-icons/bi";
+import { BiX, BiSend, BiTrash, BiDotsVerticalRounded } from "react-icons/bi";
 import { useAuth } from "../global/authContext";
 
 const BACKEND_URL = "http://localhost:8000";
@@ -74,6 +74,8 @@ function ConfirmDeleteDialog({
         </div>
     );
 }
+
+
 
 // ─── Three-dot dropdown menu (mobile) ──────────────────────────────────────
 function CommentMenu({ onDelete }: { onDelete: () => void }) {
