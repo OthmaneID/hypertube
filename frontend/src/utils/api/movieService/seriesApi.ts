@@ -60,6 +60,16 @@ export async function getSerieTrailers(
   }
 }
 
+export async function getSeriesGenres(): Promise<{ genres: Array<{ id: number; name: string }> }> {
+  try {
+    const res = await axiosInstance.get("/series/genres");
+    return res.data;
+  } catch (error: any) {
+    console.log("error while fetching series genres: ", error.message);
+    return { genres: [] };
+  }
+}
+
 export async function getSeasonDetails(
   serie_id: number,
   season_number: number,

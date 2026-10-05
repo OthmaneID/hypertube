@@ -17,6 +17,25 @@ headers = {
     "Authorization": f"Bearer {settings.tmdb_key}"
 }
 
+def getGenres(request: Request):
+    rd : redis.Redis = request.app.state.redis
+    try:
+        if rd is not None and rd.get("series_genres"):
+            return json.loads(rd.get("series_genres"))
+    except Exception:
+        pass
+        
+    res = requests.get(f"{settings.api_base_url}genre/tv/list?language=en", headers=headers)
+    try:
+        data = res.json()
+        if data and rd is not None:
+            rd.setex("series_genres", 60 * 60 * 24, json.dumps(data))
+        return data
+    except Exception:
+        pass
+    if res:
+        return res.json()
+
 
 def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by: str | None = None):
     cache_key = f"discover_series_{sort_by}_{page}" if sort_by else f"{category}_series_{page}"

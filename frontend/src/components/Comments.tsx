@@ -32,94 +32,94 @@ interface Props {
 
 // ─── Confirmation Dialog ────────────────────────────────────────────────────
 function ConfirmDeleteDialog({
-    onConfirm,
-    onCancel,
+  onConfirm,
+  onCancel,
 }: {
-    onConfirm: () => void;
-    onCancel: () => void;
+  onConfirm: () => void;
+  onCancel: () => void;
 }) {
-    return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={onCancel}
-            />
-            {/* Dialog card */}
-            <div className="relative z-10 bg-gray-900 border border-gray-700/60 rounded-2xl shadow-2xl p-6 w-full max-w-xs flex flex-col gap-4" style={{animation:'fadeInScale 0.2s ease'}}>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/15">
-                        <BiTrash className="text-red-400 text-xl" />
-                    </div>
-                    <div>
-                        <h3 className="text-white font-semibold text-sm">Delete comment</h3>
-                        <p className="text-gray-400 text-xs mt-0.5">This action cannot be undone.</p>
-                    </div>
-                </div>
-                <div className="flex gap-2 mt-1">
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 py-2 rounded-xl bg-gray-700/60 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-all active:scale-95"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-all active:scale-95"
-                    >
-                        Delete
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      />
+      {/* Dialog card */}
+      <div className="relative z-10 bg-gray-900 border border-gray-700/60 rounded-2xl shadow-2xl p-6 w-full max-w-xs flex flex-col gap-4" style={{ animation: 'fadeInScale 0.2s ease' }}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/15">
+            <BiTrash className="text-red-400 text-xl" />
+          </div>
+          <div>
+            <h3 className="text-white font-semibold text-sm">Delete comment</h3>
+            <p className="text-gray-400 text-xs mt-0.5">This action cannot be undone.</p>
+          </div>
         </div>
-    );
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2 rounded-xl bg-gray-700/60 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-all active:scale-95"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-all active:scale-95"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 
 
 // ─── Three-dot dropdown menu (mobile) ──────────────────────────────────────
 function CommentMenu({ onDelete }: { onDelete: () => void }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
 
-    return (
-        <div ref={ref} className="relative">
-            <button
-                onClick={() => setOpen((v) => !v)}
-                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all active:scale-95"
-                title="Options"
-                aria-label="Comment options"
-            >
-                <BiDotsVerticalRounded className="text-xl" />
-            </button>
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all active:scale-95"
+        title="Options"
+        aria-label="Comment options"
+      >
+        <BiDotsVerticalRounded className="text-xl" />
+      </button>
 
-            {open && (
-                <div className="absolute right-0 bottom-full mb-1 w-36 bg-gray-800 border border-gray-700/60 rounded-xl shadow-2xl overflow-hidden z-10" style={{animation:'fadeInDown 0.15s ease'}}>
-                    <button
-                        onClick={() => {
-                            setOpen(false);
-                            onDelete();
-                        }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                    >
-                        <BiTrash className="text-base flex-shrink-0" />
-                        Delete
-                    </button>
-                </div>
-            )}
+      {open && (
+        <div className="absolute right-0 bottom-full mb-1 w-36 bg-gray-800 border border-gray-700/60 rounded-xl shadow-2xl overflow-hidden z-10" style={{ animation: 'fadeInDown 0.15s ease' }}>
+          <button
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+          >
+            <BiTrash className="text-base flex-shrink-0" />
+            Delete
+          </button>
         </div>
-    );
+      )}
+    </div>
+  );
 }
 
 export default function Comments({ movieId, show, setShow }: Props) {

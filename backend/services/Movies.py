@@ -106,42 +106,44 @@ def getMovieDetails(request: Request, movie_id: int, db: Session, user: UserResp
     return data
 
 
-def getMovieCredits(request: Request, movie_id: int):
+def getMovieCredits(request: Request, movie_id: str):
+    if str(movie_id).startswith("archive-"):
+        return {"cast": [], "crew": []}
     try:
         rd : redis.Redis = request.app.state.redis
         if rd is not None and rd.get(f"movie_cast_{movie_id}"):
             return json.loads(rd.get(f"movie_cast_{movie_id}"))
-    except Exception as e:
-        pass
+    except Exception:
+        rd = None
     res = requests.get(f"{settings.api_base_url}movie/{movie_id}/credits?language=en-US", headers=headers)
     data = res.json()
     try:
-        if data:
+        if data and rd is not None:
             rd.setex(f"movie_cast_{movie_id}", 60 * 60 * 24, json.dumps(data))
         return data
     except Exception as e:
-        print(f"Error while fetching Movie Details : {e}")
+        print(f"Error while fetching Movie Credits : {e}")
         return data
 
 
 
-def getMovieVideos(request: Request, movie_id: int):
+def getMovieVideos(request: Request, movie_id: str):
+    if str(movie_id).startswith("archive-"):
+        return {"results": []}
     request_url = f"{settings.api_base_url}movie/{movie_id}/videos?language=en-US"
     rd : redis.Redis = request.app.state.redis
     try:
         if rd is not None and rd.get(f"movie_{movie_id}_videos"):
             return json.loads(rd.get(f"movie_{movie_id}_videos"))
-    except Exception as e:
+    except Exception:
         pass
-
     res = requests.get(request_url, headers=headers)
     data = res.json()
     try:
-        if data:
+        if data and rd is not None:
             rd.setex(f"movie_{movie_id}_videos", 60 * 60 * 8, json.dumps(data))
     except Exception as e:
         print("error while getting movie trailers : ", e)
-        return data
     return data
 
     

@@ -558,7 +558,7 @@ function Profile() {
                   </span>
                 </div>
                 {favoritesQuery.data.favoriteMovies.length > 0 ? (
-                  <div className="flex flex-wrap justify-center gap-x-5 gap-y-8 sm:justify-start">
+                  <div className="flex flex-nowrap justify-center gap-x-5 gap-y-8 sm:justify-start w-full overflow-x-auto">
                     {favoritesQuery.data.favoriteMovies.map((movie) => (
                       <Card
                         key={movie.id}
@@ -593,7 +593,7 @@ function Profile() {
                   </span>
                 </div>
                 {favoritesQuery.data.favoriteSeries.length > 0 ? (
-                  <div className="flex flex-wrap justify-center gap-x-5 gap-y-8 sm:justify-start">
+                  <div className="flex flex-nowrap justify-center gap-x-5 gap-y-8 sm:justify-start w-full overflow-x-auto">
                     {favoritesQuery.data.favoriteSeries.map((serie) => (
                       <Card
                         key={serie.id}
