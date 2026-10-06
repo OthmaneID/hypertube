@@ -1,11 +1,12 @@
 from fastapi.routing import APIRouter
-from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits, getMovieVideos  
+from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits, getMovieVideos
 from fastapi.requests import Request
 from database import get_db
 from sqlalchemy.orm import Session
 from schema.User import UserResponse
 from fastapi import Depends
 from services.auth import get_current_user
+from schema.Torrents import SourcesRequest, ModesEnum
 
 router = APIRouter(prefix="/movies")
 
@@ -26,9 +27,9 @@ def get_movie(request:Request, movie_id: int, user : UserResponse = Depends(get_
 
 @router.get("/credits/{movie_id}")
 def get_movie_credits(request:Request, movie_id:int, user : UserResponse = Depends(get_current_user)):
-    return getMovieCredits(request, movie_id)
+    return getMovieCredits(request, str(movie_id))
 
 # get movie trailers and related videos that are provided by the tmdb api
 @router.get("/videos/{movie_id}")
 def get_movie_videos(request:Request, movie_id:int, user : UserResponse = Depends(get_current_user)):
-    return getMovieVideos(request, movie_id)
+    return getMovieVideos(request, str(movie_id))

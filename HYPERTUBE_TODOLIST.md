@@ -48,23 +48,23 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 
 ### LIBRARY/SEARCH (12 tasks)
 
-15. [ ] Add search input field to Movies/Series pages
-16. [ ] Create search service that queries TMDB API
+15. [*] Add search input field to Movies/Series pages
+16. [*] Create search service that queries TMDB API
 17. [ ] Add torrent source integration (legittorrents.info or archive.org)
 18. [ ] Create backend search endpoint combining multiple sources
-19. [ ] Update frontend to display search results
-20. [ ] Add production year display to movie cards
+19. [*] Update frontend to display search results
+20. [*] Add production year display to movie cards
 21. [ ] Add IMDb/OMDb rating display to movie cards
 22. [ ] Implement watched status tracking in History model
 23. [ ] Add visual differentiation for watched/unwatched movies
-24. [ ] Add sorting controls (name, genre, rating, year)
-25. [ ] Add genre filter dropdown
-26. [ ] Add year range filter
-27. [ ] Add rating range filter
+24. [*] Add sorting controls (name, genre, rating, year)
+25. [*] Add genre filter dropdown
+26. [*] Add year range filter
+27. [*] Add rating range filter
 
 ### TORRENT/STREAMING (15 tasks)
 
-28. [ ] Install libtorrent or transmission library
+28. [*] Install libtorrent or transmission library
 29. [ ] Create torrent download service
 30. [ ] Implement background torrent download with progress tracking
 31. [ ] Add video streaming endpoint for downloaded files

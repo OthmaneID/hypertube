@@ -30,16 +30,18 @@ function PopularSeries() {
         </Link>
       </div>
       <div className="flex flex-row items-center h-85 overflow-auto gap-2 border-b-2 border-gray-600">
-        {Series.results.map((serie, index) => (
-          <Card
+        {Series.results.map((serie, index) => {
+          const year = serie.first_air_date?.toString().split("-")[0];
+          return <Card
             url={"/series/" + serie.id}
             key={index}
             id={serie.id}
             poster={serie.poster_path}
             title={serie.name}
             vote={serie.vote_average}
+            year={year}
           />
-        ))}
+        })}
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ from schema.User import UserResponse
 from sqlalchemy.orm import Session
 from models.User import User
 from models.Favorites import favoriteTypeEnum, Favorites
+from schema.Torrents import SourcesResponse,ModesEnum
+import httpx2
 
 
 # for images : (https://image.tmdb.org/t/p/original/{path}.png || .svg or https://image.tmdb.org/t/p/w500/{path})
@@ -147,3 +149,5 @@ def getMovieVideos(request: Request, movie_id: str):
     return data
 
     
+
+#  torrent related functions
