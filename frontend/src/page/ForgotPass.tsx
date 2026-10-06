@@ -2,12 +2,14 @@ import { useState, type SubmitEvent } from "react";
 import { ArrowLeft, Check, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { forgot_password } from "../utils/api/userService/authAPi";
+import { useTranslation } from "react-i18next";
 
 function ForgotPass() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState("");
+  const { t } = useTranslation();
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,10 +21,10 @@ function ForgotPass() {
       if (response?.message) {
         setIsSent(true);
       } else {
-        setError("We couldn't send a reset link right now. Please try again.");
+        setError(t("forgotPass.errorGeneric"));
       }
     } catch {
-      setError("We couldn't send a reset link right now. Please try again.");
+      setError(t("forgotPass.errorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
@@ -37,7 +39,7 @@ function ForgotPass() {
               className="mb-8 inline-flex items-center gap-2 text-sm text-gray-400 transition hover:text-white"
             >
               <ArrowLeft size={16} aria-hidden="true" />
-              Back to sign in
+              {t("forgotPass.backToSignIn")}
             </Link>
 
             {isSent ? (
@@ -46,19 +48,17 @@ function ForgotPass() {
                   <Check size={22} aria-hidden="true" />
                 </div>
                 <h2 className="text-2xl font-semibold text-white">
-                  Check your inbox
+                  {t("forgotPass.checkInbox")}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-gray-400">
-                  If an account is associated with{" "}
-                  <span className="text-gray-200">{email}</span>, a reset link
-                  is on its way.
+                  {t("forgotPass.checkInboxDesc", { email })}
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsSent(false)}
                   className="mt-6 text-sm font-medium text-gray-300 underline underline-offset-4 hover:text-white"
                 >
-                  Send another link
+                  {t("forgotPass.sendAnotherLink")}
                 </button>
               </div>
             ) : (
@@ -68,11 +68,10 @@ function ForgotPass() {
                     <Mail size={20} aria-hidden="true" />
                   </div>
                   <h2 className="text-2xl font-semibold text-white">
-                    Forgot your password?
+                    {t("forgotPass.heading")}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-400">
-                    Enter your email and we’ll send you a secure link to choose
-                    a new password.
+                    {t("forgotPass.desc")}
                   </p>
                 </div>
 
@@ -82,7 +81,7 @@ function ForgotPass() {
                       htmlFor="recovery-email"
                       className="mb-2 block text-sm font-medium text-gray-300"
                     >
-                      Email address
+                      {t("forgotPass.emailLabel")}
                     </label>
                     <input
                       id="recovery-email"
@@ -107,13 +106,12 @@ function ForgotPass() {
                     disabled={isSubmitting}
                     className="w-full rounded-xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-wait disabled:opacity-60"
                   >
-                    {isSubmitting ? "Sending link..." : "Send reset link"}
+                    {isSubmitting ? t("forgotPass.sendingLink") : t("forgotPass.sendResetLink")}
                   </button>
                 </form>
 
                 <p className="mt-6 text-center text-xs leading-5 text-gray-500">
-                  For your security, we won’t reveal whether an email is
-                  registered.
+                  {t("forgotPass.securityNote")}
                 </p>
               </>
             )}

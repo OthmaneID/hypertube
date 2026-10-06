@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { BiX, BiSend, BiTrash, BiDotsVerticalRounded } from "react-icons/bi";
 import { useAuth } from "../global/authContext";
+import { useTranslation } from "react-i18next";
 
 const BACKEND_URL = "http://localhost:8000";
 const LIMIT = 20;
@@ -38,6 +39,7 @@ function ConfirmDeleteDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -52,8 +54,8 @@ function ConfirmDeleteDialog({
             <BiTrash className="text-red-400 text-xl" />
           </div>
           <div>
-            <h3 className="text-white font-semibold text-sm">Delete comment</h3>
-            <p className="text-gray-400 text-xs mt-0.5">This action cannot be undone.</p>
+            <h3 className="text-white font-semibold text-sm">{t("comments.deleteComment")}</h3>
+            <p className="text-gray-400 text-xs mt-0.5">{t("comments.cannotUndo")}</p>
           </div>
         </div>
         <div className="flex gap-2 mt-1">
@@ -61,13 +63,13 @@ function ConfirmDeleteDialog({
             onClick={onCancel}
             className="flex-1 py-2 rounded-xl bg-gray-700/60 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-all active:scale-95"
           >
-            Cancel
+            {t("comments.cancel")}
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-all active:scale-95"
           >
-            Delete
+            {t("comments.delete")}
           </button>
         </div>
       </div>
@@ -81,6 +83,7 @@ function ConfirmDeleteDialog({
 function CommentMenu({ onDelete }: { onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!open) return;
@@ -114,7 +117,7 @@ function CommentMenu({ onDelete }: { onDelete: () => void }) {
             className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
           >
             <BiTrash className="text-base flex-shrink-0" />
-            Delete
+            {t("comments.delete")}
           </button>
         </div>
       )}
@@ -124,6 +127,7 @@ function CommentMenu({ onDelete }: { onDelete: () => void }) {
 
 export default function Comments({ movieId, show, setShow }: Props) {
   const { user } = useAuth(); // Get current logged-in user
+  const { t } = useTranslation();
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [isFetching, setIsFetching] = useState(false);
@@ -168,7 +172,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
     } catch (err) {
       console.log(err);
       setIsError(true);
-      setError("Failed to load comments");
+      setError(t("comments.failedLoad"));
     } finally {
       setIsFetching(false);
     }
@@ -231,9 +235,9 @@ export default function Comments({ movieId, show, setShow }: Props) {
       setIsError(true);
       if (err.response?.status === 400) {
         // If it's the NSFW error from our new AI check
-        setError("Comment blocked: Please keep it clean and appropriate.");
+        setError(t("comments.nsfwBlocked"));
       } else {
-        setError("Failed to post comment");
+        setError(t("comments.failedPost"));
       }
     }
   };
@@ -252,7 +256,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
       );
     } catch (err) {
       console.log(err);
-      alert("Failed to delete comment");
+      alert(t("comments.failedDelete"));
     }
   };
 
@@ -280,7 +284,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700/50">
-          <h2 className="text-white font-semibold text-lg">Comments</h2>
+          <h2 className="text-white font-semibold text-lg">{t("comments.title")}</h2>
           <span
             className="rounded-full bg-gray-700/50 p-1 text-2xl text-gray-300 hover:bg-gray-600/60 active:scale-95 cursor-pointer transition-all duration-200"
             onClick={() => setShow(false)}
@@ -303,7 +307,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
 
           {!isFetching && comments.length === 0 && (
             <p className="text-gray-400 text-sm text-center mt-10">
-              No comments yet. Be the first!
+              {t("comments.noComments")}
             </p>
           )}
 
@@ -331,11 +335,11 @@ export default function Comments({ movieId, show, setShow }: Props) {
                     <>
                       <img
                         src="/Default_pfp.svg"
-                        alt="Deleted user"
+                        alt={t("comments.deletedUser")}
                         className="w-8 h-8 rounded-full object-cover"
                       />
                       <span className="text-gray-300 text-sm font-semibold">
-                        Deleted user
+                        {t("comments.deletedUser")}
                       </span>
                     </>
                   ) : (
@@ -377,7 +381,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
                     <button
                       onClick={() => handleDelete(comment.id)}
                       className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                      title="Delete comment"
+                      title={t("comments.deleteComment")}
                     >
                       <BiTrash className="text-lg" />
                     </button>
@@ -408,7 +412,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
               <div className="flex flex-row gap-3 items-end">
                 <textarea
                   className={`flex-1 bg-gray-800/60 text-gray-200 text-sm rounded-xl px-4 py-3 resize-none outline-none placeholder-gray-500 transition-all ${isError ? "ring-1 ring-red-500" : "focus:ring-1 focus:ring-gray-500"}`}
-                  placeholder="Write a comment..."
+                  placeholder={t("comments.placeholder")}
                   rows={2}
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
@@ -435,9 +439,9 @@ export default function Comments({ movieId, show, setShow }: Props) {
                   to="/signin"
                   className="text-gray-300 font-semibold hover:underline"
                 >
-                  Sign in
+                  {t("comments.signIn")}
                 </Link>{" "}
-                to leave a comment
+                {t("comments.signInPrompt")}
               </p>
             </div>
           )}

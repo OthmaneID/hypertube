@@ -5,8 +5,10 @@ import { BiChevronRight } from "react-icons/bi";
 import { useEffect, useState } from "react";
 import { getPopularMovies } from "../../utils/api/movieService/moviesApi";
 import type { PopularMoviesResponse } from "../../utils/interfaces";
+import { useTranslation } from "react-i18next";
 
 function PopularMovies() {
+  const { t } = useTranslation();
   const [Movies, setMovies] = useState({
     page: 1,
     results: [],
@@ -21,12 +23,12 @@ function PopularMovies() {
   return (
     <div className="popular-movies flex flex-col py-4 gap-4 w-[calc(100vw-120px)] h-full px-2">
       <div className="flex flex-row justify-between items-center px-2">
-        <h4 className="text-4xl text-white font-thin">Popular - Movies</h4>
+        <h4 className="text-4xl text-white font-thin">{t("home.popularMovies")}</h4>
         <Link
           to="/movies"
           className="text-lg flex flex-nowrap items-center text-nowrap text-gray-400 hover:text-white transition duration-300"
         >
-          See All <BiChevronRight className="ml-1" />
+          {t("home.seeAll")} <BiChevronRight className="ml-1" />
         </Link>
       </div>
       <div className="flex flex-row items-center h-85 overflow-auto gap-2 border-b-2 border-gray-600">

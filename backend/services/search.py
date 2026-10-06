@@ -14,13 +14,14 @@ TMDB_HEADERS = {
 ARCHIVE_SEARCH_URL = "https://archive.org/advancedsearch.php"
 
 
-def _search_tmdb_movies(query: str, page: int = 1) -> list:
+def _search_tmdb_movies(query: str, page: int = 1, lang: str = "en") -> list:
     """Search movies on TMDB."""
     try:
+        tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
         url = f"{settings.api_base_url}search/movie"
         res = requests.get(url, headers=TMDB_HEADERS, params={
             "query": query,
-            "language": "en-US",
+            "language": tmdb_lang,
             "page": page,
             "include_adult": False
         }, timeout=8)
@@ -46,13 +47,14 @@ def _search_tmdb_movies(query: str, page: int = 1) -> list:
         return []
 
 
-def _search_tmdb_series(query: str, page: int = 1) -> list:
+def _search_tmdb_series(query: str, page: int = 1, lang: str = "en") -> list:
     """Search TV series on TMDB."""
     try:
+        tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
         url = f"{settings.api_base_url}search/tv"
         res = requests.get(url, headers=TMDB_HEADERS, params={
             "query": query,
-            "language": "en-US",
+            "language": tmdb_lang,
             "page": page,
             "include_adult": False
         }, timeout=8)
@@ -125,14 +127,14 @@ def _search_archive_org(query: str, page: int = 1, rows: int = 20) -> list:
         return []
 
 
-def searchMovies(request: Request, query: str, page: int = 1) -> dict:
+def searchMovies(request: Request, query: str, page: int = 1, lang: str = "en") -> dict:
     """
     Merged movie search: TMDB (primary) + archive.org (royalty-free).
     Results are cached in Redis for 15 minutes.
     Sorted alphabetically by title as required by the subject.
     """
     rd: redis.Redis = request.app.state.redis
-    cache_key = f"search_movies_{query.lower().strip()}_{page}"
+    cache_key = f"search_movies_{query.lower().strip()}_{page}_{lang}"
 
     try:
         if rd is not None:
@@ -147,7 +149,7 @@ def searchMovies(request: Request, query: str, page: int = 1) -> dict:
     archive_results: list = []
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
-            executor.submit(_search_tmdb_movies, query, page): "tmdb",
+            executor.submit(_search_tmdb_movies, query, page, lang): "tmdb",
             executor.submit(_search_archive_org, query, page): "archive",
         }
         for future in as_completed(futures, timeout=12):
@@ -181,13 +183,13 @@ def searchMovies(request: Request, query: str, page: int = 1) -> dict:
     return response
 
 
-def searchSeries(request: Request, query: str, page: int = 1) -> dict:
+def searchSeries(request: Request, query: str, page: int = 1, lang: str = "en") -> dict:
     """
     Series search: TMDB only (archive.org does not have structured series).
     Results are cached in Redis for 15 minutes.
     """
     rd: redis.Redis = request.app.state.redis
-    cache_key = f"search_series_{query.lower().strip()}_{page}"
+    cache_key = f"search_series_{query.lower().strip()}_{page}_{lang}"
 
     try:
         if rd is not None:
@@ -197,7 +199,7 @@ def searchSeries(request: Request, query: str, page: int = 1) -> dict:
     except Exception:
         pass
 
-    tmdb_results = _search_tmdb_series(query, page)
+    tmdb_results = _search_tmdb_series(query, page, lang)
     tmdb_results.sort(key=lambda x: (x.get("title") or "").lower())
 
     response = {

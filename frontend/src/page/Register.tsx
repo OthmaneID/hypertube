@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../global/authContext";
 import { useGoogleLogin, type TokenResponse } from "@react-oauth/google";
+import { useTranslation } from "react-i18next";
 
 function Register() {
   const [username, setUsername] = useState("");
@@ -14,6 +15,7 @@ function Register() {
   const [passwordError, setPasswordError] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const { register, Glogin } = useAuth();
+  const { t } = useTranslation();
 
   function submit(e: Event) {
     e.preventDefault();
@@ -35,20 +37,19 @@ function Register() {
         <div className="max-md:hidden flex flex-1 flex-col justify-between bg-gray-900 p-8 sm:p-10 lg:p-12">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Welcome
+              {t("register.title")}
             </h1>
             <p className="mt-3 max-w-md text-base leading-7 text-gray-300">
-              Create you account to discover new favorites, build your
-              watchlist, and jump straight into your next binge.
+              {t("register.subtitle")}
             </p>
           </div>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-gray-200">
-            <p className="font-medium text-white">Why Hypertube?</p>
+            <p className="font-medium text-white">{t("register.whyTitle")}</p>
             <ul className="mt-2 space-y-1 text-gray-300">
-              <li>• Curated movie discovery</li>
-              <li>• Smart watchlists and saved picks</li>
-              <li>• A polished streaming-style experience</li>
+              <li>{t("register.feature1")}</li>
+              <li>{t("register.feature2")}</li>
+              <li>{t("register.feature3")}</li>
             </ul>
           </div>
         </div>
@@ -56,16 +57,16 @@ function Register() {
         <div className="flex flex-1 items-center justify-center bg-[#06010b]/90 p-8 sm:p-10 lg:p-12">
           <div className="w-full max-w-md">
             <div className="mb-6 text-center">
-              <h2 className="text-2xl font-semibold text-white">Register</h2>
+              <h2 className="text-2xl font-semibold text-white">{t("register.heading")}</h2>
               <p className="mt-2 text-sm text-gray-400">
-                Create your account to continue
+                {t("register.subheading")}
               </p>
             </div>
 
             <form className="space-y-4" onSubmit={(e: any) => submit(e)}>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Username
+                  {t("register.usernameLabel")}
                 </label>
                 <input
                   autoComplete="username"
@@ -81,7 +82,7 @@ function Register() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  First Name
+                  {t("register.firstNameLabel")}
                 </label>
                 <input
                   autoComplete="given-name"
@@ -95,7 +96,7 @@ function Register() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Last Name
+                  {t("register.lastNameLabel")}
                 </label>
                 <input
                   autoComplete="family-name"
@@ -109,7 +110,7 @@ function Register() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Email
+                  {t("register.emailLabel")}
                 </label>
                 <input
                   autoComplete="email"
@@ -125,7 +126,7 @@ function Register() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Password
+                  {t("register.passwordLabel")}
                 </label>
                 <input
                   autoComplete="new-password"
@@ -140,7 +141,7 @@ function Register() {
               <span>{passwordError}</span>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Confirm password
+                  {t("register.confirmPasswordLabel")}
                 </label>
                 <input
                   autoComplete="new-password"
@@ -157,7 +158,7 @@ function Register() {
                 type="submit"
                 className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200"
               >
-                Continue
+                {t("register.continueBtn")}
               </button>
             </form>
 
@@ -166,7 +167,7 @@ function Register() {
                 to="/forgot-password"
                 className="text-gray-400 transition hover:text-white"
               >
-                Forgot your password?
+                {t("register.forgotPassword")}
               </Link>
             </p>
 
@@ -176,7 +177,7 @@ function Register() {
               </div>
               <div className="relative flex justify-center">
                 <span className="bg-[#06010b] px-3 text-xs uppercase tracking-[0.3em] text-gray-500">
-                  or
+                  {t("register.orDivider")}
                 </span>
               </div>
             </div>
@@ -187,13 +188,13 @@ function Register() {
                 onClick={() => google_login()}
                 className="w-full cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10"
               >
-                Continue with Google
+                {t("register.googleBtn")}
               </button>
               <a
                 href="/oauth/login/"
                 className="w-full flex flex-row flex-nowrap items-center justify-center cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10"
               >
-                Sign in with
+                {t("register.continueBtn")} with
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 -200 960 960"
@@ -212,12 +213,12 @@ function Register() {
             </div>
 
             <p className="mt-6 text-center text-sm text-gray-400">
-              New here?{" "}
+              {t("register.alreadyHaveAccount")}{" "}
               <Link
                 to="/signin"
                 className="font-medium text-white hover:text-gray-300"
               >
-                Already have an account ?
+                {t("signIn.heading")}
               </Link>
             </p>
           </div>

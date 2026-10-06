@@ -34,8 +34,10 @@ import Comments from "../components/Comments";
 import { IoHeart, IoHeartOutline } from "react-icons/io5";
 import CustomButton from "../components/CustomButton";
 import { addFavorite, removeFavorite } from "../utils/api/userService/userApi";
+import { useTranslation } from "react-i18next";
 
 function MovieDetails() {
+  const { t } = useTranslation();
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
   let { id } = useParams();
   let movieId = parseInt(id || "");
@@ -147,7 +149,7 @@ function MovieDetails() {
       <div className="w-full flex justify-center items-center py-20">
         <div className="flex flex-col items-center gap-3">
           <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-          <span className="text-gray-300">Loading movies...</span>
+          <span className="text-gray-300">{t("movieDetails.loading")}</span>
         </div>
       </div>
     );
@@ -234,7 +236,7 @@ function MovieDetails() {
           {/* runtime, date, vote, trailer, streams */}
           <div className="flex flex-row flex-wrap justify-between  text-gray-200 font-bold text-3xl  mt-6">
             <div className="flex flex-row gap-6 items-center w-1/2 min-w-50 max-md:w-full">
-              <span className="text-nowrap">{movie?.runtime} min</span>
+              <span className="text-nowrap">{movie?.runtime} {t("movieDetails.min")}</span>
               <span className="text-nowrap">
                 {new Date(movie?.release_date ?? "").getFullYear().toString()}
               </span>
@@ -245,7 +247,7 @@ function MovieDetails() {
             </div>
             <div className="flex flex-row justify-end gap-5 items-center w-1/2 min-w-50 max-md:w-full">
               <CustomButton
-                text="View trailer"
+                text={t("movieDetails.viewTrailer")}
                 onClick={() => {
                   setShowModule(true);
                 }}
@@ -255,7 +257,7 @@ function MovieDetails() {
               />
 
               <CustomButton
-                text="Comments"
+                text={t("movieDetails.comments")}
                 onClick={() => setShowComments(true)}
                 content={
                   <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
@@ -263,7 +265,7 @@ function MovieDetails() {
               />
 
               <CustomButton
-                text="Stream Movie"
+                text={t("movieDetails.streamMovie")}
                 onClick={() => {
                   setShowStreams(true);
                 }}
@@ -276,7 +278,7 @@ function MovieDetails() {
           <div className="w-full flex flex-col gap-4 items-start">
             <div className="flex flex-col gap-2 w-full ">
               <span className="text-2xl text-gray-300 font-semibold">
-                Genres
+                {t("movieDetails.genres")}
               </span>
               <div
                 ref={genresRef}
@@ -300,7 +302,7 @@ function MovieDetails() {
             </div>
 
             <div className="flex flex-col gap-2 w-full">
-              <span className="text-2xl text-gray-300 font-semibold">Cast</span>
+              <span className="text-2xl text-gray-300 font-semibold">{t("movieDetails.cast")}</span>
               <div
                 ref={castRef}
                 className="flex flex-row gap-3 overflow-x-auto pb-2 cursor-grab active:cursor-grabbing"
@@ -326,7 +328,7 @@ function MovieDetails() {
             </div>
 
             <div className="flex flex-col gap-2 w-full">
-              <span className="text-2xl text-gray-300 font-semibold">Crew</span>
+              <span className="text-2xl text-gray-300 font-semibold">{t("movieDetails.crew")}</span>
               <div
                 ref={crewRef}
                 className="flex flex-row gap-3 overflow-x-auto overflow-y-hidden pb-2 cursor-grab active:cursor-grabbing"
@@ -352,7 +354,7 @@ function MovieDetails() {
           {/* overview */}
           <div className=" flex flex-col w-full rounded-2xl py-2 px-4 bg-gray-50/50 ">
             <span className="text-3xl text-gray-800 font-semibold mb-2">
-              summary
+              {t("movieDetails.summary")}
             </span>
             <span className="text-2xl ">{movie?.overview}</span>
           </div>
