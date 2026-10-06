@@ -4,6 +4,7 @@ import { searchSeries, type SearchResultItem } from "../utils/api/movieService/s
 import type { PopularSeriesResponse, Serie } from "../utils/interfaces";
 import { BiArrowToTop, BiSearch, BiX, BiFilterAlt } from "react-icons/bi";
 import Card from "../components/Card";
+import { useTranslation } from "react-i18next";
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -18,6 +19,7 @@ function useDebounce<T>(value: T, delay: number): T {
 const CURRENT_YEAR = new Date().getFullYear();
 
 function Series() {
+  const { t } = useTranslation();
   // Popular mode state
   const [isSeriesLoading, setIsSeriesLoading] = useState(false);
   const [series, setSeries] = useState<Serie[]>([]);
@@ -204,7 +206,7 @@ function Series() {
       <div className="w-full flex flex-col gap-3 py-5">
         <div className="flex items-center justify-center">
           <span className="text-4xl text-gray-200 font-thin">
-            {isSearchMode ? "Search Results" : "Discover Series"}
+            {isSearchMode ? t("series.searchResults") : t("series.pageTitle")}
           </span>
         </div>
 
@@ -215,7 +217,7 @@ function Series() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search series..."
+            placeholder={t("series.searchPlaceholder")}
             className="w-full bg-gray-800/70 text-gray-100 placeholder-gray-500 rounded-2xl pl-11 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-gray-600 transition-all"
           />
           {query && (
@@ -232,7 +234,7 @@ function Series() {
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {/* Sort pills */}
           <div className="flex items-center gap-1.5">
-            <span className="text-gray-500 text-xs">Sort:</span>
+            <span className="text-gray-500 text-xs">{t("series.sortLabel")}</span>
             {(["alpha", "year", "rating"] as const).map((s) => (
               <button
                 key={s}
@@ -243,7 +245,7 @@ function Series() {
                     : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
                 }`}
               >
-                {s === "alpha" ? "A–Z" : s === "year" ? "Newest" : "Rating ★"}
+                {s === "alpha" ? t("series.sortAlpha") : s === "year" ? t("series.sortNewest") : t("series.sortRating")}
               </button>
             ))}
           </div>
@@ -258,7 +260,7 @@ function Series() {
             }`}
           >
             <BiFilterAlt />
-            Filters{hasActiveFilters ? " •" : ""}
+            {t("series.filtersBtn")}{hasActiveFilters ? " •" : ""}
           </button>
         </div>
 
@@ -268,14 +270,14 @@ function Series() {
             {/* Genre filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Genre</span>
+                <span>{t("series.genreLabel")}</span>
               </div>
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(parseInt(e.target.value))}
                 className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
               >
-                <option value={0}>Any Genre</option>
+                <option value={0}>{t("series.anyGenre")}</option>
                 {genres.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -287,9 +289,9 @@ function Series() {
             {/* Rating filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Min Rating</span>
+                <span>{t("series.minRatingLabel")}</span>
                 <span className="text-white font-semibold">
-                  {minRating > 0 ? `≥ ${minRating.toFixed(1)} ★` : "Any"}
+                  {minRating > 0 ? `≥ ${minRating.toFixed(1)} ★` : t("series.any")}
                 </span>
               </div>
               <input
@@ -311,7 +313,7 @@ function Series() {
             {/* Year range filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Year Range</span>
+                <span>{t("series.yearRangeLabel")}</span>
                 <span className="text-white font-semibold">
                   {minYear} – {maxYear}
                 </span>
@@ -329,7 +331,7 @@ function Series() {
                   }
                   className="w-24 bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-purple-500"
                 />
-                <span className="text-gray-600 text-xs">to</span>
+                <span className="text-gray-600 text-xs">{t("series.to")}</span>
                 <input
                   type="number"
                   min={minYear}
@@ -354,7 +356,7 @@ function Series() {
                 onClick={resetFilters}
                 className="self-end text-xs text-gray-400 hover:text-white underline transition-colors"
               >
-                Reset filters
+                {t("series.resetFilters")}
               </button>
             )}
           </div>
@@ -370,13 +372,13 @@ function Series() {
               <div className="w-full flex justify-center items-center py-20">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">Searching...</span>
+                  <span className="text-gray-300">{t("series.searching")}</span>
                 </div>
               </div>
             )}
             {!isSearching && displayedSearch.length === 0 && (
               <span className="text-xl text-gray-400 text-center w-full py-20">
-                No results found for "{debouncedQuery}"
+                {t("series.noResults").replace("{{query}}", debouncedQuery)}
               </span>
             )}
             {!isSearching &&
@@ -404,8 +406,8 @@ function Series() {
             {displayedSeries.length === 0 && !isSeriesLoading ? (
               <span className="text-xl text-gray-400 text-center w-full py-20">
                 {hasActiveFilters
-                  ? "No series match your filters."
-                  : "No series found. Please try again later."}
+                  ? t("series.noSeriesFiltered")
+                  : t("series.noSeries")}
               </span>
             ) : (
               displayedSeries.map((serie, index) => (
@@ -429,7 +431,7 @@ function Series() {
               <div className="w-full flex justify-center items-center py-10">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">Loading series...</span>
+                  <span className="text-gray-300">{t("series.loadingSeries")}</span>
                 </div>
               </div>
             )}

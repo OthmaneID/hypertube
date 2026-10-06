@@ -33,8 +33,10 @@ import {
 import TrailerModule from "../components/TrailerModule";
 import Comments from "../components/Comments";
 import { addFavorite, removeFavorite } from "../utils/api/userService/userApi";
+import { useTranslation } from "react-i18next";
 
 function SerieDetails() {
+  const { t } = useTranslation();
   const { imageConfig, setImageConfig } = useContext(ImageConfigContext);
   let { id } = useParams();
   let serieId = parseInt(id || "");
@@ -158,7 +160,7 @@ function SerieDetails() {
       <div className="w-full flex justify-center items-center py-20">
         <div className="flex flex-col items-center gap-3">
           <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-          <span className="text-gray-300">Loading movies...</span>
+          <span className="text-gray-300">{t("serieDetails.loading")}</span>
         </div>
       </div>
     );
@@ -261,7 +263,7 @@ function SerieDetails() {
                     serie?.seasons?.filter((season) => season.season_number??0  > 0)
                       .length ??
                     0}{" "}
-                  seasons
+                  {t("serieDetails.seasons")}
                 </span>
                 <span className="text-2xl text-nowrap">
                   {serie?.number_of_episodes ??
@@ -270,7 +272,7 @@ function SerieDetails() {
                       0,
                     ) ??
                     0}{" "}
-                  episodes
+                  {t("serieDetails.episodes")}
                 </span>
                 <span className="flex flex-row text-nowrap">
                   {serie?.vote_average?.toFixed(1)}{" "}
@@ -289,7 +291,7 @@ function SerieDetails() {
                     <BiCameraMovie className="group-hover:text-white text-gray-300" />
                   </span>
                   <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                    View trailer
+                    {t("serieDetails.viewTrailer")}
                   </span>
                 </div>
                 <div>
@@ -303,7 +305,7 @@ function SerieDetails() {
                     <BiPlay className="group-hover:text-white text-gray-300" />
                   </span>
                   <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                    Select Episode
+                    {t("serieDetails.selectEpisode")}
                   </span>
                 </div>
                 <div>
@@ -315,7 +317,7 @@ function SerieDetails() {
                     <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
                   </span>
                   <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                    Comments
+                    {t("movieDetails.comments")}
                   </span>
                 </div>
               </div>
@@ -323,7 +325,7 @@ function SerieDetails() {
             <div className="w-full flex flex-col gap-4 items-start">
               <div className="flex flex-col gap-2 w-full ">
                 <span className="text-2xl text-gray-300 font-semibold">
-                  Genres
+                  {t("movieDetails.genres")}
                 </span>
                 <div
                   ref={genresRef}
@@ -350,7 +352,7 @@ function SerieDetails() {
 
               <div className="flex flex-col gap-2 w-full">
                 <span className="text-2xl text-gray-300 font-semibold">
-                  Cast
+                  {t("movieDetails.cast")}
                 </span>
                 <div
                   ref={castRef}
@@ -378,7 +380,7 @@ function SerieDetails() {
 
               <div className="flex flex-col gap-2 w-full">
                 <span className="text-2xl text-gray-300 font-semibold">
-                  Crew
+                  {t("movieDetails.crew")}
                 </span>
                 <div
                   ref={crewRef}
@@ -406,8 +408,8 @@ function SerieDetails() {
             </div>
             {/* overview */}
             <div className=" flex flex-col w-full rounded-2xl py-2 px-4 bg-gray-50/50 ">
-              <span className="text-3xl text-gray-800 font-semibold mb-2">
-                summary
+              <span className="text-3xl text-gray-800 font-semibold mb-2 capitalize">
+                {t("movieDetails.summary")}
               </span>
               <span className="text-2xl ">{serie?.overview}</span>
             </div>

@@ -17,19 +17,21 @@ headers = {
     "Authorization": f"Bearer {settings.tmdb_key}"
 }
 
-def getGenres(request: Request):
+def getGenres(request: Request, lang: str = "en"):
     rd : redis.Redis = request.app.state.redis
+    cache_key = f"series_genres_{lang}"
     try:
-        if rd is not None and rd.get("series_genres"):
-            return json.loads(rd.get("series_genres"))
+        if rd is not None and rd.get(cache_key):
+            return json.loads(rd.get(cache_key))
     except Exception:
         pass
         
-    res = requests.get(f"{settings.api_base_url}genre/tv/list?language=en", headers=headers)
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    res = requests.get(f"{settings.api_base_url}genre/tv/list?language={tmdb_lang}", headers=headers)
     try:
         data = res.json()
         if data and rd is not None:
-            rd.setex("series_genres", 60 * 60 * 24, json.dumps(data))
+            rd.setex(cache_key, 60 * 60 * 24, json.dumps(data))
         return data
     except Exception:
         pass
@@ -37,9 +39,10 @@ def getGenres(request: Request):
         return res.json()
 
 
-def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by: str | None = None):
-    cache_key = f"discover_series_{sort_by}_{page}" if sort_by else f"{category}_series_{page}"
-    request_url = f"{settings.api_base_url}/discover/tv" if sort_by else f"{settings.api_base_url}/tv/{category}?language=en-US&page={page}"
+def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by: str | None = None, lang: str = "en"):
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    cache_key = f"discover_series_{sort_by}_{page}_{lang}" if sort_by else f"{category}_series_{page}_{lang}"
+    request_url = f"{settings.api_base_url}/discover/tv" if sort_by else f"{settings.api_base_url}/tv/{category}"
     rd:redis.Redis = request.app.state.redis
     try:
         if rd is not None:
@@ -50,9 +53,9 @@ def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by:
         pass
 
     if sort_by:
-        res = requests.get(request_url, params={"language": "en-US", "page": page, "sort_by": sort_by}, headers=headers)
+        res = requests.get(request_url, params={"language": tmdb_lang, "page": page, "sort_by": sort_by}, headers=headers)
     else:
-        res = requests.get(request_url, headers=headers)
+        res = requests.get(request_url, params={"language": tmdb_lang, "page": page}, headers=headers)
     data = res.json()
     try:
         if data:
@@ -64,10 +67,11 @@ def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by:
     return {"page": 1, "results": [], "total_pages": 1, "total_results": 0}
 
 
-def getSerieDetails(request: Request, serie_id: int, db: Session, user: UserResponse):
+def getSerieDetails(request: Request, serie_id: int, db: Session, user: UserResponse, lang: str = "en"):
     rd: redis.Redis | None = getattr(request.app.state, "redis", None)
-    cache_key = f"serie_{serie_id}"
-    request_url = f"{settings.api_base_url}/tv/{serie_id}"
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    cache_key = f"serie_{serie_id}_{lang}"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}?language={tmdb_lang}"
     data = None
     try:
         if rd is not None:
@@ -103,10 +107,11 @@ def getSerieDetails(request: Request, serie_id: int, db: Session, user: UserResp
 
 
 
-def getSerieCredits(request: Request, serie_id: int):
+def getSerieCredits(request: Request, serie_id: int, lang: str = "en"):
     rd : redis.Redis = request.app.state.redis
-    request_url = f"{settings.api_base_url}/tv/{serie_id}/credits?language=en-US"
-    rd_name = f"serie_credits_{serie_id}"
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}/credits?language={tmdb_lang}"
+    rd_name = f"serie_credits_{serie_id}_{lang}"
     try:
         if rd is not None and rd.get(rd_name):
             return json.loads(rd.get(rd_name))
@@ -124,10 +129,11 @@ def getSerieCredits(request: Request, serie_id: int):
 
 
 
-def getSerieVideos(request:Request, serie_id:int):
+def getSerieVideos(request:Request, serie_id:int, lang: str = "en"):
     rd : redis.Redis = request.app.state.redis
-    request_url = f"{settings.api_base_url}/tv/{serie_id}/videos?language=en-US"
-    rd_name = f"serie_videos_{serie_id}"
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}/videos?language={tmdb_lang}"
+    rd_name = f"serie_videos_{serie_id}_{lang}"
     try:
         if rd is not None and rd.get(rd_name):
             return json.loads(rd.get(rd_name))
@@ -147,10 +153,11 @@ def getSerieVideos(request:Request, serie_id:int):
 
 
 
-def getSerieSeason(request: Request, serie_id: int, season_number: int):
+def getSerieSeason(request: Request, serie_id: int, season_number: int, lang: str = "en"):
     rd : redis.Redis = request.app.state.redis
-    request_url = f"{settings.api_base_url}/tv/{serie_id}/season/{season_number}?language=en-US"
-    rd_name = f"serie_season_{serie_id}_{season_number}"
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}/season/{season_number}?language={tmdb_lang}"
+    rd_name = f"serie_season_{serie_id}_{season_number}_{lang}"
     try:
         if rd is not None and rd.get(rd_name):
             return json.loads(rd.get(rd_name))

@@ -18,6 +18,7 @@ from fastapi import responses
 from datetime import datetime, timedelta
 from pydantic import EmailStr
 from utils.emailing import sendEmail
+from utils.i18n import get_translation
 import secrets
 import base64
 from urllib.parse import quote
@@ -106,16 +107,17 @@ def sendVerificationEmail(user: User, db: Session):
     db.commit()
 
     verification_link = f"{settings.frontend_url}/verify-email?token={quote(raw_token, safe='')}"
+    
+    lang = user.preferred_language.value if user.preferred_language else "en"
+    subject = get_translation(lang, "verify_subject")
+    body = get_translation(lang, "verify_body").format(
+        username=user.username,
+        link=verification_link,
+    )
     email_result = sendEmail(
         email=user.email,
-        subject="Verify your Hypertube email",
-        content=(
-            f"Hello {user.username},\n\n"
-            "Please verify your email address by opening this link:\n\n"
-            f"{verification_link}\n\n"
-            "This link expires in 24 hours.\n\n"
-            "If you did not create this account, you can ignore this email."
-        ),
+        subject=subject,
+        content=body,
     )
     return not (isinstance(email_result, dict) and email_result.get("error"))
 
@@ -341,9 +343,14 @@ def forgotPassword(request: Request, email: EmailStr, db : Session):
         db.refresh(token_db)
         # res = Response()
         reset_link = f"{settings.frontend_url}/reset-password?token={url_safe_token}"
-        email_subject = "Password Reset Request"
-        email_content = f"Hello {user_db.username},\n\nYou requested a password reset. Please click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.\n\nThank you."
-        sendEmail(email=email, subject=email_subject, content=email_content)
+        
+        lang = user_db.preferred_language.value if user_db.preferred_language else "en"
+        subject = get_translation(lang, "reset_subject")
+        body = get_translation(lang, "reset_body").format(
+            username=user_db.username,
+            link=reset_link,
+        )
+        sendEmail(email=email, subject=subject, content=body)
 
     except Exception as e:
         print("[forgot Password error] : ", e)

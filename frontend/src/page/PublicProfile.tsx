@@ -6,8 +6,10 @@ import Card from "../components/Card";
 import { getMovieDetails } from "../utils/api/movieService/moviesApi";
 import { getSerieDetails } from "../utils/api/movieService/seriesApi";
 import { getUserById } from "../utils/api/userService/userApi";
+import { useTranslation } from "react-i18next";
 
 function PublicProfile() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const userId = Number(id);
   const isValidUserId = Number.isInteger(userId) && userId > 0;
@@ -34,8 +36,8 @@ function PublicProfile() {
   if (!isValidUserId) {
     return (
       <ProfileMessage
-        title="Profile not found"
-        message="That profile address is invalid."
+        title={t("publicProfile.notFound")}
+        message={t("publicProfile.notFoundDesc")}
       />
     );
   }
@@ -43,8 +45,8 @@ function PublicProfile() {
   if (profileQuery.isPending) {
     return (
       <ProfileMessage
-        title="Loading profile"
-        message="Fetching profile information and favorites..."
+        title={t("publicProfile.loading")}
+        message={t("publicProfile.loadingDesc")}
       />
     );
   }
@@ -52,8 +54,8 @@ function PublicProfile() {
   if (profileQuery.isError) {
     return (
       <ProfileMessage
-        title="Profile unavailable"
-        message="We couldn't load this profile."
+        title={t("publicProfile.error")}
+        message={t("publicProfile.errorDesc")}
       />
     );
   }
@@ -95,7 +97,7 @@ function PublicProfile() {
               ) : (
                 <ShieldX size={16} />
               )}
-              {user.is_verified ? "Verified" : "Not verified"}
+              {user.is_verified ? t("publicProfile.verified") : t("publicProfile.notVerified")}
             </span>
           </div>
           <p className="mt-1 text-gray-400">@{user.username}</p>
@@ -104,12 +106,12 @@ function PublicProfile() {
 
       <section className="grid gap-x-10 gap-y-5 border-b border-white/10 py-7 sm:grid-cols-2 lg:grid-cols-3">
         <ProfileInfo
-          label="Name"
+          label={t("publicProfile.name")}
           value={[user.first_name, user.last_name].filter(Boolean).join(" ")}
           icon={<CircleUserRound size={17} />}
         />
         <ProfileInfo
-          label="Username"
+          label={t("publicProfile.username")}
           value={user.username ? `@${user.username}` : undefined}
           icon={<CircleUserRound size={17} />}
         />
@@ -118,7 +120,7 @@ function PublicProfile() {
       <section className="pt-8">
         <div className="mb-5 flex items-center gap-3">
           <Film size={20} className="text-gray-400" />
-          <h2 className="text-xl font-semibold">Favorite movies</h2>
+          <h2 className="text-xl font-semibold">{t("publicProfile.favoriteMovies")}</h2>
           <span className="text-sm text-gray-500">{favoriteMovies.length}</span>
         </div>
         {favoriteMovies.length > 0 ? (
@@ -141,7 +143,7 @@ function PublicProfile() {
           </div>
         ) : (
           <p className="border-t border-white/10 py-6 text-sm text-gray-400">
-            No favorite movies yet.
+            {t("publicProfile.noFavoriteMovies")}
           </p>
         )}
       </section>
@@ -149,7 +151,7 @@ function PublicProfile() {
       <section className="pt-10">
         <div className="mb-5 flex items-center gap-3">
           <Tv size={20} className="text-gray-400" />
-          <h2 className="text-xl font-semibold">Favorite series</h2>
+          <h2 className="text-xl font-semibold">{t("publicProfile.favoriteSeries")}</h2>
           <span className="text-sm text-gray-500">{favoriteSeries.length}</span>
         </div>
         {favoriteSeries.length > 0 ? (
@@ -168,7 +170,7 @@ function PublicProfile() {
           </div>
         ) : (
           <p className="border-t border-white/10 py-6 text-sm text-gray-400">
-            No favorite series yet.
+            {t("publicProfile.noFavoriteSeries")}
           </p>
         )}
       </section>
@@ -190,7 +192,7 @@ function ProfileInfo({
       {icon && <span className="mt-0.5 text-gray-500">{icon}</span>}
       <div>
         <p className="text-xs uppercase text-gray-500">{label}</p>
-        <p className="mt-1 text-sm text-gray-200">{value || "Not provided"}</p>
+        <p className="mt-1 text-sm text-gray-200">{value || t("publicProfile.notProvided")}</p>
       </div>
     </div>
   );

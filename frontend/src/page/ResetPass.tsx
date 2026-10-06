@@ -2,8 +2,10 @@ import { useState, type FormEvent } from "react";
 import { ArrowLeft, Eye, EyeOff, KeyRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { reset_password } from "../utils/api/userService/authAPi";
+import { useTranslation } from "react-i18next";
 
 function ResetPass() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const [password, setPassword] = useState("");
@@ -20,14 +22,12 @@ function ResetPass() {
     setMessage("");
 
     if (!token) {
-      setError(
-        "This reset link is missing its token. Request a new one to continue.",
-      );
+      setError(t("resetPass.missingToken"));
       return;
     }
 
     if (password !== confirmPass) {
-      setError("Your passwords do not match.");
+      setError(t("resetPass.passwordsMismatch"));
       return;
     }
 
@@ -35,19 +35,14 @@ function ResetPass() {
     try {
       const response = await reset_password(token, password);
       if (response?.message) {
-        setMessage(
-          "Your password has been updated. You can now sign in with it.",
-        );
+        setMessage(t("resetPass.successMsg"));
       } else {
         setError(
-          response?.error ||
-            "This reset link is invalid or has expired. Request a new one to continue.",
+          response?.error || t("resetPass.invalidLink"),
         );
       }
     } catch {
-      setError(
-        "We couldn't reset your password. Please try again or request a new link.",
-      );
+      setError(t("resetPass.errorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
@@ -62,20 +57,19 @@ function ResetPass() {
               <KeyRound size={22} aria-hidden="true" />
             </div>
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-gray-400">
-              Account recovery
+              {t("resetPass.accountRecovery")}
             </p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white lg:text-5xl">
-              A fresh start,
+              {t("resetPass.title").split('\n')[0]}
               <br />
-              one step away.
+              {t("resetPass.title").split('\n')[1]}
             </h1>
             <p className="mt-5 max-w-sm text-base leading-7 text-gray-300">
-              Choose a new password to get back to your watchlist and everything
-              waiting there.
+              {t("resetPass.subtitle")}
             </p>
           </div>
           <p className="text-sm text-gray-400">
-            Your reset link can only be used once.
+            {t("resetPass.linkInfo")}
           </p>
         </div>
 
@@ -86,7 +80,7 @@ function ResetPass() {
               className="mb-8 inline-flex items-center gap-2 text-sm text-gray-400 transition hover:text-white"
             >
               <ArrowLeft size={16} aria-hidden="true" />
-              Back to sign in
+              {t("resetPass.backToSignIn")}
             </Link>
 
             {message ? (
@@ -95,7 +89,7 @@ function ResetPass() {
                   <KeyRound size={22} aria-hidden="true" />
                 </div>
                 <h2 className="text-2xl font-semibold text-white">
-                  Password updated
+                  {t("resetPass.passwordUpdated")}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-gray-400">
                   {message}
@@ -104,18 +98,17 @@ function ResetPass() {
                   to="/signin"
                   className="mt-7 block w-full rounded-xl bg-white px-4 py-3 text-center font-semibold text-black transition hover:bg-gray-200"
                 >
-                  Continue to sign in
+                  {t("resetPass.continueToSignIn")}
                 </Link>
               </div>
             ) : (
               <>
                 <div className="mb-7">
                   <h2 className="text-2xl font-semibold text-white">
-                    Set a new password
+                    {t("resetPass.setNewPassword")}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-400">
-                    Make it something memorable to you, and new to everyone
-                    else.
+                    {t("resetPass.setNewPasswordDesc")}
                   </p>
                 </div>
 
@@ -125,7 +118,7 @@ function ResetPass() {
                       htmlFor="new-password"
                       className="mb-2 block text-sm font-medium text-gray-300"
                     >
-                      New password
+                      {t("resetPass.newPassword")}
                     </label>
                     <div className="relative">
                       <input
@@ -134,7 +127,7 @@ function ResetPass() {
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Enter a new password"
+                        placeholder={t("resetPass.newPasswordPlaceholder")}
                         required
                         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none transition placeholder:text-gray-600 focus:border-white/40 focus:ring-2 focus:ring-white/15"
                       />
@@ -162,7 +155,7 @@ function ResetPass() {
                       htmlFor="confirm-password"
                       className="mb-2 block text-sm font-medium text-gray-300"
                     >
-                      Confirm new password
+                      {t("resetPass.confirmNewPassword")}
                     </label>
                     <div className="relative">
                       <input
@@ -171,7 +164,7 @@ function ResetPass() {
                         type={showConfirmPass ? "text" : "password"}
                         value={confirmPass}
                         onChange={(event) => setConfirmPass(event.target.value)}
-                        placeholder="Enter it again"
+                        placeholder={t("resetPass.confirmNewPasswordPlaceholder")}
                         required
                         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white outline-none transition placeholder:text-gray-600 focus:border-white/40 focus:ring-2 focus:ring-white/15"
                       />
@@ -202,12 +195,12 @@ function ResetPass() {
 
                   {!token && !error && (
                     <p className="text-sm leading-5 text-gray-400">
-                      This link is incomplete.{" "}
+                      {t("resetPass.linkIncomplete")}{" "}
                       <Link
                         to="/forgot-password"
                         className="text-white underline decoration-white/30 underline-offset-4 hover:decoration-white"
                       >
-                        Request a new reset link
+                        {t("resetPass.requestNewLink")}
                       </Link>
                       .
                     </p>
@@ -218,7 +211,7 @@ function ResetPass() {
                     disabled={isSubmitting || !token}
                     className="w-full rounded-xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isSubmitting ? "Updating password..." : "Update password"}
+                    {isSubmitting ? t("resetPass.updating") : t("resetPass.update")}
                   </button>
                 </form>
               </>

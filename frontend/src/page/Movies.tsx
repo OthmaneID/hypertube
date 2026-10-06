@@ -5,6 +5,7 @@ import { searchMovies, type SearchResultItem } from "../utils/api/movieService/s
 import type { PopularMoviesResponse } from "../utils/interfaces";
 import { BiArrowToTop, BiSearch, BiX, BiFilterAlt } from "react-icons/bi";
 import Card from "../components/Card";
+import { useTranslation } from "react-i18next";
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -19,6 +20,7 @@ function useDebounce<T>(value: T, delay: number): T {
 const CURRENT_YEAR = new Date().getFullYear();
 
 function Movies() {
+  const { t } = useTranslation();
   // Popular mode state
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [movies, setMovies] = useState<PopularMoviesResponse["results"]>([]);
@@ -214,7 +216,7 @@ function Movies() {
       <div className="w-full flex flex-col gap-3 py-5">
         <div className="flex items-center justify-center">
           <span className="text-4xl text-gray-200 font-thin">
-            {isSearchMode ? "Search Results" : "Popular · Movies"}
+            {isSearchMode ? t("movies.searchResults") : t("movies.pageTitle")}
           </span>
         </div>
 
@@ -225,7 +227,7 @@ function Movies() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search movies..."
+            placeholder={t("movies.searchPlaceholder")}
             className="w-full bg-gray-800/70 text-gray-100 placeholder-gray-500 rounded-2xl pl-11 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-gray-600 transition-all"
           />
           {query && (
@@ -242,7 +244,7 @@ function Movies() {
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {/* Sort pills */}
           <div className="flex items-center gap-1.5">
-            <span className="text-gray-500 text-xs">Sort:</span>
+            <span className="text-gray-500 text-xs">{t("movies.sortLabel")}</span>
             {(["alpha", "year", "rating"] as const).map((s) => (
               <button
                 key={s}
@@ -253,7 +255,7 @@ function Movies() {
                     : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
                 }`}
               >
-                {s === "alpha" ? "A–Z" : s === "year" ? "Newest" : "Rating ★"}
+                {s === "alpha" ? t("movies.sortAlpha") : s === "year" ? t("movies.sortNewest") : t("movies.sortRating")}
               </button>
             ))}
           </div>
@@ -268,7 +270,7 @@ function Movies() {
             }`}
           >
             <BiFilterAlt />
-            Filters{hasActiveFilters ? " •" : ""}
+            {t("movies.filtersBtn")}{hasActiveFilters ? " •" : ""}
           </button>
         </div>
 
@@ -278,14 +280,14 @@ function Movies() {
             {/* Genre filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Genre</span>
+                <span>{t("movies.genreLabel")}</span>
               </div>
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(parseInt(e.target.value))}
                 className="w-full bg-gray-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500"
               >
-                <option value={0}>Any Genre</option>
+                <option value={0}>{t("movies.anyGenre")}</option>
                 {genres.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -297,9 +299,9 @@ function Movies() {
             {/* Rating filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Min Rating</span>
+                <span>{t("movies.minRatingLabel")}</span>
                 <span className="text-white font-semibold">
-                  {minRating > 0 ? `≥ ${minRating.toFixed(1)} ★` : "Any"}
+                  {minRating > 0 ? `≥ ${minRating.toFixed(1)} ★` : t("movies.any")}
                 </span>
               </div>
               <input
@@ -321,7 +323,7 @@ function Movies() {
             {/* Year range filter */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Year Range</span>
+                <span>{t("movies.yearRangeLabel")}</span>
                 <span className="text-white font-semibold">
                   {minYear} – {maxYear}
                 </span>
@@ -339,7 +341,7 @@ function Movies() {
                   }
                   className="w-24 bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-purple-500"
                 />
-                <span className="text-gray-600 text-xs">to</span>
+                <span className="text-gray-600 text-xs">{t("movies.to")}</span>
                 <input
                   type="number"
                   min={minYear}
@@ -364,7 +366,7 @@ function Movies() {
                 onClick={resetFilters}
                 className="self-end text-xs text-gray-400 hover:text-white underline transition-colors"
               >
-                Reset filters
+                {t("movies.resetFilters")}
               </button>
             )}
           </div>
@@ -380,13 +382,13 @@ function Movies() {
               <div className="w-full flex justify-center items-center py-20">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">Searching...</span>
+                  <span className="text-gray-300">{t("movies.searching")}</span>
                 </div>
               </div>
             )}
             {!isSearching && displayedSearch.length === 0 && (
               <span className="text-xl text-gray-400 text-center w-full py-20">
-                No results found for "{debouncedQuery}"
+                {t("movies.noResults", { query: debouncedQuery })}
               </span>
             )}
             {!isSearching &&
@@ -414,8 +416,8 @@ function Movies() {
             {displayedMovies.length === 0 && !isMoviesLoading ? (
               <span className="text-xl text-gray-400 text-center w-full py-20">
                 {hasActiveFilters
-                  ? "No movies match your filters."
-                  : "No movies found. Please try again later."}
+                  ? t("movies.noMoviesFiltered")
+                  : t("movies.noMovies")}
               </span>
             ) : (
               displayedMovies.map((movie, index) => (
@@ -439,7 +441,7 @@ function Movies() {
               <div className="w-full flex justify-center items-center py-10">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">Loading movies...</span>
+                  <span className="text-gray-300">{t("movies.loadingMovies")}</span>
                 </div>
               </div>
             )}
@@ -453,7 +455,7 @@ function Movies() {
           onClick={scrollBackUp}
           id="GoTopBtn"
           className="active:scale-105 duration-250 absolute right-10 top-[calc(100vh-100px)] z-50 bg-purple-500 rounded-full w-16 h-16 flex items-center justify-center text-5xl cursor-pointer shadow-lg hover:bg-purple-400 transition-all"
-          title="Back to top"
+          title={t("common.backToTop")}
         >
           <BiArrowToTop />
         </div>

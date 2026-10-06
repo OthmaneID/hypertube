@@ -2,12 +2,13 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../global/authContext";
 import { useGoogleLogin, type TokenResponse } from "@react-oauth/google";
-// import
+import { useTranslation } from "react-i18next";
 
 function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, Glogin } = useAuth();
+  const { t } = useTranslation();
 
   function Submit(e: Event) {
     e.preventDefault();
@@ -29,20 +30,19 @@ function SignIn() {
         <div className="max-md:hidden flex flex-1 flex-col justify-between  bg-gray-900 p-8 sm:p-10 lg:p-12">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Welcome back
+              {t("signIn.title")}
             </h1>
             <p className="mt-3 max-w-md text-base leading-7 text-gray-300">
-              Sign in to discover new favorites, build your watchlist, and jump
-              straight into your next binge.
+              {t("signIn.subtitle")}
             </p>
           </div>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-gray-200">
-            <p className="font-medium text-white">Why Hypertube?</p>
+            <p className="font-medium text-white">{t("signIn.whyTitle")}</p>
             <ul className="mt-2 space-y-1 text-gray-300">
-              <li>• Curated movie discovery</li>
-              <li>• Smart watchlists and saved picks</li>
-              <li>• A polished streaming-style experience</li>
+              <li>{t("signIn.feature1")}</li>
+              <li>{t("signIn.feature2")}</li>
+              <li>{t("signIn.feature3")}</li>
             </ul>
           </div>
         </div>
@@ -50,16 +50,16 @@ function SignIn() {
         <div className="flex flex-1 items-center justify-center bg-[#06010b]/90 p-8 sm:p-10 lg:p-12">
           <div className="w-full max-w-md">
             <div className="mb-6 text-center">
-              <h2 className="text-2xl font-semibold text-white">Sign in</h2>
+              <h2 className="text-2xl font-semibold text-white">{t("signIn.heading")}</h2>
               <p className="mt-2 text-sm text-gray-400">
-                Use your account to continue
+                {t("signIn.subheading")}
               </p>
             </div>
 
             <form className="space-y-4" onSubmit={(e: any) => Submit(e)}>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Email
+                  {t("signIn.emailLabel")}
                 </label>
                 <input
                   autoComplete="email"
@@ -73,7 +73,7 @@ function SignIn() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Password
+                  {t("signIn.passwordLabel")}
                 </label>
                 <input
                   autoComplete="current-password"
@@ -90,7 +90,7 @@ function SignIn() {
                   to="/forgot-password"
                   className="text-sm text-gray-400 transition hover:text-white"
                 >
-                  Forgot your password?
+                  {t("signIn.forgotPassword")}
                 </Link>
               </div>
 
@@ -98,7 +98,7 @@ function SignIn() {
                 type="submit"
                 className="cursor-pointer hover:brightness-110 active:scale-105 w-full rounded-2xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200"
               >
-                Continue
+                {t("signIn.continueBtn")}
               </button>
             </form>
 
@@ -108,7 +108,7 @@ function SignIn() {
               </div>
               <div className="relative flex justify-center">
                 <span className="bg-[#06010b] px-3 text-xs uppercase tracking-[0.3em] text-gray-500">
-                  or
+                  {t("signIn.orDivider")}
                 </span>
               </div>
             </div>
@@ -119,13 +119,13 @@ function SignIn() {
                 onClick={() => google_login()}
                 className="w-full cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10"
               >
-                Continue with Google
+                {t("signIn.googleBtn")}
               </button>
               <a
                 href={import.meta.env.VITE_BACKEND_URL + "/auth/redirect/42"}
                 className="w-full flex flex-row flex-nowrap items-center justify-center cursor-pointer hover:brightness-110 active:scale-110 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-gray-200 transition hover:bg-white/10"
               >
-                Sign in with
+                {t("signIn.signInWith42")}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 -200 960 960"
@@ -144,12 +144,12 @@ function SignIn() {
             </div>
 
             <p className="mt-6 text-center text-sm text-gray-400">
-              New here?{" "}
+              {t("signIn.noAccount")}{" "}
               <Link
                 to="/register"
                 className="font-medium text-white hover:text-gray-300"
               >
-                Create an account
+                {t("signIn.createAccount")}
               </Link>
             </p>
           </div>

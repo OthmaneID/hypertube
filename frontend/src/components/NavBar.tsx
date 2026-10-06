@@ -1,8 +1,10 @@
 import { FaSearch } from "react-icons/fa";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 function NavBar() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
 
@@ -19,7 +21,7 @@ function NavBar() {
         <input
           type="text"
           id="search"
-          placeholder="Search ..."
+          placeholder={t("nav.search")}
           className="bg-transparent outline-hidden w-full active:none focus:outline-hidden text-gray-200"
           autoComplete="off"
           autoCorrect="off"

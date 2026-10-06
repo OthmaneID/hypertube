@@ -2,11 +2,13 @@ import { BiSolidDoorOpen, BiSolidUser, BiLogOut } from "react-icons/bi"
 import SidebarItem from "./SidebarItem"
 import { Link } from "react-router-dom"
 import { useAuth } from "../global/authContext"
+import { useTranslation } from "react-i18next"
 
 
 
 function SidebarAuth() {
     const { user, logout } = useAuth()
+    const { t } = useTranslation()
     return (
         <div className="h-full w-full flex items-end">
             {user ? (
@@ -36,7 +38,7 @@ function SidebarAuth() {
                     >
                         <BiLogOut className="text-2xl" />
                         <span className="group-hover:w-full overflow-hidden duration-150 text-center text-xs font-semibold text-nowrap w-0">
-                            Logout
+                            {t("sidebar.logout")}
                         </span>
                     </button>
                 </div>
@@ -47,7 +49,7 @@ function SidebarAuth() {
                         <BiSolidDoorOpen className="text-2xl" />
                     }
                     isActive={false}
-                    label="Sign in"
+                    label={t("sidebar.signIn")}
                     onClick={() => { }}
                 />
             )}

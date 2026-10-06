@@ -23,8 +23,11 @@ import {
 } from "lucide-react";
 import { toast } from "react-toast";
 import Card from "../components/Card";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n";
 
 function Profile() {
+  const { t } = useTranslation();
   const { user: authUser, setUser: setAuthUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,13 +74,13 @@ function Profile() {
   const getProviderLabel = () => {
     switch (user?.oauth_provider?.toLowerCase()) {
       case "google":
-        return "Google";
+        return t("profile.providerGoogle");
       case "42":
-        return "42";
+        return t("profile.provider42");
       case "email":
-        return "Email and password";
+        return t("profile.providerEmail");
       default:
-        return "Unknown";
+        return t("profile.providerUnknown");
     }
   };
 
@@ -114,7 +117,7 @@ function Profile() {
       });
     } catch (error: any) {
       console.error("Error fetching profile:", error);
-      toast.error("Failed to load profile. Please try logging in again.");
+      toast.error(t("profile.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -131,14 +134,12 @@ function Profile() {
         "image/webp",
       ];
       if (!allowedTypes.includes(file.type)) {
-        toast.error(
-          "Invalid file type. Please upload a JPG, PNG, GIF, or WebP image.",
-        );
+        toast.error(t("profile.invalidFileType"));
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size exceeds 5MB limit.");
+        toast.error(t("profile.fileTooLarge"));
         return;
       }
 
@@ -161,7 +162,7 @@ function Profile() {
       setAuthUser(updatedUser);
       setPreviewImage(null);
       setSelectedFile(null);
-      toast.success("Profile picture updated successfully!");
+      toast.success(t("profile.pictureUpdated"));
     } catch (error: any) {
       toast.error(
         error.response?.data?.detail || "Failed to update profile picture",
@@ -180,8 +181,8 @@ function Profile() {
       const updatedUser = await updateUserProfile(formData);
       setUser(updatedUser);
       setAuthUser(updatedUser);
-
-      toast.success("Profile updated successfully!");
+      i18n.changeLanguage(formData.preferred_language);
+      toast.success(t("profile.profileUpdated"));
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to update profile");
       console.error(error);
@@ -194,12 +195,12 @@ function Profile() {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("profile.passwordMismatch"));
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
+      toast.error(t("profile.passwordTooShort"));
       return;
     }
 
@@ -214,8 +215,8 @@ function Profile() {
       if (updatedUser) setAuthUser(updatedUser);
       toast.success(
         isEmailAccount
-          ? "Password changed successfully!"
-          : "Password added. You can now sign in with email and password.",
+          ? t("profile.passwordChanged")
+          : t("profile.passwordAdded"),
       );
       setPasswordData({
         oldPassword: "",
@@ -245,7 +246,7 @@ function Profile() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
           <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-          <span className="text-gray-300">Loading profile...</span>
+          <span className="text-gray-300">{t("profile.loadingProfile")}</span>
         </div>
       </div>
     );
@@ -256,10 +257,10 @@ function Profile() {
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
           <h1 className="text-4xl font-semibold text-white mb-2">
-            Profile Settings
+            {t("profile.title")}
           </h1>
           <p className="text-gray-400">
-            Manage your account information and preferences
+            {t("profile.subtitle")}
           </p>
         </div>
 
@@ -314,7 +315,7 @@ function Profile() {
                     className="px-4 py-2 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <Save className="w-4 h-4" />
-                    {updating ? "Uploading..." : "Save Picture"}
+                    {updating ? t("profile.uploadingPicture") : t("profile.savePicture")}
                   </button>
                   <button
                     onClick={() => {
@@ -324,7 +325,7 @@ function Profile() {
                     className="px-4 py-2 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 transition flex items-center gap-2"
                   >
                     <X className="w-4 h-4" />
-                    Cancel
+                    {t("profile.cancel")}
                   </button>
                 </div>
               )}
@@ -342,7 +343,7 @@ function Profile() {
             }`}
           >
             <UserIcon className="w-4 h-4 inline mr-2" />
-            Profile
+            {t("profile.tabProfile")}
           </button>
           <button
             onClick={() => setActiveTab("security")}
@@ -353,7 +354,7 @@ function Profile() {
             }`}
           >
             <Lock className="w-4 h-4 inline mr-2" />
-            Security
+            {t("profile.tabSecurity")}
           </button>
         </div>
 
@@ -364,7 +365,7 @@ function Profile() {
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-300">
                     <UserIcon className="w-4 h-4 inline mr-2" />
-                    Username
+                    {t("profile.usernameLabel")}
                   </label>
                   <input
                     type="text"
@@ -380,7 +381,7 @@ function Profile() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-300">
-                    First Name
+                    {t("profile.firstNameLabel")}
                   </label>
                   <input
                     type="text"
@@ -396,7 +397,7 @@ function Profile() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-300">
-                    Last Name
+                    {t("profile.lastNameLabel")}
                   </label>
                   <input
                     type="text"
@@ -413,7 +414,7 @@ function Profile() {
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-300">
                     <Globe className="w-4 h-4 inline mr-2" />
-                    Preferred Language
+                    {t("profile.preferredLanguage")}
                   </label>
                   <select
                     value={formData.preferred_language}
@@ -425,8 +426,8 @@ function Profile() {
                     }
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                   >
-                    <option value="en">English</option>
-                    <option value="fr">Français</option>
+                    <option value="en">{t("profile.langEn")}</option>
+                    <option value="fr">{t("profile.langFr")}</option>
                   </select>
                 </div>
               </div>
@@ -438,7 +439,7 @@ function Profile() {
                   className="px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  {updating ? "Saving..." : "Save Changes"}
+                  {updating ? t("profile.saving") : t("profile.saveChanges")}
                 </button>
               </div>
             </form>
@@ -450,12 +451,12 @@ function Profile() {
             <div className="mb-6">
               <h3 className="text-xl font-semibold text-white mb-2">
                 <Lock className="w-5 h-5 inline mr-2" />
-                Change Password
+                {t("profile.changePasswordTitle")}
               </h3>
               <p className="text-gray-400 text-sm">
                 {isEmailAccount
-                  ? "Ensure your account is using a long, random password to stay secure."
-                  : "Add a password to enable email and password sign-in. Your OAuth sign-in will remain available."}
+                  ? t("profile.changePasswordDescEmail")
+                  : t("profile.changePasswordDescOAuth")}
               </p>
             </div>
 
@@ -463,7 +464,7 @@ function Profile() {
               {isEmailAccount && (
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-300">
-                    Current Password
+                    {t("profile.currentPassword")}
                   </label>
                   <input
                     type="password"
@@ -483,7 +484,7 @@ function Profile() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  New Password
+                  {t("profile.newPassword")}
                 </label>
                 <input
                   type="password"
@@ -502,7 +503,7 @@ function Profile() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Confirm New Password
+                  {t("profile.confirmNewPassword")}
                 </label>
                 <input
                   type="password"
@@ -527,10 +528,10 @@ function Profile() {
                 >
                   <Lock className="w-4 h-4" />
                   {updating
-                    ? "Saving..."
+                    ? t("profile.saving")
                     : isEmailAccount
-                      ? "Change Password"
-                      : "Add Password"}
+                      ? t("profile.changePasswordBtn")
+                      : t("profile.addPasswordBtn")}
                 </button>
               </div>
             </form>
@@ -538,12 +539,12 @@ function Profile() {
         )}
 
         <section className="mt-10 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl sm:p-8">
-          <h2 className="mb-7 text-2xl font-semibold text-white">Favorites</h2>
+          <h2 className="mb-7 text-2xl font-semibold text-white">{t("profile.favoritesTitle")}</h2>
           {favoritesQuery.isPending ? (
-            <p className="text-sm text-gray-400">Loading your favorites...</p>
+            <p className="text-sm text-gray-400">{t("profile.loadingFavorites")}</p>
           ) : favoritesQuery.isError ? (
             <p className="text-sm text-gray-400">
-              We couldn't load your favorites. Please try again later.
+              {t("profile.errorFavorites")}
             </p>
           ) : (
             <>
@@ -551,7 +552,7 @@ function Profile() {
                 <div className="mb-5 flex items-center gap-3">
                   <Film size={20} className="text-gray-400" />
                   <h3 className="text-xl font-semibold text-white">
-                    Favorite movies
+                    {t("profile.favoriteMovies")}
                   </h3>
                   <span className="text-sm text-gray-500">
                     {favoritesQuery.data.favoriteMovies.length}
@@ -577,7 +578,7 @@ function Profile() {
                   </div>
                 ) : (
                   <p className="border-t border-white/10 py-6 text-sm text-gray-400">
-                    No favorite movies yet.
+                    {t("profile.noFavoriteMovies")}
                   </p>
                 )}
               </div>
@@ -586,7 +587,7 @@ function Profile() {
                 <div className="mb-5 flex items-center gap-3">
                   <Tv size={20} className="text-gray-400" />
                   <h3 className="text-xl font-semibold text-white">
-                    Favorite series
+                    {t("profile.favoriteSeries")}
                   </h3>
                   <span className="text-sm text-gray-500">
                     {favoritesQuery.data.favoriteSeries.length}
@@ -608,7 +609,7 @@ function Profile() {
                   </div>
                 ) : (
                   <p className="border-t border-white/10 py-6 text-sm text-gray-400">
-                    No favorite series yet.
+                    {t("profile.noFavoriteSeries")}
                   </p>
                 )}
               </div>

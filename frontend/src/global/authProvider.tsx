@@ -10,8 +10,11 @@ import { AuthContext } from "./authContext";
 import { useCallback, useEffect, useState } from "react";
 import type { AuthResponse, User } from "../utils/interfaces";
 import type { TokenResponse } from "@react-oauth/google";
+import i18n from "../i18n";
+import { useTranslation } from "react-i18next";
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const storedUser = localStorage.getItem("user");
   const [user, setUser] = useState<User | null>(storedUser ? JSON.parse(storedUser) : null);
 
@@ -28,6 +31,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("user", JSON.stringify(user));
         setIsAuthenticated(true);
         setLoading(false);
+        // Sync UI language to user's saved preference
+        if (user?.preferred_language) {
+          i18n.changeLanguage(user.preferred_language);
+        }
       })
       .catch((error: any) => {
         console.log("error : ", error);
@@ -37,7 +44,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function login(email: string, password: string) {
     if (!email || !password) {
-      toast.error("Please fill in all fields");
+      toast.error(t("auth.fillAllFields"));
       return;
     }
     setLoading(true);
@@ -51,12 +58,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         get_current_user().then((userData: any) => {
           setUser(userData);
           localStorage.setItem("user", JSON.stringify(userData));
+          setIsAuthenticated(true);
+          toast.success(t("auth.loggedIn"));
+          if (userData?.preferred_language) i18n.changeLanguage(userData.preferred_language);
+          window.location.replace(back_to_url);
         });
-        setIsAuthenticated(true);
-        // setLoading(false)
-
-        toast.success("Logged in successfully");
-        window.location.replace(back_to_url);
       })
       .finally(() => {
         setLoading(false);
@@ -74,12 +80,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("Glogin user : ", userData);
           setUser(userData);
           localStorage.setItem("user", JSON.stringify(userData));
+          setIsAuthenticated(true);
+          setLoading(false);
+          toast.success(t("auth.loggedIn"));
+          if (userData?.preferred_language) i18n.changeLanguage(userData.preferred_language);
+          window.location.replace(back_to_url);
         });
-        setIsAuthenticated(true);
-        setLoading(false);
-
-        toast.success("Logged in successfully");
-        window.location.replace(back_to_url);
       })
       .catch((error) => {
         console.log("error : ", error);
@@ -95,11 +101,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     lastName: string,
   ) {
     if (!username || !email || !password || !confirmPassword) {
-      toast.error("Please fill in all fields");
+      toast.error(t("auth.fillAllFields"));
       return;
     }
     if (password !== confirmPassword) {
-      toast.error("password and confirm password should be the same");
+      toast.error(t("auth.passwordMismatch"));
       return;
     }
     setLoading(true);
@@ -115,6 +121,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(userData);
             localStorage.setItem("user", JSON.stringify(userData));
             setIsAuthenticated(true);
+            if (userData?.preferred_language) i18n.changeLanguage(userData.preferred_language);
           })
           .catch((error) => {
             console.log("error : ", error);
