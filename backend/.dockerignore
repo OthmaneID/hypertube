@@ -1,3 +1,6 @@
 .env
 dockerfile
 .venv
+uploads/
+__pycache__/
+*.pyc

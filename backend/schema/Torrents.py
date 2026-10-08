@@ -9,7 +9,7 @@ class StreamElement(BaseModel):
     name: str
     title: str
     infoHash: str
-    fileIdx: int = 0
+    fileIdx: Optional[int] = None
     behaviorHints: Optional[BehaviorHints] = None
     sources: Optional[List[str]] = None
 

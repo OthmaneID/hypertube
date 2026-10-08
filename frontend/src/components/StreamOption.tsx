@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Play, Hd, Monitor, Globe, ExternalLink, Clock, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import type { StreamElement } from '../utils/interfaces';
+import { getSeeders } from '../utils/streams';
 
 interface StreamOptionProps {
   stream: StreamElement;
@@ -20,7 +20,6 @@ function StreamOption({
     const [name1 = "", quality = ""] = (s.name || "").split("\n");
     const lines = (s.title || "").split("\n");
 
-    const seeders = lines.join(" ").match(/👤\s*(\d+)/)?.[1];
     const size = lines.join(" ").match(/💾\s*([\d.,]+\s*[KMGT]?B)/i)?.[1];
     const provider = lines.join(" ").match(/⚙️\s*([^\n]+)/)?.[1]?.trim();
 
@@ -28,7 +27,7 @@ function StreamOption({
       addon: name1.trim(),
       quality: quality.trim() || null,
       filename: s.behaviorHints?.filename ?? lines[0] ?? null,
-      seeders: seeders ? Number(seeders) : null,
+      seeders: getSeeders(s),
       size: size ?? null,
       provider: provider ?? null,
       infoHash: s.infoHash ?? null,
@@ -36,6 +35,7 @@ function StreamOption({
   };
 
   const parsed = parseStream(stream);
+  const likelyDead = parsed.seeders === 0;
 
   const getQualityIcon = (quality: string | null) => {
     if (!quality) return null;
@@ -75,6 +75,7 @@ function StreamOption({
         transition-all duration-300 ease-out
         hover:scale-[1.02] hover:shadow-xl hover:border-opacity-60
         ${isHovered ? "shadow-white/10 border-opacity-80" : "shadow-black/40 border-opacity-50"}
+        ${likelyDead ? "opacity-50" : ""}
       `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -106,9 +107,10 @@ function StreamOption({
 
       {/* Stats Row */}
       <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
-        <div className="flex items-center gap-1">
+        <div className={`flex items-center gap-1 ${likelyDead ? "text-red-400" : ""}`}>
           <Users className="w-3 h-3" />
           <span>{formatUserCount(parsed.seeders)} seeders</span>
+          {likelyDead && <span>(likely dead)</span>}
         </div>
         {parsed.size && (
           <div className="flex items-center gap-1">
@@ -125,9 +127,8 @@ function StreamOption({
         </div>
       )}
 
-      {/* Play Button */}
-      <Link
-        to={`/watch/${parsed.infoHash}`}
+      {/* Play Button: navigation is handled by the card's onClick */}
+      <div
         className={`
           w-full py-2.5 rounded-lg font-semibold text-sm
           flex items-center justify-center gap-2
@@ -142,7 +143,7 @@ function StreamOption({
         <span>
           Watch Now
         </span>
-      </Link>
+      </div>
 
       {/* Hover Effect - External Link */}
       <div

@@ -1,16 +1,38 @@
 from fastapi.requests import Request
-from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from schema.Torrents import SourcesResponse
 import httpx2
 import redis
-from utils.torrents import get_peers, get_trackers, generate_peer_id, find_first_video_file, parse_range_header, pieces_downloaded, check_piece_available
+from utils.torrents import get_peers, get_trackers, generate_peer_id, select_video_file, parse_range_header, pieces_downloaded, check_piece_available
 import libtorrent as lt
 import asyncio
 import os
 import subprocess
 import math
 
+# Global libtorrent state
+lt_session = None
+active_torrents = {}
+# hash -> indexes of files that have been requested for streaming
+wanted_files = {}
 
+METADATA_TIMEOUT = 60
+STREAM_BUFFER_PIECES = 3
+STREAM_READAHEAD_PIECES = 20
+STREAM_CHUNK_SIZE = 65536
+PIECE_WAIT_TIMEOUT = 120
+
+def get_lt_session():
+    global lt_session
+    if lt_session is None:
+        lt_session = lt.session()
+        settings = lt_session.get_settings()
+        settings['listen_interfaces'] = '0.0.0.0:6881'
+        settings['enable_outgoing_utp'] = True
+        settings['enable_incoming_utp'] = True
+        lt_session.apply_settings(settings)
+    return lt_session
 
 async def getSources(request: Request, movie_id:str) -> SourcesResponse :
     api_url = f"https://torrentio.strem.fun/stream/movie/{movie_id}.json"
@@ -122,125 +144,175 @@ async def getEpisodeStreams(request: Request, imdb_id: str, season: int, episode
     return data
 
 
-async def stream_from_source(request: Request, hash: str):
-    process = None
-    try:
-        trackers = await get_trackers()
+def request_pieces(handle, first_piece, last_piece):
+    # Time-critical pieces are fetched before the sequential/priority picker, from multiple peers
+    for n, piece in enumerate(range(first_piece, last_piece + 1)):
+        handle.set_piece_deadline(piece, n * 200)
 
-        print(f"trackers: {len(trackers)} trackers loaded")
-        session = lt.session()
-        settings = session.get_settings()
 
-        settings['listen_interfaces'] = '0.0.0.0:6881'
-        settings['enable_outgoing_utp'] = True
-        settings['enable_incoming_utp'] = True
-        session.apply_settings(settings)
-
-        info_hash = lt.sha1_hash(bytes.fromhex(hash))
-
-        add_params = lt.add_torrent_params()
-        add_params.info_hashes = lt.info_hash_t(info_hash)
-        add_params.save_path = './uploads/torrent'
-        add_params.storage_mode = lt.storage_mode_t.storage_mode_sparse
-        add_params.trackers = trackers
-
-        handle = session.add_torrent(add_params)
-
-        # Wait for metadata
-        print("Waiting for metadata...")
-        while not handle.has_metadata():
-            await asyncio.sleep(0.1)
-
-        # Find first video file
-        torrent_info = handle.torrent_file()
-        video_file = find_first_video_file(torrent_info)
-
-        if not video_file:
-            raise Exception("No video file found in torrent")
-
-        print(f"Found video file: {video_file.path}")
-
-        # Get file path
-        file_path = os.path.join('./uploads/torrent', video_file.path)
-
-        # Enable sequential download
-        handle.set_sequential_download(True)
-
-        # Prioritize first pieces
-        for i in range(min(100, torrent_info.num_pieces())):
-            handle.piece_priority(i, 7)
-
-        # Wait for initial buffer (5%)
-        print("Buffering...")
-        while handle.status().progress < 0.02:
-            await asyncio.sleep(0.1)
-
-        print(f"Buffer ready. Progress: {handle.status().progress * 100:.2f}%")
-
-        # Handle range requests
-        range_header = request.headers.get("range")
-        file_size = video_file.size
-
-        if range_header:
-            # Parse range header (e.g., "bytes=0-1023")
-            start, end = parse_range_header(range_header, file_size)
-
-            print(f"Range request: {start}-{end}/{file_size}")
-
-            # Reprioritize pieces around the seek position
-            start_piece = int(start / torrent_info.piece_length())
-            end_piece = int(end / torrent_info.piece_length())
-            for i in range(start_piece, min(end_piece + 10, torrent_info.num_pieces())):
-                handle.piece_priority(i, 7)
-
-            # Wait for pieces to download
-            print(f"Waiting for pieces {start_piece}-{end_piece}...")
-            while not pieces_downloaded(handle, start_piece, end_piece):
-                await asyncio.sleep(0.1)
-
-            # Calculate seek position (0.0 to 1.0)
-            seek_position = start / file_size
-
-            # FFmpeg command with seek
-            ffmpeg_cmd = [
-                'ffmpeg',
-                '-ss', str(seek_position),  # Seek position as fraction
-                '-i', file_path,
-                '-c:v', 'libx264',
-                '-preset', 'fast',
-                '-crf', '23',
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-f', 'mp4',
-                '-movflags', 'frag_keyframe+empty_moov',  # Streaming-friendly
-                'pipe:1'  # Output to stdout
-            ]
-
-            print(f"Running FFmpeg with seek: {' '.join(ffmpeg_cmd)}")
-            process = await asyncio.create_subprocess_exec(
-                *ffmpeg_cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+async def wait_for_pieces(handle, first_piece, last_piece, request: Request | None = None, timeout=PIECE_WAIT_TIMEOUT):
+    """Returns False if the client disconnected; raises TimeoutError if the pieces never arrive."""
+    request_pieces(handle, first_piece, last_piece)
+    loop = asyncio.get_running_loop()
+    started = last_log = loop.time()
+    while not pieces_downloaded(handle, first_piece, last_piece):
+        # Only safe before the response starts; StreamingResponse owns receive() afterwards
+        if request is not None and await request.is_disconnected():
+            return False
+        now = loop.time()
+        if now - started > timeout:
+            raise TimeoutError(f"Pieces {first_piece}-{last_piece} not downloaded after {timeout}s")
+        if now - last_log >= 5:
+            s = handle.status()
+            print(
+                f"Waiting for pieces {first_piece}-{last_piece}: state={s.state} paused={s.paused} "
+                f"peers={s.num_peers} seeds={s.num_seeds} down={s.download_rate / 1024:.0f} KB/s"
             )
+            last_log = now
+        await asyncio.sleep(0.1)
+    return True
 
-            async def range_generator():
-                chunk_size = 65536
-                remaining = end - start + 1
+
+async def wait_for_metadata(handle, request: Request, timeout=METADATA_TIMEOUT):
+    """Returns False if the client disconnected; raises TimeoutError if no peer sends the metadata."""
+    loop = asyncio.get_running_loop()
+    started = last_log = loop.time()
+    while not handle.has_metadata():
+        if await request.is_disconnected():
+            return False
+        now = loop.time()
+        if now - started > timeout:
+            raise TimeoutError(f"No metadata received after {timeout}s (torrent has no reachable peers)")
+        if now - last_log >= 5:
+            s = handle.status()
+            print(f"Waiting for metadata: peers={s.num_peers} seeds={s.num_seeds}")
+            last_log = now
+        await asyncio.sleep(0.1)
+    return True
+
+
+def drop_torrent(hash: str, handle):
+    if active_torrents.get(hash) == handle:
+        active_torrents.pop(hash, None)
+        wanted_files.pop(hash, None)
+    try:
+        get_lt_session().remove_torrent(handle)
+    except Exception as e:
+        print(f"error while removing torrent {hash}: {e}")
+
+
+async def stream_file_range(handle, file_path, file_offset, piece_length, file_last_piece, start, end):
+    # Sparse files read back zeros for missing data, so every byte must belong to a verified piece
+    pos = start
+    current_piece = None
+    with open(file_path, "rb") as f:
+        while pos <= end:
+            piece = (file_offset + pos) // piece_length
+            if piece != current_piece:
+                current_piece = piece
+                request_pieces(handle, piece, min(piece + STREAM_READAHEAD_PIECES, file_last_piece))
                 try:
-                    while remaining > 0:
-                        chunk = await process.stdout.read(min(chunk_size, remaining))
-                        if not chunk:
-                            break
-                        yield chunk
-                        remaining -= len(chunk)
-                finally:
-                    if process:
-                        process.kill()
-                        await process.wait()
+                    await wait_for_pieces(handle, piece, piece)
+                except TimeoutError as e:
+                    print(f"Stopping stream: {e}")
+                    return
 
+            piece_last_byte = (piece + 1) * piece_length - file_offset - 1
+            chunk_end = min(end, piece_last_byte, pos + STREAM_CHUNK_SIZE - 1)
+            f.seek(pos)
+            chunk = f.read(chunk_end - pos + 1)
+            if not chunk:
+                await asyncio.sleep(0.1)
+                continue
+            yield chunk
+            pos += len(chunk)
+
+
+async def stream_from_source(request: Request, hash: str):
+    try:
+        session = get_lt_session()
+
+        if hash in active_torrents:
+            handle = active_torrents[hash]
+            print(f"Reusing existing torrent handle for {hash}")
+        else:
+            trackers = await get_trackers()
+            print(f"trackers: {len(trackers)} trackers loaded")
+
+            info_hash = lt.sha1_hash(bytes.fromhex(hash))
+
+            add_params = lt.add_torrent_params()
+            add_params.info_hashes = lt.info_hash_t(info_hash)
+            add_params.save_path = './uploads/torrent'
+            add_params.storage_mode = lt.storage_mode_t.storage_mode_sparse
+            add_params.trackers = trackers
+            # Season packs can be huge: nothing is downloaded until a file is explicitly requested
+            add_params.flags |= lt.torrent_flags.default_dont_download
+
+            handle = session.add_torrent(add_params)
+            active_torrents[hash] = handle
+            wanted_files[hash] = set()
+
+            handle.set_sequential_download(True)
+
+        print("Waiting for metadata...")
+        try:
+            if not await wait_for_metadata(handle, request):
+                print("Client disconnected while waiting for metadata")
+                return Response(status_code=499)
+        except TimeoutError:
+            drop_torrent(hash, handle)
+            raise
+
+        torrent_info = handle.torrent_file()
+        files = torrent_info.layout()
+
+        file_idx_str = request.query_params.get("fileIdx", "")
+        requested_idx = int(file_idx_str) if file_idx_str.isdigit() else None
+        requested_name = request.query_params.get("filename") or None
+
+        file_idx = select_video_file(torrent_info, requested_idx, requested_name)
+        if file_idx is None:
+            raise HTTPException(status_code=404, detail=f"Requested video file not found in torrent (fileIdx={file_idx_str}, filename={requested_name})")
+
+        # Priorities are tracked here because prioritize_files() is asynchronous,
+        # so handle.file_priorities() can return stale values right after it
+        wanted = wanted_files.setdefault(hash, set())
+        if file_idx not in wanted:
+            wanted.add(file_idx)
+            handle.prioritize_files([4 if i in wanted else 0 for i in range(files.num_files())])
+
+        file_offset = files.file_offset(file_idx)
+        file_size = files.file_size(file_idx)
+        file_path = os.path.join('./uploads/torrent', files.file_path(file_idx))
+        print(f"Found video file #{file_idx}: {files.file_path(file_idx)} at torrent offset {file_offset}")
+
+        piece_length = torrent_info.piece_length()
+        file_last_piece = (file_offset + file_size - 1) // piece_length
+
+        range_header = request.headers.get("range")
+        if range_header:
+            start, end = parse_range_header(range_header, file_size)
+            print(f"Range request: {start}-{end}/{file_size}")
+        else:
+            start, end = 0, file_size - 1
+
+        start_piece = (file_offset + start) // piece_length
+        end_piece = (file_offset + end) // piece_length
+
+        # Deadlines from a previous (abandoned) seek position would otherwise be served first
+        handle.clear_piece_deadlines()
+
+        buffer_end_piece = min(start_piece + STREAM_BUFFER_PIECES - 1, end_piece)
+        print(f"Waiting for buffer pieces {start_piece}-{buffer_end_piece}...")
+        if not await wait_for_pieces(handle, start_piece, buffer_end_piece, request=request):
+            print("Client disconnected while buffering")
+            return Response(status_code=499)
+
+        generator = stream_file_range(handle, file_path, file_offset, piece_length, file_last_piece, start, end)
+        if range_header:
             return StreamingResponse(
-                range_generator(),
+                generator,
                 status_code=206,
                 media_type="video/mp4",
                 headers={
@@ -249,55 +321,23 @@ async def stream_from_source(request: Request, hash: str):
                     "Content-Length": str(end - start + 1)
                 }
             )
-        else:
-            # Full stream from beginning
-            ffmpeg_cmd = [
-                'ffmpeg',
-                '-i', file_path,
-                '-c:v', 'libx264',
-                '-preset', 'fast',
-                '-crf', '23',
-                '-c:a', 'aac',
-                '-b:a', '128k',
-                '-f', 'mp4',
-                '-movflags', 'frag_keyframe+empty_moov',
-                'pipe:1'
-            ]
+        return StreamingResponse(
+            generator,
+            media_type="video/mp4",
+            headers={
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(file_size)
+            }
+        )
 
-            print(f"Running FFmpeg: {' '.join(ffmpeg_cmd)}")
-            process = await asyncio.create_subprocess_exec(
-                *ffmpeg_cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-
-            async def video_generator():
-                try:
-                    while True:
-                        chunk = await process.stdout.read(65536)
-                        if not chunk:
-                            break
-                        yield chunk
-                finally:
-                    if process:
-                        process.kill()
-                        await process.wait()
-
-            return StreamingResponse(
-                video_generator(),
-                media_type="video/mp4",
-                headers={
-                    "Accept-Ranges": "bytes"
-                }
-            )
-
-
+    except HTTPException as e:
+        print("error while streaming from a source : ", e.detail)
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+    except TimeoutError as e:
+        print("timeout while streaming from a source : ", e)
+        return JSONResponse(status_code=504, content={"error": str(e)})
     except Exception as e:
         print("error while streaming from a source : ", e)
-        if process:
-            process.kill()
-            await process.wait()
-        return {"error": "internal server error while streaming ", "detail": str(e)}
+        return JSONResponse(status_code=500, content={"error": "internal server error while streaming", "detail": str(e)})
 
 # async def getArchiveSources()

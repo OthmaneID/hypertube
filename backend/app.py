@@ -99,5 +99,7 @@ if __name__ == "__main__":
         app="app:app",
         port=PORT,
         reload=True,
+        # Open video streams never finish on their own and would block reloads forever
+        timeout_graceful_shutdown=5,
         host="0.0.0.0"
     )

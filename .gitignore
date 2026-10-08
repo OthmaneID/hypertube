@@ -9,3 +9,8 @@ postgres/
 
 profile_pictures/
 torrent/
+
+subtitles/
+
+*.log
+

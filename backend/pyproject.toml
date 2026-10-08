@@ -29,9 +29,3 @@ dependencies = [
     "libtorrent>=2.1.1",
 ]
 
-[project.scripts]
-backend = "backend:main"
-
-[build-system]
-requires = ["uv_build>=0.12.18,<0.13.0"]
-build-backend = "uv_build"

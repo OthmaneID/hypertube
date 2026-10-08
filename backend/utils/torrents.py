@@ -27,27 +27,58 @@ async def get_peers(trackers: list):
         return []
 
 
-def find_first_video_file(torrent_info):
-    """Find the first video file in the torrent"""
-    video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v']
+VIDEO_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v')
 
-    for file in torrent_info.files():
-        file_path = file.path.lower()
-        if any(file_path.endswith(ext) for ext in video_extensions):
-            return file
 
-    return None
+def select_video_file(torrent_info, file_idx=None, filename=None):
+    """Return the index of the requested file, or None if it can't be identified.
+
+    In season packs the first video is usually episode 1, so guessing is only
+    allowed when the torrent holds a single video file.
+    """
+    files = torrent_info.layout()
+    num_files = files.num_files()
+
+    def base_name(i):
+        return os.path.basename(files.file_path(i)).lower()
+
+    def is_video(i):
+        return base_name(i).endswith(VIDEO_EXTENSIONS)
+
+    wanted = os.path.basename(filename).lower() if filename else None
+    idx_valid = file_idx is not None and 0 <= file_idx < num_files
+
+    if idx_valid and (wanted is None or base_name(file_idx) == wanted):
+        return file_idx
+
+    if wanted:
+        for i in range(num_files):
+            if base_name(i) == wanted:
+                return i
+
+    if idx_valid and is_video(file_idx):
+        return file_idx
+
+    videos = [i for i in range(num_files) if is_video(i)]
+    return videos[0] if len(videos) == 1 else None
 
 
 def parse_range_header(range_header: str, file_size: int):
     """Parse HTTP Range header (e.g., 'bytes=0-1023')"""
     # Format: "bytes=start-end"
-    range_str = range_header.replace("bytes=", "")
+    range_str = range_header.replace("bytes=", "").split(",")[0].strip()
     parts = range_str.split("-")
 
-    start = int(parts[0]) if parts[0] else 0
-    end = int(parts[1]) if parts[1] else file_size - 1
+    if not parts[0]:
+        # Suffix range: "bytes=-500" means the last 500 bytes
+        start = max(file_size - int(parts[1]), 0)
+        end = file_size - 1
+    else:
+        start = int(parts[0])
+        end = int(parts[1]) if parts[1] else file_size - 1
 
+    end = min(end, file_size - 1)
+    start = min(start, end)
     return start, end
 
 

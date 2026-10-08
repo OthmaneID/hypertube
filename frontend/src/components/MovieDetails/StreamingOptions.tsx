@@ -3,6 +3,9 @@ import { BiX } from "react-icons/bi";
 import StreamOption from "../StreamOption";
 import { get_sources } from "../../utils/api/movieService/torrentsApi";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { buildWatchPath, sortBySeeders } from "../../utils/streams";
+import type { StreamElement } from "../../utils/interfaces";
 
 interface StreamingOptionsProps {
   movie_id?: string;
@@ -43,6 +46,8 @@ function StreamingOptions({
       ),
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setShowStreams(false);
@@ -52,9 +57,13 @@ function StreamingOptions({
     return () => document.removeEventListener("keydown", handleKeydown);
   }, [setShowStreams]);
 
-  const handleStreamClick = (_provider: string) => {
-    // Add your streaming logic here
+  const handleStreamClick = (stream: StreamElement) => {
+    if (stream.infoHash) {
+      navigate(buildWatchPath(stream));
+    }
   };
+
+  const streams = sortBySeeders(streamingData?.streams ?? []);
 
   return (
     <div
@@ -104,13 +113,13 @@ function StreamingOptions({
                 <div className="text-red-400">
                   Error loading streaming options
                 </div>
-              ) : streamingData?.streams && streamingData.streams.length > 0 ? (
-                streamingData.streams.map((stream, index) => (
+              ) : streams.length > 0 ? (
+                streams.map((stream, index) => (
                   <StreamOption
                     key={index}
                     stream={stream}
                     language="EN"
-                    onClick={() => handleStreamClick(stream.infoHash || "")}
+                    onClick={() => handleStreamClick(stream)}
                   />
                 ))
               ) : (

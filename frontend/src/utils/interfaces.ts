@@ -351,8 +351,8 @@ export interface StreamElement {
   name: string;
   title: string;
   infoHash: string;
-  fileIdx?: number;
-  behaviorHints?: BehaviorHints;
+  fileIdx?: number | null;
+  behaviorHints?: BehaviorHints | null;
   sources?: string[];
 }
 
