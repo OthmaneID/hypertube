@@ -20,6 +20,7 @@ from routes.user import router as user_router
 from routes.search import router as search_router
 from routes.history import router as history_router
 from routes.torrents import router as torrents_router
+from routes.subtitles import router as subtitles_router
 
 
 
@@ -83,6 +84,7 @@ app.include_router(comments_router)
 app.include_router(search_router)
 app.include_router(history_router)
 app.include_router(torrents_router)
+app.include_router(subtitles_router)
 
 
 

@@ -31,6 +31,8 @@ export async function searchMovies(
     const res = await axiosInstance.get("/search/movies", {
       params: { q: query, page },
     });
+    console.log("here")
+    console.log(res.data)
     return res.data;
   } catch (error: any) {
     return { query, page, results: [], total_results: 0, sources: [] };
