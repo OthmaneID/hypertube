@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     smtp_google_pass : str
     smtp_google_email : str
+    opensubtitles_api_key: str = ""
     
 
 settings = Settings()
