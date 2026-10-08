@@ -71,7 +71,7 @@ def getSerieDetails(request: Request, serie_id: int, db: Session, user: UserResp
     rd: redis.Redis | None = getattr(request.app.state, "redis", None)
     tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
     cache_key = f"serie_{serie_id}_{lang}"
-    request_url = f"{settings.api_base_url}/tv/{serie_id}?language={tmdb_lang}"
+    request_url = f"{settings.api_base_url}/tv/{serie_id}?language={tmdb_lang}&append_to_response=external_ids"
     data = None
     try:
         if rd is not None:
@@ -84,6 +84,8 @@ def getSerieDetails(request: Request, serie_id: int, db: Session, user: UserResp
     if data is None:
         res = requests.get(request_url, headers=headers)
         data = res.json()
+        imdb_id = data.get('external_ids', {}).get('imdb_id')
+        data["imdb_id"] = imdb_id
         if isinstance(data, dict) and data and rd is not None:
             data.pop("is_favorite", None)
             try:

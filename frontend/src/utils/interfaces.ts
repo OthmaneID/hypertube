@@ -186,6 +186,7 @@ export interface SerieDetails {
   adult?: boolean;
   backdrop_path?: string;
   is_favorite?: boolean;
+  imdb_id?: string;
   created_by?: Array<{
     id?: number;
     credit_id?: string;
@@ -267,25 +268,23 @@ export interface SerieDetails {
   error?: string;
 }
 
-
 export interface Episode {
-  id?: number,
-  name?: string,
-  air_date?: string,
-  episode_number?: number,
-  episode_type?: string,
-  overview?: string,
-  production_code?: string,
-  runtime?: number,
-  season_number?: number,
-  show_id?: number,
-  still_path?: string,
-  vote_average?: number,
-  vote_count?: number,
+  id?: number;
+  name?: string;
+  air_date?: string;
+  episode_number?: number;
+  episode_type?: string;
+  overview?: string;
+  production_code?: string;
+  runtime?: number;
+  season_number?: number;
+  show_id?: number;
+  still_path?: string;
+  vote_average?: number;
+  vote_count?: number;
   crew?: Array<Crew>;
   guest_stars?: Array<any>;
   error?: string;
-
 }
 export interface SerieSeasonDetails {
   _id?: string;
@@ -300,8 +299,6 @@ export interface SerieSeasonDetails {
   season_number?: number;
   error?: string;
 }
-
-
 
 export interface User {
   id?: number;
@@ -320,12 +317,10 @@ export interface User {
   error?: string;
 }
 
-
 export interface AuthResponse {
   user?: User;
   access_token?: string;
   error?: string;
-  
 }
 
 export interface AuthContextType {
@@ -335,14 +330,36 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => void;
   Glogin: (token: TokenResponse) => void;
-  register: (username: string, email: string, password: string, confirmPassword: string, firstName: string, lastName: string) => void;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+    firstName: string,
+    lastName: string,
+  ) => void;
   logout: () => void;
   setUser: (user: User) => void;
 }
 
+export interface BehaviorHints {
+  bingeGroup?: string;
+  filename?: string;
+}
 
+export interface StreamElement {
+  name: string;
+  title: string;
+  infoHash: string;
+  fileIdx?: number;
+  behaviorHints?: BehaviorHints;
+  sources?: string[];
+}
 
-
-
-
-
+export interface SourcesResponse {
+  streams: StreamElement[];
+  cacheMaxAge?: number;
+  staleRevalidate?: number;
+  staleError?: number;
+  error?: string;
+}

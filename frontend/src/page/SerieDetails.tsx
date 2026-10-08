@@ -15,7 +15,7 @@ import {
   getSerieImages,
 } from "../utils/api/movieService/imagesApi";
 import { ImageConfigContext } from "../global/imageConfigContext";
-import StreamingOptions from "../components/MovieDetails/StreamingOptions";
+import StreamingOptions from "../components/SerieDetails/StreamingOptions";
 import EpisodeSelectorModal from "../components/SerieDetails/EpisodeSelectorModal";
 import {
   BiCameraMovie,
@@ -32,6 +32,7 @@ import {
 } from "../utils/api/movieService/seriesApi";
 import TrailerModule from "../components/TrailerModule";
 import Comments from "../components/Comments";
+import CustomButton from "../components/CustomButton";
 import { addFavorite, removeFavorite } from "../utils/api/userService/userApi";
 import { useTranslation } from "react-i18next";
 
@@ -213,11 +214,10 @@ function SerieDetails() {
                       handleRemoveFromFavorites();
                     }
                   }}
-                  className={`flex h-12 w-12 items-center justify-center rounded-full border transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                    serie?.is_favorite
-                      ? "border-rose-400/50 bg-rose-500/20 text-rose-400 hover:bg-rose-500/30"
-                      : "border-white/20 bg-black/40 text-gray-200 hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-400"
-                  }`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${serie?.is_favorite
+                    ? "border-rose-400/50 bg-rose-500/20 text-rose-400 hover:bg-rose-500/30"
+                    : "border-white/20 bg-black/40 text-gray-200 hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-400"
+                    }`}
                 >
                   {serie?.is_favorite ? (
                     <IoHeart aria-hidden="true" className="h-6 w-6" />
@@ -254,13 +254,13 @@ function SerieDetails() {
                   <span> - </span>
                   {serie?.status === "Ended"
                     ? new Date(serie?.last_air_date ?? "")
-                        .getFullYear()
-                        .toString()
+                      .getFullYear()
+                      .toString()
                     : "..."}
                 </span>
                 <span className="text-2xl text-nowrap">
                   {serie?.number_of_seasons ??
-                    serie?.seasons?.filter((season) => season.season_number??0  > 0)
+                    serie?.seasons?.filter((season) => season.season_number ?? 0 > 0)
                       .length ??
                     0}{" "}
                   {t("serieDetails.seasons")}
@@ -280,46 +280,33 @@ function SerieDetails() {
                 </span>
               </div>
               <div className="flex flex-row justify-end gap-5 items-center w-1/2 min-w-50 max-md:w-full">
-                <div>
-                  <span
-                    className="group peer flex flex-row gap-2 items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                    title="Play Trailer"
-                    onClick={() => {
-                      setShowModule(true);
-                    }}
-                  >
+                <CustomButton
+                  text={t("serieDetails.viewTrailer")}
+                  onClick={() => {
+                    setShowModule(true);
+                  }}
+                  content={
                     <BiCameraMovie className="group-hover:text-white text-gray-300" />
-                  </span>
-                  <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                    {t("serieDetails.viewTrailer")}
-                  </span>
-                </div>
-                <div>
-                  <span
-                    className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                    title="Select Episode"
-                    onClick={() => {
-                      setShowEpisodeSelector(true);
-                    }}
-                  >
+                  }
+                />
+
+                <CustomButton
+                  text={t("serieDetails.selectEpisode")}
+                  onClick={() => {
+                    setShowEpisodeSelector(true);
+                  }}
+                  content={
                     <BiPlay className="group-hover:text-white text-gray-300" />
-                  </span>
-                  <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                    {t("serieDetails.selectEpisode")}
-                  </span>
-                </div>
-                <div>
-                  <span
-                    className="group peer flex flex-row gap-2 justify-center items-center text-4xl bg-gray-500/60 px-4 py-2 rounded-xl cursor-pointer hover:bg-gray-500/70 active:scale-105 duration-300"
-                    title="Comments"
-                    onClick={() => setShowComments(true)}
-                  >
+                  }
+                />
+
+                <CustomButton
+                  text={t("movieDetails.comments")}
+                  onClick={() => setShowComments(true)}
+                  content={
                     <BiMessageRoundedDots className="group-hover:text-white text-gray-300" />
-                  </span>
-                  <span className="text-sm opacity-0 peer-hover:opacity-100 transition-opacity duration-200">
-                    {t("movieDetails.comments")}
-                  </span>
-                </div>
+                  }
+                />
               </div>
             </div>
             <div className="w-full flex flex-col gap-4 items-start">
@@ -419,12 +406,12 @@ function SerieDetails() {
       {/* streaming options section */}
       {showStreams && (
         <StreamingOptions
-          movie_id={serieId}
-          movie_name={serie?.name ?? ""}
+          imdb_id={serie?.imdb_id}
+          seasonNumber={selectedSeason ?? 0}
+          episodeNumber={selectedEpisode ?? 0}
+          serie_name={serie?.name ?? ""}
           setShowStreams={setShowStreams}
           showStreams={showStreams}
-          seasonNumber={selectedSeason}
-          episodeNumber={selectedEpisode}
         />
       )}
       {/* episode selector modal */}

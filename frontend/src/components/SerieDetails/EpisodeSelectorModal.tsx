@@ -76,7 +76,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
           </div>
           <button
             onClick={() => setShow(false)}
-            className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors"
+            className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 active:bg-gray-600 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
           >
             <IoClose className="text-white text-xl" />
           </button>
@@ -92,9 +92,9 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                 <button
                   key={season.season_number}
                   onClick={() => handleSeasonChange(season.season_number!)}
-                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${selectedSeason === season.season_number
-                    ? 'bg-white text-black'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all whitespace-nowrap duration-200 ${selectedSeason === season.season_number
+                    ? 'bg-white text-black hover:bg-gray-100 active:scale-95'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700 active:bg-gray-600 hover:scale-105 active:scale-95'
                     }`}
                 >
                   <div className="flex items-center justify-between gap-4">
@@ -142,10 +142,10 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                         key={episode.episode_number}
                         onClick={() => handleEpisodeClick(episode.episode_number!)}
                         disabled={!isEpisodeAired}
-                        className={`w-full text-left p-4 rounded-xl transition-all border ${selectedEpisode === episode.episode_number
-                          ? 'bg-gray-800 border-white'
+                        className={`w-full text-left p-4 rounded-xl transition-all border duration-200 ${selectedEpisode === episode.episode_number
+                          ? 'bg-gray-800 border-white hover:bg-gray-700'
                           : isEpisodeAired
-                            ? 'bg-gray-800/50 border-transparent hover:bg-gray-800'
+                            ? 'bg-gray-800/50 border-transparent hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98]'
                             : 'bg-gray-800/30 border-transparent cursor-not-allowed opacity-60'
                           }`}
                       >

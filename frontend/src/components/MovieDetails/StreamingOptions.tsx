@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import { BiX } from "react-icons/bi";
 import StreamOption from "../StreamOption";
+import { get_sources } from "../../utils/api/movieService/torrentsApi";
+import { useQuery } from "@tanstack/react-query";
 
 interface StreamingOptionsProps {
-  movie_id: number;
+  movie_id?: string;
   movie_name: string;
   setShowStreams: (show: boolean) => void;
   showStreams: boolean;
+  year: string;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
 }
@@ -16,66 +19,29 @@ function StreamingOptions({
   movie_name,
   setShowStreams,
   showStreams,
+  year,
   seasonNumber,
   episodeNumber,
 }: StreamingOptionsProps) {
-  // Mock data - replace with actual API calls
-  const mockStreams = [
-    {
-      provider: "Netflix",
-      quality: "4K HDR",
-      language: "EN",
-      rating: 4.8,
-      userCount: 15420,
-      latency: "12ms",
-      isOfficial: true,
-    },
-    {
-      provider: "Prime Video",
-      quality: "1080p",
-      language: "EN",
-      rating: 4.5,
-      userCount: 8930,
-      latency: "24ms",
-      isOfficial: true,
-    },
-    {
-      provider: "Disney+",
-      quality: "4K",
-      language: "EN",
-      rating: 4.7,
-      userCount: 12450,
-      latency: "18ms",
-      isOfficial: true,
-    },
-    {
-      provider: "HBO Max",
-      quality: "1080p",
-      language: "EN",
-      rating: 4.3,
-      userCount: 5670,
-      latency: "32ms",
-      isOfficial: true,
-    },
-    {
-      provider: "Hulu",
-      quality: "720p",
-      language: "EN",
-      rating: 4.1,
-      userCount: 3210,
-      latency: "45ms",
-      isOfficial: false,
-    },
-    {
-      provider: "Peacock",
-      quality: "1080p",
-      language: "EN",
-      rating: 4.0,
-      userCount: 2890,
-      latency: "38ms",
-      isOfficial: false,
-    },
-  ];
+  const {
+    data: streamingData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: [
+      "sources",
+      movie_id,
+      movie_name,
+      year,
+      seasonNumber,
+      episodeNumber,
+    ],
+    enabled: showStreams && !!movie_id,
+    queryFn: () =>
+      get_sources(
+        movie_id || "",
+      ),
+  });
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
@@ -86,7 +52,7 @@ function StreamingOptions({
     return () => document.removeEventListener("keydown", handleKeydown);
   }, [setShowStreams]);
 
-  const handleStreamClick = (provider: string) => {
+  const handleStreamClick = (_provider: string) => {
     // Add your streaming logic here
   };
 
@@ -130,24 +96,35 @@ function StreamingOptions({
 
             {/* Streams Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockStreams.map((stream, index) => (
-                <StreamOption
-                  key={index}
-                  provider={stream.provider}
-                  quality={stream.quality}
-                  language={stream.language}
-                  rating={stream.rating}
-                  userCount={stream.userCount}
-                  latency={stream.latency}
-                  isOfficial={stream.isOfficial}
-                  onClick={() => handleStreamClick(stream.provider)}
-                />
-              ))}
+              {isLoading ? (
+                <div className="flex items-center justify-center h-screen">
+                  <div className="animate-spin rounded-full h-32 w-32 border-b-3 border-purple-700"></div>
+                </div>
+              ) : isError ? (
+                <div className="text-red-400">
+                  Error loading streaming options
+                </div>
+              ) : streamingData?.streams && streamingData.streams.length > 0 ? (
+                streamingData.streams.map((stream, index) => (
+                  <StreamOption
+                    key={index}
+                    stream={stream}
+                    language="EN"
+                    onClick={() => handleStreamClick(stream.infoHash || "")}
+                  />
+                ))
+              ) : (
+                <div className="text-gray-400">
+                  No streaming options available
+                </div>
+              )}
             </div>
 
             {/* Footer Info */}
             <div className="mt-6 pt-4 border-t border-gray-800 text-gray-500 text-xs flex items-center justify-between">
-              <span>Showing {mockStreams.length} streaming options</span>
+              <span>
+                Showing {streamingData?.streams?.length || 0} streaming options
+              </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                 All servers online

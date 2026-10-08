@@ -1,30 +1,20 @@
 from pydantic import BaseModel, Field, ConfigDict
-import enum
+from typing import Optional, List, Dict, Any
 
-class ModesEnum(enum.Enum):
-    TV = "tv"
-    MOVIE = "movie"
+class BehaviorHints(BaseModel):
+    bingeGroup: Optional[str] = None
+    filename: Optional[str] = None
 
-class SourcesRequest(BaseModel):
-    mode : ModesEnum
-    movie_id : str
-    name : str
-    Year : str
-
-class sourceElement(BaseModel):
-    title : str
-    seeds : int # number of users who completed the file download and participating in the file upload
-    peers : int # number of users who are still downloading the torrent file
-    bytes : int # size of the file
-    magnetUrl: str 
-    hash : str # a unique fingerprint generated 
-
-    # source : str # where the magnet-link is provided 
+class StreamElement(BaseModel):
+    name: str
+    title: str
+    infoHash: str
+    fileIdx: int = 0
+    behaviorHints: Optional[BehaviorHints] = None
+    sources: Optional[List[str]] = None
 
 class SourcesResponse(BaseModel):
-    hits : list[sourceElement]
-    total: int
-    model_config = ConfigDict(
-        extra="ignore",
-        from_attributes=True
-    )
+    streams: List[StreamElement]
+    cacheMaxAge: int = 3600
+    staleRevalidate: int = 14400
+    staleError: int = 604800

@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from schema.User import UserResponse
 from fastapi import Depends
 from services.auth import get_current_user
-from schema.Torrents import SourcesRequest, ModesEnum
 
 router = APIRouter(prefix="/movies")
 

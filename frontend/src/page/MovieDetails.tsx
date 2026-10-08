@@ -121,8 +121,8 @@ function MovieDetails() {
     dragState.current.isDragging = false;
   };
 
-  const handleAddToFavorites = async() => {
-    try{
+  const handleAddToFavorites = async () => {
+    try {
       const res = await addFavorite(movieId, "movie");
       if (res && !res.error) {
         setMovie(prevMovie => prevMovie ? { ...prevMovie, is_favorite: true } : prevMovie);
@@ -203,11 +203,10 @@ function MovieDetails() {
                     handleRemoveFromFavorites()
                   }
                 }}
-                className={`flex h-12 w-12 items-center justify-center rounded-full border transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                  movie?.is_favorite
+                className={`flex h-12 w-12 items-center justify-center rounded-full border transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${movie?.is_favorite
                     ? "border-rose-400/50 bg-rose-500/20 text-rose-400 hover:bg-rose-500/30"
                     : "border-white/20 bg-black/40 text-gray-200 hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-400"
-                }`}
+                  }`}
               >
                 {movie?.is_favorite ? (
                   <IoHeart aria-hidden="true" className="h-6 w-6" />
@@ -363,10 +362,11 @@ function MovieDetails() {
       {/* streaming options section */}
       {showStreams && (
         <StreamingOptions
-          movie_id={movieId}
+          movie_id={movie?.imdb_id}
           movie_name={movie?.title ?? ""}
           setShowStreams={setShowStreams}
           showStreams={showStreams}
+          year={new Date(movie?.release_date ?? "").getFullYear().toString()}
         />
       )}
       {/* comments sidebar */}

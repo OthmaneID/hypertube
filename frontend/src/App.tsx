@@ -24,6 +24,7 @@ import ForgotPass from "./page/ForgotPass";
 import ResetPass from "./page/ResetPass";
 import EmailVerification from "./page/EmailVerification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Watch from "./page/Watch.tsx";
 
 const queryClient = new QueryClient();
 
@@ -65,8 +66,11 @@ function App() {
                             <Route
                               path="/profile/:id"
                               element={<PublicProfile />}
-                            />
-                          </Route>
+                          />
+                          <Route path="/watch/:hash"
+                            element={<Watch />}
+                          />
+                        </Route>
                           <Route element={<PublicOnlyRoute />}>
                             <Route
                               path="/forgot-password"

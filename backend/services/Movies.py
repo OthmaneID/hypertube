@@ -8,7 +8,6 @@ from schema.User import UserResponse
 from sqlalchemy.orm import Session
 from models.User import User
 from models.Favorites import favoriteTypeEnum, Favorites
-from schema.Torrents import SourcesResponse,ModesEnum
 import httpx2
 
 
