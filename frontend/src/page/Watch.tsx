@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import VideoPlayer from "../components/VideoPlayer";
 
 // Slightly longer than the backend's metadata timeout so its 504 arrives first
 const LOAD_TIMEOUT_MS = 70_000;
 
-type PlayerStatus = "loading" | "buffering" | "playing" | "error";
+type PlayerStatus = "loading" | "buffering" | "playing" | "error" | "ended";
 
 function Watch() {
     const { hash } = useParams()
@@ -37,15 +38,25 @@ function StreamPlayer({ streamUrl }: { streamUrl: string }) {
     return (
         <div className="relative w-full h-screen flex items-center justify-center bg-black">
             {status !== "error" && (
+                // <VideoPlayer
+                //     src={streamUrl}
+                //     onCanPlay={() => setStatus("playing")}
+                //     onWaiting={() => setStatus((current) => (current === "loading" ? current : "buffering"))}
+                //     onPlaying={() => setStatus("playing")}
+                //     onError={() => setStatus("error")}
+                //     onEnded={() => setStatus("ended")}
+                // />
+
                 <video
                     src={streamUrl}
-                    controls
-                    autoPlay
-                    className="w-full h-full max-w-250"
                     onCanPlay={() => setStatus("playing")}
                     onWaiting={() => setStatus((current) => (current === "loading" ? current : "buffering"))}
                     onPlaying={() => setStatus("playing")}
                     onError={() => setStatus("error")}
+                    onEnded={() => setStatus("ended")}
+                    className="w-full h-full max-w-250"
+                    controls
+                    autoPlay
                 />
             )}
 

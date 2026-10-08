@@ -7,7 +7,7 @@ export async function get_sources(
 ): Promise<SourcesResponse> {
   try {
     const res = await axios.get(
-      `/torrent/stream/movie/${movie_id}.json`,
+      `/torrent/stream/movie/${movie_id}`,
     );
     return res.data;
   } catch (err: any) {
@@ -23,7 +23,7 @@ export async function get_episode_streams(
 ): Promise<SourcesResponse> {
   try {
     const res = await axios.get(
-      `/torrent/stream/series/${imdb_id}:${season}:${episode}.json`,
+      `/torrent/stream/series/${imdb_id}:${season}:${episode}`,
     );
     return res.data;
   } catch (err: any) {

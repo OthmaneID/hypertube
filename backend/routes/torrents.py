@@ -10,12 +10,12 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/torrent")
 
-@router.get("/stream/movie/{imdb_id}.json")
+@router.get("/stream/movie/{imdb_id}")
 async def get_movie_streams(request:Request, imdb_id : str, user : UserResponse = Depends(get_current_user)):
     return await getSources(request, movie_id=imdb_id)
 
 
-@router.get("/stream/series/{imdb_id}:{season}:{episode}.json")
+@router.get("/stream/series/{imdb_id}:{season}:{episode}")
 async def get_series_streams(request:Request, imdb_id : str, season: int, episode: int, user : UserResponse = Depends(get_current_user)):
     return await getEpisodeStreams(request, imdb_id=imdb_id, season=season, episode=episode)
 

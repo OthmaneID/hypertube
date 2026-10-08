@@ -27,9 +27,13 @@ interface VideoPlayerProps {
   title?: string;
   subtitles?: SubtitleTrack[];
   onEnded?: () => void;
+  onCanPlay?: () => void;
+  onWaiting?: ()   => void;
+  onPlaying?: () => void;
+  onError?: () => void;
 }
 
-export default function VideoPlayer({ src, poster, title, subtitles, onEnded }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, subtitles, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -51,7 +55,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded }: 
   const [showSubtitlesMenu, setShowSubtitlesMenu] = useState(false);
   const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number>(-1);
   
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (subtitles) {
@@ -267,9 +271,9 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded }: 
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={handleCanPlay}
-        onError={handleError}
-        onWaiting={() => setIsWaiting(true)}
-        onPlaying={() => setIsWaiting(false)}
+        onError={onError}
+        onWaiting={onWaiting}
+        onPlaying={onPlaying}
         onEnded={onEnded}
         preload="auto"
         crossOrigin="anonymous"
