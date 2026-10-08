@@ -7,8 +7,11 @@ ENV UV_PYTHON_PREFERENCE=only-system
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y ffmpeg
 
 COPY pyproject.toml uv.lock ./
+
+
 
 RUN uv venv --python 3.13 && uv sync --frozen --no-install-project
 
