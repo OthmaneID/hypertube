@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play,
   Pause,
@@ -26,14 +26,16 @@ interface VideoPlayerProps {
   poster?: string;
   title?: string;
   subtitles?: SubtitleTrack[];
+  autoPlay?: boolean;
+  hidePlayerBuffering?: boolean;
   onEnded?: () => void;
   onCanPlay?: () => void;
   onWaiting?: ()   => void;
   onPlaying?: () => void;
-  onError?: () => void;
+  onError?: (e: any) => void;
 }
 
-export default function VideoPlayer({ src, poster, title, subtitles, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = false, hidePlayerBuffering = false, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -55,6 +57,9 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
   const [showSubtitlesMenu, setShowSubtitlesMenu] = useState(false);
   const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number>(-1);
   
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [doubleClickSide, setDoubleClickSide] = useState<"left" | "right" | null>(null);
+
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -97,7 +102,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
   };
 
   const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || isSeeking) return;
     const current = videoRef.current.currentTime;
     const total = videoRef.current.duration;
     setCurrentTime(current);
@@ -120,12 +125,66 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
     console.error("Video failed to load");
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Double click to seek
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (!containerRef.current || !videoRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const isLeft = e.clientX - rect.left < rect.width / 2;
+
+    if (isLeft) {
+      skipBackward();
+      setDoubleClickSide("left");
+    } else {
+      skipForward();
+      setDoubleClickSide("right");
+    }
+
+    setTimeout(() => setDoubleClickSide(null), 500);
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => {
     if (!videoRef.current || !progressRef.current) return;
     const rect = progressRef.current.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+    // Optimistic UI update
+    setProgress(pos * 100);
+    setCurrentTime(pos * videoRef.current.duration);
+
     videoRef.current.currentTime = pos * videoRef.current.duration;
   };
+
+  const handleSeekStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsSeeking(true);
+    handleSeek(e);
+  };
+
+  const handleSeekMove = (e: PointerEvent) => {
+    if (!isSeeking || !progressRef.current || !videoRef.current) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setProgress(pos * 100);
+    setCurrentTime(pos * videoRef.current.duration);
+  };
+
+  const handleSeekEnd = (e: PointerEvent) => {
+    if (!isSeeking || !videoRef.current || !progressRef.current) return;
+    setIsSeeking(false);
+    const rect = progressRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    videoRef.current.currentTime = pos * videoRef.current.duration;
+  };
+
+  useEffect(() => {
+    if (isSeeking) {
+      window.addEventListener("pointermove", handleSeekMove);
+      window.addEventListener("pointerup", handleSeekEnd);
+      return () => {
+        window.removeEventListener("pointermove", handleSeekMove);
+        window.removeEventListener("pointerup", handleSeekEnd);
+      };
+    }
+  }, [isSeeking]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -250,7 +309,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl bg-black group select-none"
+      className="relative w-full h-full overflow-hidden bg-black group select-none flex items-center justify-center"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => {
         if (isPlaying) {
@@ -266,17 +325,24 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
         ref={videoRef}
         src={src}
         poster={poster}
-        className="w-full h-full object-contain aspect-video"
+        className="w-full h-full object-contain cursor-pointer"
         onClick={togglePlay}
+        onDoubleClick={handleDoubleClick}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={handleCanPlay}
-        onError={onError}
+        onError={(e) => {
+          console.error("Video error:", e.currentTarget.error);
+          if (onError) onError(e);
+        }}
         onWaiting={onWaiting}
-        onPlaying={onPlaying}
+        onPlaying={() => {
+          setIsPlaying(true);
+          if (onPlaying) onPlaying();
+        }}
         onEnded={onEnded}
         preload="auto"
-        crossOrigin="anonymous"
+        autoPlay={autoPlay}
       >
         {subtitles?.map((sub, idx) => (
           <track
@@ -290,8 +356,32 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
         ))}
       </video>
 
-      {/* Buffering Indicator */}
-      {isWaiting && (
+      {/* Double click ripple indicators */}
+      <div
+        className={`absolute top-0 bottom-0 left-0 w-1/3 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
+          doubleClickSide === "left" ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ background: "linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%)" }}
+      >
+        <div className="bg-black/40 backdrop-blur-sm rounded-full p-4 flex flex-col items-center gap-1 animate-bounce">
+          <RotateCcw className="w-8 h-8 text-white" />
+          <span className="text-white font-bold text-sm">10s</span>
+        </div>
+      </div>
+      <div
+        className={`absolute top-0 bottom-0 right-0 w-1/3 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
+          doubleClickSide === "right" ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ background: "linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 100%)" }}
+      >
+        <div className="bg-black/40 backdrop-blur-sm rounded-full p-4 flex flex-col items-center gap-1 animate-bounce">
+          <RotateCw className="w-8 h-8 text-white" />
+          <span className="text-white font-bold text-sm">10s</span>
+        </div>
+      </div>
+
+      {/* Buffering Indicator (hidden when Watch page provides its own overlay) */}
+      {!hidePlayerBuffering && isWaiting && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none transition-all z-10">
           <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
         </div>
@@ -305,48 +395,55 @@ export default function VideoPlayer({ src, poster, title, subtitles, onEnded, on
         </div>
       )}
 
-      {/* Top Title Bar (Glassmorphic) */}
+            {/* Top Title Bar (Glassmorphic) */}
       <div
-        className={`absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`absolute top-0 left-0 right-0 p-6 pt-8 pb-12 bg-gradient-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 pointer-events-none z-20 ${
+          showControls || !isPlaying ? "opacity-100" : "opacity-0"
         }`}
       >
-        <h2 className="text-white font-medium text-lg drop-shadow-md">
+        <h2 className="text-white/90 font-medium text-xl drop-shadow-lg max-w-3xl truncate px-4">
           {title || "Now Playing"}
         </h2>
       </div>
 
       {/* Central Play/Pause overlay */}
-      <div 
-        className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${
-          !isPlaying && !isWaiting ? "opacity-100" : "opacity-0"
+      <div
+        className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${
+          !isPlaying && !isWaiting ? "opacity-100 scale-100" : "opacity-0 scale-75"
         }`}
       >
-        <div className="bg-purple-600/80 backdrop-blur-md text-white p-4 rounded-full shadow-lg scale-110">
-          <Play className="w-10 h-10 ml-1" />
+        <div className="bg-purple-600/80 hover:bg-purple-600 backdrop-blur-md text-white p-5 rounded-full shadow-[0_0_40px_rgba(147,51,234,0.5)] border border-purple-400/30">
+          <Play className="w-12 h-12 ml-1" />
         </div>
       </div>
 
       {/* Bottom Controls (Glassmorphic) */}
       <div
-        className={`absolute bottom-0 left-0 right-0 p-4 pt-12 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${
-          showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        className={`absolute bottom-0 left-0 right-0 p-6 pt-16 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 z-20 ${
+          showControls || !isPlaying ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
         {/* Progress Bar */}
-        <div 
+        <div
           ref={progressRef}
-          className="relative h-2 bg-white/20 rounded-full mb-4 cursor-pointer hover:h-3 transition-all"
-          onClick={handleSeek}
+          className="relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-4 cursor-pointer transition-all duration-200 flex items-center"
+          onPointerDown={handleSeekStart}
         >
-          <div className="absolute top-0 left-0 h-full bg-white/30 rounded-full" style={{ width: '0%' }} />
+          {/* Buffer / Trail bar */}
+          <div className="absolute top-0 left-0 h-full bg-white/10 rounded-full w-full" />
+
+          {/* Filled Progress */}
           <div
-            className="absolute top-0 left-0 h-full bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.7)]"
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)]"
             style={{ width: `${progress}%` }}
           />
-          <div 
-            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ left: `calc(${progress}% - 8px)` }}
+
+          {/* Seek Thumb */}
+          <div
+            className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow-md transition-transform duration-100 ${
+              isSeeking ? "scale-125 opacity-100" : "group-hover:opacity-100 opacity-0 hover:scale-110"
+            }`}
+            style={{ left: `calc(${progress}% - 7px)` }}
           />
         </div>
 
