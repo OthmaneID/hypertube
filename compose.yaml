@@ -5,6 +5,8 @@ services:
     env_file: .env
     ports:
       - ${BACKEND_PORT}:${BACKEND_PORT}
+      - 6881:6881/tcp
+      - 6881:6881/udp
     depends_on:
       - redis
       - postgres

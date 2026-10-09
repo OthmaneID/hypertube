@@ -61,7 +61,7 @@ function StreamingOptions({
 
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
-      navigate(buildWatchPath(stream, { duration, imdbId: movie_id }));
+      navigate(buildWatchPath(stream, { title: movie_name, duration, imdbId: movie_id }));
     }
   };
 

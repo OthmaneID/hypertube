@@ -10,14 +10,18 @@ export function sortBySeeders(streams: StreamElement[]): StreamElement[] {
 }
 
 export interface WatchContext {
+  title?: string;
   duration?: number;
   imdbId?: string;
   season?: number;
   episode?: number;
 }
 
-export function buildWatchPath(stream: StreamElement, { duration, imdbId, season, episode }: WatchContext = {}): string {
+export function buildWatchPath(stream: StreamElement, { title, duration, imdbId, season, episode }: WatchContext = {}): string {
   const params = new URLSearchParams();
+  if (title) {
+    params.set("title", title);
+  }
   if (stream.fileIdx !== undefined && stream.fileIdx !== null) {
     params.set("fileIdx", String(stream.fileIdx));
   }

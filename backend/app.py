@@ -21,6 +21,7 @@ from routes.search import router as search_router
 from routes.history import router as history_router
 from routes.torrents import router as torrents_router
 from routes.subtitles import router as subtitles_router
+from services.Torrents import get_lt_session
 
 
 
@@ -52,6 +53,9 @@ async def lifespan(app: fastapi.FastAPI):
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration"
     )
     app.state.oauth: OAuth = oauth
+
+    # Start the BitTorrent session now so the DHT is bootstrapped before the first stream request
+    get_lt_session()
     
     yield
 
