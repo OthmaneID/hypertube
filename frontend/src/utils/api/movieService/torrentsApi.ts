@@ -32,4 +32,22 @@ export async function get_episode_streams(
   }
 }
 
+export interface StreamInfo {
+  transcoded: boolean;
+  duration: number | null;
+}
+
+export async function get_stream_info(
+  hash: string,
+  query: string,
+): Promise<StreamInfo | null> {
+  try {
+    const res = await axios.get(`/torrent/info/${hash}${query ? `?${query}` : ""}`);
+    return res.data;
+  } catch (err: any) {
+    console.log("error while getting stream info : ", err);
+    return null;
+  }
+}
+
 // export async function stream
