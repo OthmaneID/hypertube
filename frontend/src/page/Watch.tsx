@@ -24,13 +24,17 @@ function Watch() {
   const fileIdx = queryParams.get("fileIdx");
   const filename = queryParams.get("filename");
   const title = queryParams.get("title") || undefined;
+  const durationParam = queryParams.get("duration");
+  const passedDuration = durationParam ? Number(durationParam) : undefined;
   if (fileIdx) streamParams.set("fileIdx", fileIdx);
   if (filename) streamParams.set("filename", filename);
+
+  const isTranscoded = filename ? !filename.toLowerCase().endsWith('.mp4') && !filename.toLowerCase().endsWith('.webm') : false;
 
   const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const streamUrl = `${backendUrl}/torrent/stream/${hash}?${streamParams.toString()}`;
 
-  return <StreamPlayer key={streamUrl} streamUrl={streamUrl} title={title} />;
+  return <StreamPlayer key={streamUrl} streamUrl={streamUrl} title={title} isTranscoded={isTranscoded} passedDuration={passedDuration} />;
 }
 
 const SHORTCUTS = [
@@ -43,9 +47,13 @@ const SHORTCUTS = [
 function StreamPlayer({
   streamUrl,
   title,
+  isTranscoded = false,
+  passedDuration,
 }: {
   streamUrl: string;
   title?: string;
+  isTranscoded?: boolean;
+  passedDuration?: number;
 }) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<PlayerStatus>("loading");
@@ -207,6 +215,8 @@ function StreamPlayer({
               title={title}
               autoPlay
               hidePlayerBuffering
+              disableSeek={isTranscoded}
+              passedDuration={passedDuration}
               onCanPlay={() => setStatus("playing")}
               onWaiting={() =>
                 setStatus((current) =>

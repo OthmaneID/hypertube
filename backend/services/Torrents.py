@@ -228,6 +228,66 @@ async def stream_file_range(handle, file_path, file_offset, piece_length, file_l
             pos += len(chunk)
 
 
+async def stream_transcoded_video(handle, file_path, file_offset, piece_length, file_last_piece, file_size):
+    cmd = [
+        'ffmpeg',
+        '-i', 'pipe:0',
+        '-c:v', 'libvpx',
+        '-deadline', 'realtime',
+        '-cpu-used', '4',
+        '-b:v', '3000k',
+        '-c:a', 'libvorbis',
+        '-f', 'webm',
+        'pipe:1'
+    ]
+
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL
+    )
+
+    async def writer_task():
+        try:
+            generator = stream_file_range(handle, file_path, file_offset, piece_length, file_last_piece, 0, file_size - 1)
+            async for chunk in generator:
+                if process.returncode is not None:
+                    break
+                process.stdin.write(chunk)
+                await process.stdin.drain()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception as e:
+            print(f"Error in ffmpeg writer task: {e}")
+        finally:
+            if process.returncode is None:
+                try:
+                    process.stdin.close()
+                    await process.stdin.wait_closed()
+                except Exception:
+                    pass
+
+    task = asyncio.create_task(writer_task())
+
+    try:
+        while True:
+            chunk = await process.stdout.read(65536)
+            if not chunk:
+                break
+            yield chunk
+    except asyncio.CancelledError:
+        print("Transcoding cancelled by client")
+    finally:
+        if process.returncode is None:
+            try:
+                process.terminate()
+            except ProcessLookupError:
+                pass
+            await process.wait()
+        task.cancel()
+
+
 async def stream_from_source(request: Request, hash: str):
     try:
         session = get_lt_session()
@@ -290,6 +350,26 @@ async def stream_from_source(request: Request, hash: str):
         piece_length = torrent_info.piece_length()
         file_last_piece = (file_offset + file_size - 1) // piece_length
 
+        ext = files.file_path(file_idx).lower().split('.')[-1]
+        is_native = ext in ['mp4', 'webm']
+
+        if not is_native:
+            start_piece = file_offset // piece_length
+            end_piece = (file_offset + file_size - 1) // piece_length
+            handle.clear_piece_deadlines()
+
+            buffer_end_piece = min(start_piece + STREAM_BUFFER_PIECES - 1, end_piece)
+            print(f"Waiting for buffer pieces {start_piece}-{buffer_end_piece} for transcoding...")
+            if not await wait_for_pieces(handle, start_piece, buffer_end_piece, request=request):
+                print("Client disconnected while buffering")
+                return Response(status_code=499)
+
+            generator = stream_transcoded_video(handle, file_path, file_offset, piece_length, file_last_piece, file_size)
+            return StreamingResponse(
+                generator,
+                media_type="video/webm"
+            )
+
         range_header = request.headers.get("range")
         if range_header:
             start, end = parse_range_header(range_header, file_size)
@@ -310,11 +390,12 @@ async def stream_from_source(request: Request, hash: str):
             return Response(status_code=499)
 
         generator = stream_file_range(handle, file_path, file_offset, piece_length, file_last_piece, start, end)
+        media_type = f"video/{ext}" if ext in ['mp4', 'webm'] else "video/mp4"
         if range_header:
             return StreamingResponse(
                 generator,
                 status_code=206,
-                media_type="video/mp4",
+                media_type=media_type,
                 headers={
                     "Content-Range": f"bytes {start}-{end}/{file_size}",
                     "Accept-Ranges": "bytes",
@@ -323,7 +404,7 @@ async def stream_from_source(request: Request, hash: str):
             )
         return StreamingResponse(
             generator,
-            media_type="video/mp4",
+            media_type=media_type,
             headers={
                 "Accept-Ranges": "bytes",
                 "Content-Length": str(file_size)

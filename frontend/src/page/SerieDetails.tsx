@@ -412,6 +412,7 @@ function SerieDetails() {
           serie_name={serie?.name ?? ""}
           setShowStreams={setShowStreams}
           showStreams={showStreams}
+          duration={serie?.episode_run_time?.[0] ? serie.episode_run_time[0] * 60 : undefined}
         />
       )}
       {/* episode selector modal */}

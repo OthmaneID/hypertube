@@ -14,6 +14,7 @@ interface StreamingOptionsProps {
   serie_name: string;
   setShowStreams: (show: boolean) => void;
   showStreams: boolean;
+  duration?: number;
 }
 
 function StreamingOptions({
@@ -23,6 +24,7 @@ function StreamingOptions({
   serie_name,
   setShowStreams,
   showStreams,
+  duration,
 }: StreamingOptionsProps) {
   const sourcesQuery = useQuery({
     queryKey: ["sources", imdb_id, seasonNumber, episodeNumber],
@@ -43,7 +45,7 @@ function StreamingOptions({
 
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
-      navigate(buildWatchPath(stream));
+      navigate(buildWatchPath(stream, duration));
     }
   };
 

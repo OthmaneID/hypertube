@@ -28,6 +28,8 @@ interface VideoPlayerProps {
   subtitles?: SubtitleTrack[];
   autoPlay?: boolean;
   hidePlayerBuffering?: boolean;
+  disableSeek?: boolean;
+  passedDuration?: number;
   onEnded?: () => void;
   onCanPlay?: () => void;
   onWaiting?: ()   => void;
@@ -35,7 +37,7 @@ interface VideoPlayerProps {
   onError?: (e: any) => void;
 }
 
-export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = false, hidePlayerBuffering = false, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, passedDuration, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -104,14 +106,18 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
   const handleTimeUpdate = () => {
     if (!videoRef.current || isSeeking) return;
     const current = videoRef.current.currentTime;
-    const total = videoRef.current.duration;
+    const total = passedDuration || videoRef.current.duration;
     setCurrentTime(current);
-    if (total > 0) setProgress((current / total) * 100);
+    if (total > 0 && total !== Infinity) {
+      setProgress((current / total) * 100);
+    } else {
+      setProgress(0);
+    }
   };
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      setDuration(passedDuration || videoRef.current.duration);
       videoRef.current.playbackRate = speed; // Re-apply speed on load
     }
   };
@@ -127,6 +133,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
 
   // Double click to seek
   const handleDoubleClick = (e: React.MouseEvent) => {
+    if (disableSeek) return;
     if (!containerRef.current || !videoRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const isLeft = e.clientX - rect.left < rect.width / 2;
@@ -143,6 +150,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => {
+    if (disableSeek) return;
     if (!videoRef.current || !progressRef.current) return;
     const rect = progressRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -155,11 +163,13 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
   };
 
   const handleSeekStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (disableSeek) return;
     setIsSeeking(true);
     handleSeek(e);
   };
 
   const handleSeekMove = (e: PointerEvent) => {
+    if (disableSeek) return;
     if (!isSeeking || !progressRef.current || !videoRef.current) return;
     const rect = progressRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -168,6 +178,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
   };
 
   const handleSeekEnd = (e: PointerEvent) => {
+    if (disableSeek) return;
     if (!isSeeking || !videoRef.current || !progressRef.current) return;
     setIsSeeking(false);
     const rect = progressRef.current.getBoundingClientRect();
@@ -217,14 +228,16 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
   };
 
   // --- New Features ---
-  
+
   const skipBackward = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (disableSeek) return;
     if (videoRef.current) videoRef.current.currentTime -= 10;
   };
 
   const skipForward = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (disableSeek) return;
     if (videoRef.current) videoRef.current.currentTime += 10;
   };
 
@@ -426,7 +439,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
         {/* Progress Bar */}
         <div
           ref={progressRef}
-          className="relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-4 cursor-pointer transition-all duration-200 flex items-center"
+          className={`relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-4 transition-all duration-200 flex items-center ${disableSeek ? 'cursor-default' : 'cursor-pointer'}`}
           onPointerDown={handleSeekStart}
         >
           {/* Buffer / Trail bar */}
@@ -441,7 +454,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
           {/* Seek Thumb */}
           <div
             className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow-md transition-transform duration-100 ${
-              isSeeking ? "scale-125 opacity-100" : "group-hover:opacity-100 opacity-0 hover:scale-110"
+              disableSeek ? 'hidden' : (isSeeking ? "scale-125 opacity-100" : "group-hover:opacity-100 opacity-0 hover:scale-110")
             }`}
             style={{ left: `calc(${progress}% - 7px)` }}
           />
@@ -458,12 +471,12 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
             </button>
             
             {/* Skip Backward 10s */}
-            <button onClick={skipBackward} className="hover:text-purple-400 transition-colors active:scale-95">
+            <button disabled={disableSeek} onClick={skipBackward} className={`transition-colors active:scale-95 ${disableSeek ? 'text-gray-500 cursor-not-allowed' : 'hover:text-purple-400'}`}>
               <RotateCcw className="w-5 h-5" />
             </button>
 
             {/* Skip Forward 10s */}
-            <button onClick={skipForward} className="hover:text-purple-400 transition-colors active:scale-95">
+            <button disabled={disableSeek} onClick={skipForward} className={`transition-colors active:scale-95 ${disableSeek ? 'text-gray-500 cursor-not-allowed' : 'hover:text-purple-400'}`}>
               <RotateCw className="w-5 h-5" />
             </button>
             

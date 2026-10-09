@@ -367,6 +367,7 @@ function MovieDetails() {
           setShowStreams={setShowStreams}
           showStreams={showStreams}
           year={new Date(movie?.release_date ?? "").getFullYear().toString()}
+          duration={movie?.runtime ? movie.runtime * 60 : undefined}
         />
       )}
       {/* comments sidebar */}

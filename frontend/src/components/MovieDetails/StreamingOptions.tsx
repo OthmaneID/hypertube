@@ -15,6 +15,7 @@ interface StreamingOptionsProps {
   year: string;
   seasonNumber?: number | null;
   episodeNumber?: number | null;
+  duration?: number;
 }
 
 function StreamingOptions({
@@ -25,6 +26,7 @@ function StreamingOptions({
   year,
   seasonNumber,
   episodeNumber,
+  duration,
 }: StreamingOptionsProps) {
   const {
     data: streamingData,
@@ -59,7 +61,7 @@ function StreamingOptions({
 
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
-      navigate(buildWatchPath(stream));
+      navigate(buildWatchPath(stream, duration));
     }
   };
 
