@@ -1,7 +1,8 @@
 from fastapi.requests import Request
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-from schema.Torrents import SourcesResponse
+from schema.Torrents import SourcesResponse, StreamInfoResponse
+from config import settings
 import httpx2
 import redis
 from utils.torrents import get_peers, get_trackers, generate_peer_id, select_video_file, parse_range_header, pieces_downloaded, check_piece_available
@@ -10,18 +11,30 @@ import asyncio
 import os
 import subprocess
 import math
+import json
+import secrets
+import functools
+from collections import deque
+from dataclasses import dataclass
 
 # Global libtorrent state
 lt_session = None
 active_torrents = {}
 # hash -> indexes of files that have been requested for streaming
 wanted_files = {}
+# (hash, file index) -> (codec_name, pix_fmt, duration) from ffprobe
+probe_cache = {}
+# Authorizes ffmpeg's requests to the internal file endpoint, which has no user session
+INTERNAL_KEY = secrets.token_urlsafe(32)
 
 METADATA_TIMEOUT = 60
 STREAM_BUFFER_PIECES = 3
 STREAM_READAHEAD_PIECES = 20
 STREAM_CHUNK_SIZE = 65536
 PIECE_WAIT_TIMEOUT = 120
+# Formats indexed at the end of the file (mov, some avi) need the last pieces before probing succeeds
+PROBE_TIMEOUT = 60
+TORRENT_SAVE_PATH = './uploads/torrent'
 
 def get_lt_session():
     global lt_session
@@ -195,6 +208,8 @@ def drop_torrent(hash: str, handle):
     if active_torrents.get(hash) == handle:
         active_torrents.pop(hash, None)
         wanted_files.pop(hash, None)
+        for key in [k for k in probe_cache if k[0] == hash]:
+            probe_cache.pop(key)
     try:
         get_lt_session().remove_torrent(handle)
     except Exception as e:
@@ -228,47 +243,299 @@ async def stream_file_range(handle, file_path, file_offset, piece_length, file_l
             pos += len(chunk)
 
 
-async def stream_transcoded_video(handle, file_path, file_offset, piece_length, file_last_piece, file_size):
-    cmd = [
-        'ffmpeg',
-        '-i', 'pipe:0',
-        '-c:v', 'libvpx',
-        '-deadline', 'realtime',
-        '-cpu-used', '4',
-        '-b:v', '3000k',
-        '-c:a', 'libvorbis',
-        '-f', 'webm',
-        'pipe:1'
-    ]
+@dataclass
+class StreamFile:
+    hash: str
+    handle: object
+    idx: int
+    path: str
+    offset: int
+    size: int
+    piece_length: int
+    last_piece: int
+    ext: str
 
+    @property
+    def is_native(self):
+        return self.ext in ('mp4', 'webm')
+
+
+def resolve_stream_file(hash, handle, file_idx) -> StreamFile:
+    torrent_info = handle.torrent_file()
+    files = torrent_info.layout()
+    offset = files.file_offset(file_idx)
+    size = files.file_size(file_idx)
+    piece_length = torrent_info.piece_length()
+    return StreamFile(
+        hash=hash,
+        handle=handle,
+        idx=file_idx,
+        path=os.path.join(TORRENT_SAVE_PATH, files.file_path(file_idx)),
+        offset=offset,
+        size=size,
+        piece_length=piece_length,
+        last_piece=(offset + size - 1) // piece_length,
+        ext=files.file_path(file_idx).lower().split('.')[-1],
+    )
+
+
+def internal_url(sf: StreamFile):
+    # ffmpeg reads the file through this server so that it can seek with Range requests, which a pipe can't do
+    return f"http://127.0.0.1:{settings.backend_port}/torrent/internal/{sf.hash}/{sf.idx}?key={INTERNAL_KEY}"
+
+
+def stream_errors(fn):
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await fn(*args, **kwargs)
+        except HTTPException as e:
+            print("error while streaming from a source : ", e.detail)
+            return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+        except TimeoutError as e:
+            print("timeout while streaming from a source : ", e)
+            return JSONResponse(status_code=504, content={"error": str(e)})
+        except Exception as e:
+            print("error while streaming from a source : ", e)
+            return JSONResponse(status_code=500, content={"error": "internal server error while streaming", "detail": str(e)})
+    return wrapper
+
+
+async def open_stream_file(request: Request, hash: str) -> StreamFile | None:
+    """Adds the torrent if needed and resolves the requested file. Returns None if the client disconnected."""
+    session = get_lt_session()
+
+    if hash in active_torrents:
+        handle = active_torrents[hash]
+        print(f"Reusing existing torrent handle for {hash}")
+    else:
+        trackers = await get_trackers()
+        print(f"trackers: {len(trackers)} trackers loaded")
+
+        info_hash = lt.sha1_hash(bytes.fromhex(hash))
+
+        add_params = lt.add_torrent_params()
+        add_params.info_hashes = lt.info_hash_t(info_hash)
+        add_params.save_path = TORRENT_SAVE_PATH
+        add_params.storage_mode = lt.storage_mode_t.storage_mode_sparse
+        add_params.trackers = trackers
+        # Season packs can be huge: nothing is downloaded until a file is explicitly requested
+        add_params.flags |= lt.torrent_flags.default_dont_download
+
+        handle = session.add_torrent(add_params)
+        active_torrents[hash] = handle
+        wanted_files[hash] = set()
+
+        handle.set_sequential_download(True)
+
+    print("Waiting for metadata...")
+    try:
+        if not await wait_for_metadata(handle, request):
+            print("Client disconnected while waiting for metadata")
+            return None
+    except TimeoutError:
+        drop_torrent(hash, handle)
+        raise
+
+    torrent_info = handle.torrent_file()
+    files = torrent_info.layout()
+
+    file_idx_str = request.query_params.get("fileIdx", "")
+    requested_idx = int(file_idx_str) if file_idx_str.isdigit() else None
+    requested_name = request.query_params.get("filename") or None
+
+    file_idx = select_video_file(torrent_info, requested_idx, requested_name)
+    if file_idx is None:
+        raise HTTPException(status_code=404, detail=f"Requested video file not found in torrent (fileIdx={file_idx_str}, filename={requested_name})")
+
+    # Priorities are tracked here because prioritize_files() is asynchronous,
+    # so handle.file_priorities() can return stale values right after it
+    wanted = wanted_files.setdefault(hash, set())
+    if file_idx not in wanted:
+        wanted.add(file_idx)
+        handle.prioritize_files([4 if i in wanted else 0 for i in range(files.num_files())])
+
+    print(f"Found video file #{file_idx}: {files.file_path(file_idx)} at torrent offset {files.file_offset(file_idx)}")
+    return resolve_stream_file(hash, handle, file_idx)
+
+
+async def serve_range(request: Request, sf: StreamFile):
+    range_header = request.headers.get("range")
+    if range_header:
+        start, end = parse_range_header(range_header, sf.size)
+        print(f"Range request: {start}-{end}/{sf.size}")
+    else:
+        start, end = 0, sf.size - 1
+
+    start_piece = (sf.offset + start) // sf.piece_length
+    end_piece = (sf.offset + end) // sf.piece_length
+
+    # Deadlines from a previous (abandoned) seek position would otherwise be served first
+    sf.handle.clear_piece_deadlines()
+
+    buffer_end_piece = min(start_piece + STREAM_BUFFER_PIECES - 1, end_piece)
+    print(f"Waiting for buffer pieces {start_piece}-{buffer_end_piece}...")
+    if not await wait_for_pieces(sf.handle, start_piece, buffer_end_piece, request=request):
+        print("Client disconnected while buffering")
+        return Response(status_code=499)
+
+    generator = stream_file_range(sf.handle, sf.path, sf.offset, sf.piece_length, sf.last_piece, start, end)
+    media_type = f"video/{sf.ext}" if sf.is_native else "application/octet-stream"
+    if range_header:
+        return StreamingResponse(
+            generator,
+            status_code=206,
+            media_type=media_type,
+            headers={
+                "Content-Range": f"bytes {start}-{end}/{sf.size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(end - start + 1)
+            }
+        )
+    return StreamingResponse(
+        generator,
+        media_type=media_type,
+        headers={
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(sf.size)
+        }
+    )
+
+
+async def run_ffprobe(sf: StreamFile, *args):
+    """Runs ffprobe with JSON output on the file; returns the parsed output, or None on failure."""
     process = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdin=subprocess.PIPE,
+        'ffprobe', '-v', 'error', *args, '-of', 'json', internal_url(sf),
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL
     )
+    try:
+        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=PROBE_TIMEOUT)
+    except asyncio.TimeoutError:
+        print(f"ffprobe timed out after {PROBE_TIMEOUT}s for {sf.path}")
+        return None
+    finally:
+        if process.returncode is None:
+            process.kill()
+            await process.communicate()
 
-    async def writer_task():
-        try:
-            generator = stream_file_range(handle, file_path, file_offset, piece_length, file_last_piece, 0, file_size - 1)
-            async for chunk in generator:
-                if process.returncode is not None:
-                    break
-                process.stdin.write(chunk)
-                await process.stdin.drain()
-        except (BrokenPipeError, ConnectionResetError):
+    try:
+        return json.loads(stdout or b"{}")
+    except ValueError:
+        return None
+
+
+async def probe_stream(sf: StreamFile):
+    """Returns (codec_name, pix_fmt, duration) of the file's first video stream; all None if probing fails."""
+    key = (sf.hash, sf.idx)
+    if key in probe_cache:
+        return probe_cache[key]
+
+    info = await run_ffprobe(sf, '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,pix_fmt:format=duration') or {}
+    streams = info.get("streams") or []
+    if not streams:
+        print(f"ffprobe found no video stream in {sf.path}")
+        return None, None, None
+
+    try:
+        duration = float(info.get("format", {}).get("duration"))
+    except (TypeError, ValueError):
+        duration = None
+    result = (streams[0].get("codec_name"), streams[0].get("pix_fmt"), duration)
+    probe_cache[key] = result
+    return result
+
+
+def can_copy_video(video_codec, pix_fmt):
+    # H.264 8-bit 4:2:0 plays in every browser, so it is remuxed instead of re-encoded
+    return video_codec == 'h264' and pix_fmt in ('yuv420p', 'yuvj420p')
+
+
+async def resolve_start_time(sf: StreamFile, start):
+    """Returns the time the transcoded stream will really start at when asked for `start`.
+
+    A stream copy can only begin on a keyframe, so the player must use that keyframe's time
+    as its offset; a re-encode starts exactly at `start`.
+    """
+    video_codec, pix_fmt, _ = await probe_stream(sf)
+    if start <= 0 or not can_copy_video(video_codec, pix_fmt):
+        return start
+
+    info = await run_ffprobe(sf, '-select_streams', 'v:0', '-read_intervals', f'{start:.3f}%+#1', '-show_entries', 'packet=pts_time,flags') or {}
+    for packet in info.get("packets") or []:
+        if 'K' in packet.get("flags", ""):
+            try:
+                # Rounded up so that the -ss given to ffmpeg never falls before the keyframe
+                return math.ceil(float(packet["pts_time"]) * 1000) / 1000
+            except (KeyError, ValueError):
+                break
+    return start
+
+
+def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
+    copy_video = can_copy_video(video_codec, pix_fmt)
+    if copy_video:
+        video_args = ['-c:v', 'copy']
+        # ffmpeg seeks to the keyframe before (-ss - 0.13s) for formats indexed by DTS such as mkv, so a
+        # start that is exactly on a keyframe would land on the previous one; the stream copy then
+        # still begins on the keyframe at `start`
+        seek = start + 0.2 if start > 0 else 0
+    else:
+        seek = start
+        video_args = [
+            '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', '23',
+            '-maxrate', '6M', '-bufsize', '12M',
+            # 10-bit sources would otherwise produce High 10 H.264, which browsers can't decode
+            '-pix_fmt', 'yuv420p',
+            '-vf', "scale=-2:'min(1080,ih)'",
+            # Short GOP: each fMP4 fragment starts on a keyframe, so this bounds the startup delay
+            '-g', '48',
+        ]
+    print(f"Transcoding from {start:.1f}s: video={video_codec}/{pix_fmt} -> {'copy' if copy_video else 'libx264'}")
+
+    return [
+        'ffmpeg', '-hide_banner', '-loglevel', 'error',
+        # Before -i, -ss seeks the input through its index instead of decoding everything up to `start`
+        *(['-ss', f'{seek:.3f}'] if seek > 0 else []),
+        '-i', input_url,
+        # Explicit mapping: the default picks subtitle tracks too, and bitmap ones (PGS/VobSub) make ffmpeg exit
+        '-map', '0:v:0', '-map', '0:a:0?',
+        '-sn', '-dn',
+        *video_args,
+        '-c:a', 'aac', '-ac', '2', '-b:a', '160k',
+        '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+        '-f', 'mp4',
+        'pipe:1'
+    ]
+
+
+async def stream_transcoded_video(input_url, start, video_codec, pix_fmt):
+    process = await asyncio.create_subprocess_exec(
+        *build_transcode_cmd(input_url, start, video_codec, pix_fmt),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    # stderr must be drained continuously, otherwise ffmpeg blocks once the pipe buffer fills
+    stderr_tail = deque(maxlen=20)
+
+    async def stderr_task():
+        async for line in process.stderr:
+            stderr_tail.append(line.decode(errors="replace").rstrip())
+
+    async def drain_and_wait():
+        # Since Python 3.12, process.wait() only returns once every pipe is closed, and the
+        # stdout transport stops reading (and never sees EOF) when nobody consumes it
+        while await process.stdout.read(65536):
             pass
-        except Exception as e:
-            print(f"Error in ffmpeg writer task: {e}")
-        finally:
-            if process.returncode is None:
-                try:
-                    process.stdin.close()
-                    await process.stdin.wait_closed()
-                except Exception:
-                    pass
+        return await process.wait()
 
-    task = asyncio.create_task(writer_task())
+    stderr_reader = asyncio.create_task(stderr_task())
+    finished = False
 
     try:
         while True:
@@ -276,149 +543,72 @@ async def stream_transcoded_video(handle, file_path, file_offset, piece_length, 
             if not chunk:
                 break
             yield chunk
-    except asyncio.CancelledError:
-        print("Transcoding cancelled by client")
+        finished = True
     finally:
-        if process.returncode is None:
-            try:
-                process.terminate()
-            except ProcessLookupError:
-                pass
-            await process.wait()
-        task.cancel()
-
-
-async def stream_from_source(request: Request, hash: str):
-    try:
-        session = get_lt_session()
-
-        if hash in active_torrents:
-            handle = active_torrents[hash]
-            print(f"Reusing existing torrent handle for {hash}")
-        else:
-            trackers = await get_trackers()
-            print(f"trackers: {len(trackers)} trackers loaded")
-
-            info_hash = lt.sha1_hash(bytes.fromhex(hash))
-
-            add_params = lt.add_torrent_params()
-            add_params.info_hashes = lt.info_hash_t(info_hash)
-            add_params.save_path = './uploads/torrent'
-            add_params.storage_mode = lt.storage_mode_t.storage_mode_sparse
-            add_params.trackers = trackers
-            # Season packs can be huge: nothing is downloaded until a file is explicitly requested
-            add_params.flags |= lt.torrent_flags.default_dont_download
-
-            handle = session.add_torrent(add_params)
-            active_torrents[hash] = handle
-            wanted_files[hash] = set()
-
-            handle.set_sequential_download(True)
-
-        print("Waiting for metadata...")
+        # Runs on client disconnect too (CancelledError / GeneratorExit), which must keep propagating
         try:
-            if not await wait_for_metadata(handle, request):
-                print("Client disconnected while waiting for metadata")
-                return Response(status_code=499)
-        except TimeoutError:
-            drop_torrent(hash, handle)
-            raise
+            # On EOF ffmpeg is already exiting; otherwise the client left and it must be stopped
+            if not finished and process.returncode is None:
+                process.terminate()
+            await asyncio.wait_for(drain_and_wait(), timeout=5)
+        except ProcessLookupError:
+            pass
+        except asyncio.TimeoutError:
+            process.kill()
+            await asyncio.wait_for(drain_and_wait(), timeout=5)
+        await asyncio.gather(stderr_reader, return_exceptions=True)
+        if finished and process.returncode != 0:
+            print(f"ffmpeg exited with code {process.returncode}:\n" + "\n".join(stderr_tail))
 
-        torrent_info = handle.torrent_file()
-        files = torrent_info.layout()
 
-        file_idx_str = request.query_params.get("fileIdx", "")
-        requested_idx = int(file_idx_str) if file_idx_str.isdigit() else None
-        requested_name = request.query_params.get("filename") or None
+def parse_start_time(request: Request):
+    try:
+        start = float(request.query_params.get("start", 0))
+    except ValueError:
+        return 0.0
+    return start if math.isfinite(start) and start > 0 else 0.0
 
-        file_idx = select_video_file(torrent_info, requested_idx, requested_name)
-        if file_idx is None:
-            raise HTTPException(status_code=404, detail=f"Requested video file not found in torrent (fileIdx={file_idx_str}, filename={requested_name})")
 
-        # Priorities are tracked here because prioritize_files() is asynchronous,
-        # so handle.file_priorities() can return stale values right after it
-        wanted = wanted_files.setdefault(hash, set())
-        if file_idx not in wanted:
-            wanted.add(file_idx)
-            handle.prioritize_files([4 if i in wanted else 0 for i in range(files.num_files())])
+@stream_errors
+async def stream_from_source(request: Request, hash: str):
+    sf = await open_stream_file(request, hash)
+    if sf is None:
+        return Response(status_code=499)
 
-        file_offset = files.file_offset(file_idx)
-        file_size = files.file_size(file_idx)
-        file_path = os.path.join('./uploads/torrent', files.file_path(file_idx))
-        print(f"Found video file #{file_idx}: {files.file_path(file_idx)} at torrent offset {file_offset}")
+    if sf.is_native:
+        return await serve_range(request, sf)
 
-        piece_length = torrent_info.piece_length()
-        file_last_piece = (file_offset + file_size - 1) // piece_length
+    video_codec, pix_fmt, _ = await probe_stream(sf)
+    generator = stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt)
+    return StreamingResponse(
+        generator,
+        media_type="video/mp4"
+    )
 
-        ext = files.file_path(file_idx).lower().split('.')[-1]
-        is_native = ext in ['mp4', 'webm']
 
-        if not is_native:
-            start_piece = file_offset // piece_length
-            end_piece = (file_offset + file_size - 1) // piece_length
-            handle.clear_piece_deadlines()
+@stream_errors
+async def get_stream_info(request: Request, hash: str):
+    sf = await open_stream_file(request, hash)
+    if sf is None:
+        return Response(status_code=499)
 
-            buffer_end_piece = min(start_piece + STREAM_BUFFER_PIECES - 1, end_piece)
-            print(f"Waiting for buffer pieces {start_piece}-{buffer_end_piece} for transcoding...")
-            if not await wait_for_pieces(handle, start_piece, buffer_end_piece, request=request):
-                print("Client disconnected while buffering")
-                return Response(status_code=499)
+    if sf.is_native:
+        return StreamInfoResponse(transcoded=False)
 
-            generator = stream_transcoded_video(handle, file_path, file_offset, piece_length, file_last_piece, file_size)
-            return StreamingResponse(
-                generator,
-                media_type="video/webm"
-            )
+    _, _, duration = await probe_stream(sf)
+    start = await resolve_start_time(sf, parse_start_time(request))
+    return StreamInfoResponse(transcoded=True, duration=duration, start=start)
 
-        range_header = request.headers.get("range")
-        if range_header:
-            start, end = parse_range_header(range_header, file_size)
-            print(f"Range request: {start}-{end}/{file_size}")
-        else:
-            start, end = 0, file_size - 1
 
-        start_piece = (file_offset + start) // piece_length
-        end_piece = (file_offset + end) // piece_length
+@stream_errors
+async def serve_internal_file(request: Request, hash: str, file_idx: int, key: str):
+    if not secrets.compare_digest(key, INTERNAL_KEY):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
-        # Deadlines from a previous (abandoned) seek position would otherwise be served first
-        handle.clear_piece_deadlines()
+    handle = active_torrents.get(hash)
+    if handle is None or not handle.has_metadata() or not 0 <= file_idx < handle.torrent_file().num_files():
+        raise HTTPException(status_code=404, detail="Torrent file is not active")
 
-        buffer_end_piece = min(start_piece + STREAM_BUFFER_PIECES - 1, end_piece)
-        print(f"Waiting for buffer pieces {start_piece}-{buffer_end_piece}...")
-        if not await wait_for_pieces(handle, start_piece, buffer_end_piece, request=request):
-            print("Client disconnected while buffering")
-            return Response(status_code=499)
-
-        generator = stream_file_range(handle, file_path, file_offset, piece_length, file_last_piece, start, end)
-        media_type = f"video/{ext}" if ext in ['mp4', 'webm'] else "video/mp4"
-        if range_header:
-            return StreamingResponse(
-                generator,
-                status_code=206,
-                media_type=media_type,
-                headers={
-                    "Content-Range": f"bytes {start}-{end}/{file_size}",
-                    "Accept-Ranges": "bytes",
-                    "Content-Length": str(end - start + 1)
-                }
-            )
-        return StreamingResponse(
-            generator,
-            media_type=media_type,
-            headers={
-                "Accept-Ranges": "bytes",
-                "Content-Length": str(file_size)
-            }
-        )
-
-    except HTTPException as e:
-        print("error while streaming from a source : ", e.detail)
-        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
-    except TimeoutError as e:
-        print("timeout while streaming from a source : ", e)
-        return JSONResponse(status_code=504, content={"error": str(e)})
-    except Exception as e:
-        print("error while streaming from a source : ", e)
-        return JSONResponse(status_code=500, content={"error": "internal server error while streaming", "detail": str(e)})
+    return await serve_range(request, resolve_stream_file(hash, handle, file_idx))
 
 # async def getArchiveSources()

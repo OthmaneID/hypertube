@@ -12,6 +12,7 @@ interface StreamingOptionsProps {
   seasonNumber: number;
   episodeNumber: number;
   serie_name: string;
+  episode_name?: string;
   setShowStreams: (show: boolean) => void;
   showStreams: boolean;
   duration?: number;
@@ -22,6 +23,7 @@ function StreamingOptions({
   seasonNumber,
   episodeNumber,
   serie_name,
+  episode_name,
   setShowStreams,
   showStreams,
   duration,
@@ -45,7 +47,8 @@ function StreamingOptions({
 
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
-      navigate(buildWatchPath(stream, duration));
+      const episodeLabel = `S${seasonNumber} E${episodeNumber}`;
+      navigate(buildWatchPath(stream, duration, serie_name, episode_name ? `${episodeLabel} · ${episode_name}` : episodeLabel));
     }
   };
 

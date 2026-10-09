@@ -18,3 +18,11 @@ class SourcesResponse(BaseModel):
     cacheMaxAge: int = 3600
     staleRevalidate: int = 14400
     staleError: int = 604800
+
+
+class StreamInfoResponse(BaseModel):
+    transcoded: bool
+    # Seconds, from ffprobe; only known for transcoded streams
+    duration: Optional[float] = None
+    # Seconds the transcoded stream will really start at for the requested ?start= (snapped to a keyframe)
+    start: float = 0

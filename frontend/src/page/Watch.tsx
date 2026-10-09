@@ -1,6 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import VideoPlayer from "../components/VideoPlayer";
+import { get_stream_info } from "../utils/api/movieService/torrentsApi";
 import {
   ArrowLeft,
   Wifi,
@@ -24,17 +26,16 @@ function Watch() {
   const fileIdx = queryParams.get("fileIdx");
   const filename = queryParams.get("filename");
   const title = queryParams.get("title") || undefined;
+  const subtitle = queryParams.get("subtitle") || undefined;
   const durationParam = queryParams.get("duration");
   const passedDuration = durationParam ? Number(durationParam) : undefined;
   if (fileIdx) streamParams.set("fileIdx", fileIdx);
   if (filename) streamParams.set("filename", filename);
 
-  const isTranscoded = filename ? !filename.toLowerCase().endsWith('.mp4') && !filename.toLowerCase().endsWith('.webm') : false;
-
   const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const streamUrl = `${backendUrl}/torrent/stream/${hash}?${streamParams.toString()}`;
 
-  return <StreamPlayer key={streamUrl} streamUrl={streamUrl} title={title} isTranscoded={isTranscoded} passedDuration={passedDuration} />;
+  return <StreamPlayer key={streamUrl} hash={hash ?? ""} streamParams={streamParams} streamUrl={streamUrl} title={title} subtitle={subtitle} passedDuration={passedDuration} />;
 }
 
 const SHORTCUTS = [
@@ -45,18 +46,32 @@ const SHORTCUTS = [
 ];
 
 function StreamPlayer({
+  hash,
+  streamParams,
   streamUrl,
   title,
-  isTranscoded = false,
+  subtitle,
   passedDuration,
 }: {
+  hash: string;
+  streamParams: URLSearchParams;
   streamUrl: string;
   title?: string;
-  isTranscoded?: boolean;
+  subtitle?: string;
   passedDuration?: number;
 }) {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<PlayerStatus>("loading");
+  const [playerStatus, setStatus] = useState<PlayerStatus>("loading");
+
+  // Whether the file is transcoded is decided by the backend, which also knows its real duration
+  const { data: streamInfo, isError: streamInfoFailed } = useQuery({
+    queryKey: ["streamInfo", streamUrl],
+    queryFn: () => get_stream_info(hash, streamParams),
+    retry: false,
+    staleTime: Infinity,
+  });
+  const status: PlayerStatus = streamInfoFailed ? "error" : playerStatus;
+
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showTopBar, setShowTopBar] = useState(true);
   const [topBarTimeout, setTopBarTimeout] = useState<ReturnType<
@@ -84,6 +99,33 @@ function StreamPlayer({
       if (topBarTimeout) clearTimeout(topBarTimeout);
     };
   }, [topBarTimeout]);
+
+
+  // Transcoded streams can't be range-requested, so a seek restarts the stream at `offset`
+  const [offset, setOffset] = useState(0);
+  const latestSeek = useRef(0);
+
+  const handleServerSeek = useCallback(
+    async (time: number) => {
+      const seekId = ++latestSeek.current;
+      setStatus("buffering");
+      try {
+        // The backend snaps the time to where the stream can really start (a keyframe)
+        const { start } = await get_stream_info(hash, streamParams, time);
+        if (seekId === latestSeek.current) setOffset(start);
+      } catch {
+        if (seekId === latestSeek.current) setStatus("error");
+      }
+    },
+    [hash, streamParams]
+  );
+
+  let videoSrc = streamUrl;
+  if (offset > 0) {
+    const url = new URL(streamUrl);
+    url.searchParams.set("start", String(offset));
+    videoSrc = url.toString();
+  }
 
   const isOverlay = status === "loading" || status === "buffering";
 
@@ -208,15 +250,17 @@ function StreamPlayer({
 
       {/* Video player — full-bleed theater */}
       <div className="relative flex-1 flex items-center justify-center z-10">
-        {status !== "error" && (
+        {status !== "error" && streamInfo && (
           <div className="w-full h-full flex items-center justify-center">
             <VideoPlayer
-              src={streamUrl}
+              src={videoSrc}
               title={title}
+              subtitle={subtitle}
               autoPlay
               hidePlayerBuffering
-              disableSeek={isTranscoded}
-              passedDuration={passedDuration}
+              passedDuration={streamInfo.duration ?? passedDuration}
+              timeOffset={streamInfo.transcoded ? offset : 0}
+              onServerSeek={streamInfo.transcoded ? handleServerSeek : undefined}
               onCanPlay={() => setStatus("playing")}
               onWaiting={() =>
                 setStatus((current) =>

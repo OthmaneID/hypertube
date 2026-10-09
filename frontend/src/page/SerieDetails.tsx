@@ -54,6 +54,7 @@ function SerieDetails() {
   const [showEpisodeSelector, setShowEpisodeSelector] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
+  const [selectedEpisodeName, setSelectedEpisodeName] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
@@ -124,9 +125,10 @@ function SerieDetails() {
     dragState.current.isDragging = false;
   };
 
-  const handleEpisodeSelect = (seasonNumber: number, episodeNumber: number) => {
+  const handleEpisodeSelect = (seasonNumber: number, episodeNumber: number, episodeName?: string) => {
     setSelectedSeason(seasonNumber);
     setSelectedEpisode(episodeNumber);
+    setSelectedEpisodeName(episodeName);
     setShowEpisodeSelector(false);
     setShowStreams(true);
   };
@@ -410,6 +412,7 @@ function SerieDetails() {
           seasonNumber={selectedSeason ?? 0}
           episodeNumber={selectedEpisode ?? 0}
           serie_name={serie?.name ?? ""}
+          episode_name={selectedEpisodeName}
           setShowStreams={setShowStreams}
           showStreams={showStreams}
           duration={serie?.episode_run_time?.[0] ? serie.episode_run_time[0] * 60 : undefined}

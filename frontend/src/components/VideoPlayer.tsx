@@ -25,11 +25,17 @@ interface VideoPlayerProps {
   src: string;
   poster?: string;
   title?: string;
+  // Secondary line under the title, e.g. "S1 E3 · Pilot"
+  subtitle?: string;
   subtitles?: SubtitleTrack[];
   autoPlay?: boolean;
   hidePlayerBuffering?: boolean;
   disableSeek?: boolean;
   passedDuration?: number;
+  // Position in the full video where `src` begins (transcoded streams restart at the seek target)
+  timeOffset?: number;
+  // When set, seeks outside what the current `src` has buffered are handed to the parent, with the absolute time
+  onServerSeek?: (time: number) => void;
   onEnded?: () => void;
   onCanPlay?: () => void;
   onWaiting?: ()   => void;
@@ -37,7 +43,7 @@ interface VideoPlayerProps {
   onError?: (e: any) => void;
 }
 
-export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, passedDuration, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, subtitle, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, passedDuration, timeOffset = 0, onServerSeek, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -103,10 +109,47 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
     }
   };
 
+  // For transcoded streams the element only knows the length of the current segment
+  const getTotal = () => {
+    const elementDuration = videoRef.current?.duration;
+    if (!onServerSeek && elementDuration && Number.isFinite(elementDuration)) return elementDuration;
+    return passedDuration || 0;
+  };
+
+  const isLocallySeekable = (video: HTMLVideoElement, time: number) => {
+    const inRanges = (ranges: TimeRanges) => {
+      for (let i = 0; i < ranges.length; i++) {
+        if (ranges.start(i) <= time && time <= ranges.end(i)) return true;
+      }
+      return false;
+    };
+    return inRanges(video.buffered) && inRanges(video.seekable);
+  };
+
+  // All seeks go through here with an absolute time in the full video
+  const seekTo = (time: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const total = getTotal();
+    if (!Number.isFinite(total) || total <= 0) return;
+    // A stream started at the very end would be empty
+    const target = Math.max(0, Math.min(time, total - 1));
+
+    setCurrentTime(target);
+    setProgress((target / total) * 100);
+
+    const local = target - timeOffset;
+    if (onServerSeek && !(local >= 0 && isLocallySeekable(video, local))) {
+      onServerSeek(target);
+      return;
+    }
+    video.currentTime = local;
+  };
+
   const handleTimeUpdate = () => {
     if (!videoRef.current || isSeeking) return;
-    const current = videoRef.current.currentTime;
-    const total = passedDuration || videoRef.current.duration;
+    const current = timeOffset + videoRef.current.currentTime;
+    const total = getTotal();
     setCurrentTime(current);
     if (total > 0 && total !== Infinity) {
       setProgress((current / total) * 100);
@@ -117,7 +160,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(passedDuration || videoRef.current.duration);
+      setDuration(getTotal());
       videoRef.current.playbackRate = speed; // Re-apply speed on load
     }
   };
@@ -157,9 +200,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
 
     // Optimistic UI update
     setProgress(pos * 100);
-    setCurrentTime(pos * videoRef.current.duration);
-
-    videoRef.current.currentTime = pos * videoRef.current.duration;
+    setCurrentTime(pos * getTotal());
   };
 
   const handleSeekStart = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -174,7 +215,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
     const rect = progressRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     setProgress(pos * 100);
-    setCurrentTime(pos * videoRef.current.duration);
+    setCurrentTime(pos * getTotal());
   };
 
   const handleSeekEnd = (e: PointerEvent) => {
@@ -183,7 +224,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
     setIsSeeking(false);
     const rect = progressRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    videoRef.current.currentTime = pos * videoRef.current.duration;
+    seekTo(pos * getTotal());
   };
 
   useEffect(() => {
@@ -232,13 +273,13 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
   const skipBackward = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (disableSeek) return;
-    if (videoRef.current) videoRef.current.currentTime -= 10;
+    if (videoRef.current) seekTo(timeOffset + videoRef.current.currentTime - 10);
   };
 
   const skipForward = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (disableSeek) return;
-    if (videoRef.current) videoRef.current.currentTime += 10;
+    if (videoRef.current) seekTo(timeOffset + videoRef.current.currentTime + 10);
   };
 
   const changeSpeed = (newSpeed: number) => {
@@ -304,7 +345,7 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
     
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isMuted, speed]);
+  }, [isMuted, speed, timeOffset, onServerSeek, passedDuration]);
 
   useEffect(() => {
     const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -415,8 +456,13 @@ export default function VideoPlayer({ src, poster, title, subtitles, autoPlay = 
         }`}
       >
         <h2 className="text-white/90 font-medium text-xl drop-shadow-lg max-w-3xl truncate px-4">
-          {title || "Now Playing"}
+          {title || subtitle || "Now Playing"}
         </h2>
+        {title && subtitle && (
+          <p className="text-white/60 text-sm drop-shadow-lg max-w-3xl truncate px-4 mt-1">
+            {subtitle}
+          </p>
+        )}
       </div>
 
       {/* Central Play/Pause overlay */}

@@ -4,7 +4,6 @@ import { useContext } from "react";
 import { Star } from "lucide-react";
 
 function Card({
-  id,
   poster,
   title,
   vote,
@@ -12,7 +11,6 @@ function Card({
   year,
   isExternal = false,
 }: {
-  id?: number;
   poster?: string;
   title?: string;
   vote?: number;

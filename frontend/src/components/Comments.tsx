@@ -31,100 +31,6 @@ interface Props {
   setShow: (value: boolean) => void;
 }
 
-// ─── Confirmation Dialog ────────────────────────────────────────────────────
-function ConfirmDeleteDialog({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-      />
-      {/* Dialog card */}
-      <div className="relative z-10 bg-gray-900 border border-gray-700/60 rounded-2xl shadow-2xl p-6 w-full max-w-xs flex flex-col gap-4" style={{ animation: 'fadeInScale 0.2s ease' }}>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/15">
-            <BiTrash className="text-red-400 text-xl" />
-          </div>
-          <div>
-            <h3 className="text-white font-semibold text-sm">{t("comments.deleteComment")}</h3>
-            <p className="text-gray-400 text-xs mt-0.5">{t("comments.cannotUndo")}</p>
-          </div>
-        </div>
-        <div className="flex gap-2 mt-1">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2 rounded-xl bg-gray-700/60 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-all active:scale-95"
-          >
-            {t("comments.cancel")}
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold transition-all active:scale-95"
-          >
-            {t("comments.delete")}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
-// ─── Three-dot dropdown menu (mobile) ──────────────────────────────────────
-function CommentMenu({ onDelete }: { onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all active:scale-95"
-        title="Options"
-        aria-label="Comment options"
-      >
-        <BiDotsVerticalRounded className="text-xl" />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 bottom-full mb-1 w-36 bg-gray-800 border border-gray-700/60 rounded-xl shadow-2xl overflow-hidden z-10" style={{ animation: 'fadeInDown 0.15s ease' }}>
-          <button
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-          >
-            <BiTrash className="text-base flex-shrink-0" />
-            {t("comments.delete")}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Comments({ movieId, show, setShow }: Props) {
   const { user } = useAuth(); // Get current logged-in user
   const { t } = useTranslation();
@@ -137,13 +43,6 @@ export default function Comments({ movieId, show, setShow }: Props) {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  // Fetch comments when the sidebar opens or movieId changes
-  useEffect(() => {
-    if (show) {
-      getComments();
-    }
-  }, [show, movieId]);
-
   // Close on Escape key
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
@@ -153,30 +52,36 @@ export default function Comments({ movieId, show, setShow }: Props) {
     return () => document.removeEventListener("keydown", handleKeydown);
   }, [setShow]);
 
-  const getComments = async () => {
-    try {
-      setIsFetching(true);
-      setOffset(0);
-      setHasMore(true);
+  useEffect(() => {
+    const getComments = async () => {
+      try {
+        setIsFetching(true);
+        setOffset(0);
+        setHasMore(true);
 
-      const response = await axios.get(`${BACKEND_URL}/comments/${movieId}`, {
-        params: { limit: LIMIT, offset: 0 },
-        withCredentials: true,
-      });
+        const response = await axios.get(`${BACKEND_URL}/comments/${movieId}`, {
+          params: { limit: LIMIT, offset: 0 },
+          withCredentials: true,
+        });
 
-      setComments(response.data);
+        setComments(response.data);
 
-      if (response.data.length < LIMIT) {
-        setHasMore(false);
+        if (response.data.length < LIMIT) {
+          setHasMore(false);
+        }
+      } catch (err) {
+        console.log(err);
+        setIsError(true);
+        setError(t("comments.failedLoad"));
+      } finally {
+        setIsFetching(false);
       }
-    } catch (err) {
-      console.log(err);
-      setIsError(true);
-      setError(t("comments.failedLoad"));
-    } finally {
-      setIsFetching(false);
+    };
+
+    if (show) {
+      getComments();
     }
-  };
+  }, [show, movieId, t]);
 
   const fetchMoreComments = async () => {
     if (isFetchingMore || !hasMore) return;
@@ -230,10 +135,10 @@ export default function Comments({ movieId, show, setShow }: Props) {
       // Append at the top (since it's a new comment)
       setComments((prev) => [response.data, ...prev]);
       setCommentInput("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.log(err);
       setIsError(true);
-      if (err.response?.status === 400) {
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
         // If it's the NSFW error from our new AI check
         setError(t("comments.nsfwBlocked"));
       } else {
@@ -313,7 +218,6 @@ export default function Comments({ movieId, show, setShow }: Props) {
 
           {comments.map((comment, idx) => {
             const isDeleted = comment.owner_id == -1;
-            comment.content === "[deleted]";
             const isOwner = user?.id === comment.owner_id;
 
             // Ensure we construct the correct picture URL if it's not an absolute URL (like Google/42 pictures)

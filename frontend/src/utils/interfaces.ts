@@ -363,3 +363,11 @@ export interface SourcesResponse {
   staleError?: number;
   error?: string;
 }
+
+export interface StreamInfo {
+  transcoded: boolean;
+  // Seconds, from ffprobe; only known for transcoded streams
+  duration?: number | null;
+  // Where the transcoded stream really starts for the requested time (snapped to a keyframe)
+  start: number;
+}

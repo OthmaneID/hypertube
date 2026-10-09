@@ -1,5 +1,5 @@
 import { axiosInstance as axios } from "../../axiosInstance";
-import type { SourcesResponse } from "../../interfaces";
+import type { SourcesResponse, StreamInfo } from "../../interfaces";
 
 
 export async function get_sources(
@@ -30,6 +30,19 @@ export async function get_episode_streams(
     console.log("error while getting episode sources : ", err);
     return { streams: [], error: err.message };
   }
+}
+
+// Throws on failure: the player can't pick a playback mode without it
+export async function get_stream_info(
+  hash: string,
+  streamParams: URLSearchParams,
+  start = 0,
+): Promise<StreamInfo> {
+  const params = Object.fromEntries(streamParams);
+  const res = await axios.get(`/torrent/stream/${hash}/info`, {
+    params: start > 0 ? { ...params, start } : params,
+  });
+  return res.data;
 }
 
 // export async function stream

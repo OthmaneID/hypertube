@@ -9,7 +9,7 @@ interface EpisodeSelectorModalProps {
   serie: SerieDetails;
   show: boolean;
   setShow: (show: boolean) => void;
-  onEpisodeSelect: (seasonNumber: number, episodeNumber: number) => void;
+  onEpisodeSelect: (seasonNumber: number, episodeNumber: number, episodeName?: string) => void;
 }
 
 function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: EpisodeSelectorModalProps) {
@@ -58,7 +58,8 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
     if (!isEpisodeAired) return; // Don't allow selecting unaired episodes
 
     setSelectedEpisode(episodeNumber);
-    onEpisodeSelect(selectedSeason, episodeNumber);
+    const episodeName = seasonDetails?.episodes?.find((e) => e.episode_number === episodeNumber)?.name;
+    onEpisodeSelect(selectedSeason, episodeNumber, episodeName);
   };
 
   if (!show) return null;
