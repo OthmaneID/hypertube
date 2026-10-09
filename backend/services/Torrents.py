@@ -46,6 +46,13 @@ def get_lt_session():
         settings['listen_interfaces'] = '0.0.0.0:6881'
         settings['enable_outgoing_utp'] = True
         settings['enable_incoming_utp'] = True
+        # Trackers share one tier; by default only one is tried at a time and dead ones eat the metadata timeout
+        settings['announce_to_all_trackers'] = True
+        settings['announce_to_all_tiers'] = True
+        settings['dht_bootstrap_nodes'] = (
+            'dht.libtorrent.org:25401,router.bittorrent.com:6881,'
+            'router.utorrent.com:6881,dht.transmissionbt.com:6881'
+        )
         lt_session.apply_settings(settings)
     return lt_session
 

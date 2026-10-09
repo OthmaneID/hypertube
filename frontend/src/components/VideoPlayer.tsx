@@ -179,7 +179,8 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
-      videoRef.current.play();
+      // Rejects with AbortError when a pause or a new load interrupts it; nothing to recover
+      videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     } else {
       videoRef.current.pause();
