@@ -9,8 +9,17 @@ export function sortBySeeders(streams: StreamElement[]): StreamElement[] {
   return [...streams].sort((a, b) => (getSeeders(b) ?? -1) - (getSeeders(a) ?? -1));
 }
 
-// `title` and `subtitle` are only shown in the player (e.g. the show name and "S1 E3 · Pilot")
-export function buildWatchPath(stream: StreamElement, duration?: number, title?: string, subtitle?: string): string {
+export interface WatchContext {
+  duration?: number;
+  imdbId?: string;
+  season?: number;
+  episode?: number;
+  // Shown in the player: the movie or show name, and for episodes a line like "S1 E3 · Pilot"
+  title?: string;
+  episodeTitle?: string;
+}
+
+export function buildWatchPath(stream: StreamElement, { duration, imdbId, season, episode, title, episodeTitle }: WatchContext = {}): string {
   const params = new URLSearchParams();
   if (stream.fileIdx !== undefined && stream.fileIdx !== null) {
     params.set("fileIdx", String(stream.fileIdx));
@@ -21,8 +30,15 @@ export function buildWatchPath(stream: StreamElement, duration?: number, title?:
   if (duration !== undefined) {
     params.set("duration", String(duration));
   }
+  if (imdbId) {
+    params.set("imdb", imdbId);
+    if (season !== undefined && episode !== undefined) {
+      params.set("season", String(season));
+      params.set("episode", String(episode));
+    }
+  }
   if (title) params.set("title", title);
-  if (subtitle) params.set("subtitle", subtitle);
+  if (episodeTitle) params.set("episodeTitle", episodeTitle);
   const query = params.toString();
   return `/watch/${stream.infoHash}${query ? `?${query}` : ""}`;
 }

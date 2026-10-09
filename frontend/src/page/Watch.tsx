@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import VideoPlayer from "../components/VideoPlayer";
+import VideoPlayer, { type SubtitleTrack } from "../components/VideoPlayer";
 import { get_stream_info } from "../utils/api/movieService/torrentsApi";
+import type { StreamInfo } from "../utils/interfaces";
+import { getSubtitles, revokeSubtitles, type SubtitleQuery } from "../utils/api/movieService/subtitlesApi";
 import {
   ArrowLeft,
   Wifi,
@@ -26,16 +27,42 @@ function Watch() {
   const fileIdx = queryParams.get("fileIdx");
   const filename = queryParams.get("filename");
   const title = queryParams.get("title") || undefined;
-  const subtitle = queryParams.get("subtitle") || undefined;
+  const episodeTitle = queryParams.get("episodeTitle") || undefined;
   const durationParam = queryParams.get("duration");
   const passedDuration = durationParam ? Number(durationParam) : undefined;
   if (fileIdx) streamParams.set("fileIdx", fileIdx);
   if (filename) streamParams.set("filename", filename);
 
+  const isTranscoded = filename ? !filename.toLowerCase().endsWith('.mp4') && !filename.toLowerCase().endsWith('.webm') : false;
+
   const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const streamUrl = `${backendUrl}/torrent/stream/${hash}?${streamParams.toString()}`;
 
-  return <StreamPlayer key={streamUrl} hash={hash ?? ""} streamParams={streamParams} streamUrl={streamUrl} title={title} subtitle={subtitle} passedDuration={passedDuration} />;
+  const imdbId = queryParams.get("imdb");
+  const seasonParam = queryParams.get("season");
+  const episodeParam = queryParams.get("episode");
+  const subtitleQuery: SubtitleQuery | undefined = imdbId
+    ? {
+        imdbId,
+        season: seasonParam ? Number(seasonParam) : undefined,
+        episode: episodeParam ? Number(episodeParam) : undefined,
+        filename: filename || undefined,
+      }
+    : undefined;
+
+  return (
+    <StreamPlayer
+      key={streamUrl}
+      streamUrl={streamUrl}
+      hash={hash || ""}
+      streamQuery={streamParams.toString()}
+      title={title}
+      episodeTitle={episodeTitle}
+      isTranscoded={isTranscoded}
+      passedDuration={passedDuration}
+      subtitleQuery={subtitleQuery}
+    />
+  );
 }
 
 const SHORTCUTS = [
@@ -46,32 +73,72 @@ const SHORTCUTS = [
 ];
 
 function StreamPlayer({
-  hash,
-  streamParams,
   streamUrl,
+  hash,
+  streamQuery,
   title,
-  subtitle,
+  episodeTitle,
+  isTranscoded = false,
   passedDuration,
+  subtitleQuery,
 }: {
-  hash: string;
-  streamParams: URLSearchParams;
   streamUrl: string;
+  hash: string;
+  streamQuery: string;
   title?: string;
-  subtitle?: string;
+  episodeTitle?: string;
+  isTranscoded?: boolean;
   passedDuration?: number;
+  subtitleQuery?: SubtitleQuery;
 }) {
   const navigate = useNavigate();
-  const [playerStatus, setStatus] = useState<PlayerStatus>("loading");
+  const [status, setStatus] = useState<PlayerStatus>("loading");
+  const [hasPlayed, setHasPlayed] = useState(false);
+  const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
+  const [subtitles, setSubtitles] = useState<SubtitleTrack[]>([]);
 
-  // Whether the file is transcoded is decided by the backend, which also knows its real duration
-  const { data: streamInfo, isError: streamInfoFailed } = useQuery({
-    queryKey: ["streamInfo", streamUrl],
-    queryFn: () => get_stream_info(hash, streamParams),
-    retry: false,
-    staleTime: Infinity,
-  });
-  const status: PlayerStatus = streamInfoFailed ? "error" : playerStatus;
+  const { imdbId, season, episode, filename } = subtitleQuery ?? {};
+  useEffect(() => {
+    if (!imdbId) return;
+    let cancelled = false;
+    let loaded: SubtitleTrack[] = [];
+    getSubtitles({ imdbId, season, episode, filename }).then((tracks) => {
+      if (cancelled) {
+        revokeSubtitles(tracks);
+        return;
+      }
+      loaded = tracks;
+      setSubtitles(tracks);
+    });
+    return () => {
+      cancelled = true;
+      revokeSubtitles(loaded);
+    };
+  }, [imdbId, season, episode, filename]);
 
+  // Asked only once playback starts, so it doesn't compete with the initial buffering
+  useEffect(() => {
+    if (!hasPlayed || !hash) return;
+    let cancelled = false;
+    get_stream_info(hash, new URLSearchParams(streamQuery))
+      .then((info) => {
+        if (!cancelled) setStreamInfo(info);
+      })
+      // Without it the player keeps guessing from the file extension
+      .catch((err) => console.error("error while getting stream info : ", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPlayed, hash, streamQuery]);
+
+  const transcoded = streamInfo?.transcoded ?? isTranscoded;
+
+  // The backend snaps a seek target to the keyframe a stream copy can start on
+  const resolveSeekStart = useCallback(
+    async (time: number) => (await get_stream_info(hash, new URLSearchParams(streamQuery), time)).start,
+    [hash, streamQuery]
+  );
+  const duration = streamInfo?.duration || passedDuration;
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showTopBar, setShowTopBar] = useState(true);
   const [topBarTimeout, setTopBarTimeout] = useState<ReturnType<
@@ -99,33 +166,6 @@ function StreamPlayer({
       if (topBarTimeout) clearTimeout(topBarTimeout);
     };
   }, [topBarTimeout]);
-
-
-  // Transcoded streams can't be range-requested, so a seek restarts the stream at `offset`
-  const [offset, setOffset] = useState(0);
-  const latestSeek = useRef(0);
-
-  const handleServerSeek = useCallback(
-    async (time: number) => {
-      const seekId = ++latestSeek.current;
-      setStatus("buffering");
-      try {
-        // The backend snaps the time to where the stream can really start (a keyframe)
-        const { start } = await get_stream_info(hash, streamParams, time);
-        if (seekId === latestSeek.current) setOffset(start);
-      } catch {
-        if (seekId === latestSeek.current) setStatus("error");
-      }
-    },
-    [hash, streamParams]
-  );
-
-  let videoSrc = streamUrl;
-  if (offset > 0) {
-    const url = new URL(streamUrl);
-    url.searchParams.set("start", String(offset));
-    videoSrc = url.toString();
-  }
 
   const isOverlay = status === "loading" || status === "buffering";
 
@@ -250,24 +290,28 @@ function StreamPlayer({
 
       {/* Video player — full-bleed theater */}
       <div className="relative flex-1 flex items-center justify-center z-10">
-        {status !== "error" && streamInfo && (
+        {status !== "error" && (
           <div className="w-full h-full flex items-center justify-center">
             <VideoPlayer
-              src={videoSrc}
+              src={streamUrl}
               title={title}
-              subtitle={subtitle}
+              episodeTitle={episodeTitle}
               autoPlay
               hidePlayerBuffering
-              passedDuration={streamInfo.duration ?? passedDuration}
-              timeOffset={streamInfo.transcoded ? offset : 0}
-              onServerSeek={streamInfo.transcoded ? handleServerSeek : undefined}
+              transcoded={transcoded}
+              resolveSeekStart={resolveSeekStart}
+              passedDuration={duration}
+              subtitles={subtitles.length > 0 ? subtitles : undefined}
               onCanPlay={() => setStatus("playing")}
               onWaiting={() =>
                 setStatus((current) =>
                   current === "loading" ? current : "buffering"
                 )
               }
-              onPlaying={() => setStatus("playing")}
+              onPlaying={() => {
+                setStatus("playing");
+                setHasPlayed(true);
+              }}
               onError={() => setStatus("error")}
               onEnded={() => setStatus("ended")}
             />

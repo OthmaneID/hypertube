@@ -22,6 +22,8 @@ lt_session = None
 active_torrents = {}
 # hash -> indexes of files that have been requested for streaming
 wanted_files = {}
+# Concurrent requests for a new hash (stream + info) must not add the torrent twice
+torrent_add_lock = asyncio.Lock()
 # (hash, file index) -> (codec_name, pix_fmt, duration) from ffprobe
 probe_cache = {}
 # Authorizes ffmpeg's requests to the internal file endpoint, which has no user session
@@ -301,14 +303,12 @@ def stream_errors(fn):
     return wrapper
 
 
-async def open_stream_file(request: Request, hash: str) -> StreamFile | None:
-    """Adds the torrent if needed and resolves the requested file. Returns None if the client disconnected."""
-    session = get_lt_session()
+async def get_torrent_handle(hash: str):
+    async with torrent_add_lock:
+        if hash in active_torrents:
+            print(f"Reusing existing torrent handle for {hash}")
+            return active_torrents[hash]
 
-    if hash in active_torrents:
-        handle = active_torrents[hash]
-        print(f"Reusing existing torrent handle for {hash}")
-    else:
         trackers = await get_trackers()
         print(f"trackers: {len(trackers)} trackers loaded")
 
@@ -322,11 +322,17 @@ async def open_stream_file(request: Request, hash: str) -> StreamFile | None:
         # Season packs can be huge: nothing is downloaded until a file is explicitly requested
         add_params.flags |= lt.torrent_flags.default_dont_download
 
-        handle = session.add_torrent(add_params)
+        handle = get_lt_session().add_torrent(add_params)
         active_torrents[hash] = handle
         wanted_files[hash] = set()
 
         handle.set_sequential_download(True)
+        return handle
+
+
+async def open_stream_file(request: Request, hash: str) -> StreamFile | None:
+    """Adds the torrent if needed and resolves the requested file. Returns None if the client disconnected."""
+    handle = await get_torrent_handle(hash)
 
     print("Waiting for metadata...")
     try:

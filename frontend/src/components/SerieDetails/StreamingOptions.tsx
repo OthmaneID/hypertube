@@ -48,7 +48,16 @@ function StreamingOptions({
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
       const episodeLabel = `S${seasonNumber} E${episodeNumber}`;
-      navigate(buildWatchPath(stream, duration, serie_name, episode_name ? `${episodeLabel} · ${episode_name}` : episodeLabel));
+      navigate(
+        buildWatchPath(stream, {
+          duration,
+          imdbId: imdb_id,
+          season: seasonNumber,
+          episode: episodeNumber,
+          title: serie_name,
+          episodeTitle: episode_name ? `${episodeLabel} · ${episode_name}` : episodeLabel,
+        })
+      );
     }
   };
 

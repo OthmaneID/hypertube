@@ -26,16 +26,16 @@ interface VideoPlayerProps {
   poster?: string;
   title?: string;
   // Secondary line under the title, e.g. "S1 E3 · Pilot"
-  subtitle?: string;
+  episodeTitle?: string;
   subtitles?: SubtitleTrack[];
   autoPlay?: boolean;
   hidePlayerBuffering?: boolean;
   disableSeek?: boolean;
+  /** The server re-encodes the file live, so seeking restarts the stream at `?start=<seconds>` */
+  transcoded?: boolean;
+  /** Where a transcoded stream can really start for a seek target (the server snaps to a keyframe) */
+  resolveSeekStart?: (time: number) => Promise<number>;
   passedDuration?: number;
-  // Position in the full video where `src` begins (transcoded streams restart at the seek target)
-  timeOffset?: number;
-  // When set, seeks outside what the current `src` has buffered are handed to the parent, with the absolute time
-  onServerSeek?: (time: number) => void;
   onEnded?: () => void;
   onCanPlay?: () => void;
   onWaiting?: ()   => void;
@@ -43,7 +43,13 @@ interface VideoPlayerProps {
   onError?: (e: any) => void;
 }
 
-export default function VideoPlayer({ src, poster, title, subtitle, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, passedDuration, timeOffset = 0, onServerSeek, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
+const TRANSCODED_SEEK_DEBOUNCE_MS = 400;
+
+function withStartParam(src: string, start: number) {
+  return `${src}${src.includes("?") ? "&" : "?"}start=${start.toFixed(1)}`;
+}
+
+export default function VideoPlayer({ src, poster, title, episodeTitle, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, transcoded = false, resolveSeekStart, passedDuration, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -70,11 +76,83 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
 
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Transcoded streams always start at media time 0, so the real position is startOffset + currentTime
+  const [startOffset, setStartOffset] = useState(0);
+  const [seekAutoPlay, setSeekAutoPlay] = useState<boolean | null>(null);
+  const startOffsetRef = useRef(0);
+  const lastGoodOffsetRef = useRef(0);
+  const pendingSeekRef = useRef<number | null>(null);
+  // Bumped by every seek, so a start resolved for an older seek is discarded
+  const seekRequestRef = useRef(0);
+  const seekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasStartedRef = useRef(false);
+  const cueOriginalTimesRef = useRef(new WeakMap<TextTrackCue, [number, number]>());
+
+  const videoSrc = transcoded && startOffset > 0 ? withStartParam(src, startOffset) : src;
+
   useEffect(() => {
-    if (subtitles) {
-      const defaultIdx = subtitles.findIndex((s) => s.default);
-      if (defaultIdx !== -1) setActiveSubtitleIndex(defaultIdx);
+    return () => {
+      if (seekTimerRef.current) clearTimeout(seekTimerRef.current);
+    };
+  }, []);
+
+  const getTotalDuration = () => {
+    const mediaDuration = videoRef.current?.duration;
+    const hasMediaDuration = mediaDuration !== undefined && Number.isFinite(mediaDuration) && mediaDuration > 0;
+    if (!transcoded && hasMediaDuration) return mediaDuration;
+    return passedDuration || (hasMediaDuration ? mediaDuration : 0);
+  };
+
+  const getPosition = () => {
+    if (pendingSeekRef.current !== null) return pendingSeekRef.current;
+    return startOffsetRef.current + (videoRef.current?.currentTime || 0);
+  };
+
+  // Subtitle cues are timed against the whole movie, so shift them by the transcoded start offset
+  const applySubtitleOffset = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const originals = cueOriginalTimesRef.current;
+    const offset = startOffsetRef.current;
+    for (const track of Array.from(video.textTracks)) {
+      if (!track.cues) continue;
+      for (const cue of Array.from(track.cues)) {
+        let original = originals.get(cue);
+        if (!original) {
+          original = [cue.startTime, cue.endTime];
+          originals.set(cue, original);
+        }
+        cue.startTime = original[0] - offset;
+        cue.endTime = original[1] - offset;
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const trackElements = Array.from(video.querySelectorAll("track"));
+    trackElements.forEach((t) => t.addEventListener("load", applySubtitleOffset));
+    applySubtitleOffset();
+    return () => trackElements.forEach((t) => t.removeEventListener("load", applySubtitleOffset));
+  }, [subtitles, startOffset, applySubtitleOffset]);
+
+  useEffect(() => {
+    const total = getTotalDuration();
+    if (total > 0) setDuration(total);
+  }, [passedDuration, transcoded]);
+
+  useEffect(() => {
+    if (!subtitles) return;
+    const defaultIdx = subtitles.findIndex((s) => s.default);
+    // Tracks added after the video started are not auto-enabled by the `default` attribute
+    const tracks = videoRef.current?.textTracks;
+    if (tracks) {
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].mode = i === defaultIdx ? "showing" : "hidden";
+      }
+    }
+    setActiveSubtitleIndex(defaultIdx);
   }, [subtitles]);
 
   // Auto-hide controls when mouse is idle
@@ -109,11 +187,69 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
     }
   };
 
-  // For transcoded streams the element only knows the length of the current segment
-  const getTotal = () => {
-    const elementDuration = videoRef.current?.duration;
-    if (!onServerSeek && elementDuration && Number.isFinite(elementDuration)) return elementDuration;
-    return passedDuration || 0;
+  const handleTimeUpdate = () => {
+    if (!videoRef.current || isSeeking || pendingSeekRef.current !== null) return;
+    if (startOffsetRef.current !== startOffset) return; // old stream still reporting before the new src renders
+    const current = getPosition();
+    const total = getTotalDuration();
+    setCurrentTime(current);
+    if (total > 0) {
+      setProgress(Math.min(100, (current / total) * 100));
+    } else {
+      setProgress(0);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(getTotalDuration());
+      videoRef.current.playbackRate = speed; // Re-apply speed on load
+      applySubtitleOffset();
+    }
+  };
+
+  const handleCanPlay = () => {
+    setIsWaiting(false);
+    lastGoodOffsetRef.current = startOffsetRef.current;
+    // Without autoplay no "playing" event follows, so report readiness here (e.g. a seek while paused)
+    if (!(seekAutoPlay ?? autoPlay)) onCanPlay?.();
+  };
+
+  const handleError = () => {
+    setIsWaiting(false);
+    console.error("Video failed to load");
+  };
+
+  const commitTranscodedSeek = (target: number, resume: boolean) => {
+    seekRequestRef.current++;
+    const previous = startOffsetRef.current;
+    startOffsetRef.current = target;
+    setSeekAutoPlay(resume);
+    setIsWaiting(true);
+    onWaiting?.();
+    if (target === previous) {
+      // Same URL as the current one: React won't touch src, so restart the stream manually
+      videoRef.current?.load();
+    } else {
+      setStartOffset(target);
+    }
+  };
+
+  const startTranscodedSeek = async (target: number, resume: boolean) => {
+    const requestId = ++seekRequestRef.current;
+    setIsWaiting(true);
+    onWaiting?.();
+    let start = target;
+    if (resolveSeekStart) {
+      try {
+        start = await resolveSeekStart(target);
+      } catch {
+        // The exact target still plays, just up to one keyframe interval off
+      }
+    }
+    if (requestId !== seekRequestRef.current) return;
+    pendingSeekRef.current = null;
+    commitTranscodedSeek(start, resume);
   };
 
   const isLocallySeekable = (video: HTMLVideoElement, time: number) => {
@@ -126,52 +262,45 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
     return inRanges(video.buffered) && inRanges(video.seekable);
   };
 
-  // All seeks go through here with an absolute time in the full video
-  const seekTo = (time: number) => {
+  const seekTo = (target: number) => {
     const video = videoRef.current;
-    if (!video) return;
-    const total = getTotal();
-    if (!Number.isFinite(total) || total <= 0) return;
-    // A stream started at the very end would be empty
-    const target = Math.max(0, Math.min(time, total - 1));
+    if (disableSeek || !video) return;
+    const total = getTotalDuration();
+    const clamped = Math.max(0, total > 0 ? Math.min(target, total - 1) : target);
 
-    setCurrentTime(target);
-    setProgress((target / total) * 100);
+    setCurrentTime(clamped);
+    if (total > 0) setProgress((clamped / total) * 100);
 
-    const local = target - timeOffset;
-    if (onServerSeek && !(local >= 0 && isLocallySeekable(video, local))) {
-      onServerSeek(target);
+    if (!transcoded) {
+      video.currentTime = clamped;
       return;
     }
-    video.currentTime = local;
-  };
 
-  const handleTimeUpdate = () => {
-    if (!videoRef.current || isSeeking) return;
-    const current = timeOffset + videoRef.current.currentTime;
-    const total = getTotal();
-    setCurrentTime(current);
-    if (total > 0 && total !== Infinity) {
-      setProgress((current / total) * 100);
-    } else {
-      setProgress(0);
+    // Data the current stream already delivered can be replayed without restarting it
+    const local = clamped - startOffsetRef.current;
+    if (pendingSeekRef.current === null && local >= 0 && isLocallySeekable(video, local)) {
+      video.currentTime = local;
+      return;
     }
+
+    // Each transcoded seek restarts ffmpeg on the server, so rapid skips are merged into one
+    pendingSeekRef.current = clamped;
+    seekRequestRef.current++;
+    const resume = hasStartedRef.current ? isPlaying : autoPlay;
+    if (seekTimerRef.current) clearTimeout(seekTimerRef.current);
+    seekTimerRef.current = setTimeout(() => {
+      seekTimerRef.current = null;
+      // Stays set until the stream restarts, so the old stream's timeupdates don't move the bar back
+      const next = pendingSeekRef.current;
+      if (next !== null) startTranscodedSeek(next, resume);
+    }, TRANSCODED_SEEK_DEBOUNCE_MS);
   };
 
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(getTotal());
-      videoRef.current.playbackRate = speed; // Re-apply speed on load
-    }
-  };
-
-  const handleCanPlay = () => {
-    setIsWaiting(false);
-  };
-
-  const handleError = () => {
-    setIsWaiting(false);
-    console.error("Video failed to load");
+  const getPointerTarget = (clientX: number) => {
+    if (!progressRef.current) return 0;
+    const rect = progressRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return pos * getTotalDuration();
   };
 
   // Double click to seek
@@ -192,39 +321,34 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
     setTimeout(() => setDoubleClickSide(null), 500);
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.PointerEvent<HTMLDivElement>) => {
-    if (disableSeek) return;
-    if (!videoRef.current || !progressRef.current) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-
-    // Optimistic UI update
-    setProgress(pos * 100);
-    setCurrentTime(pos * getTotal());
+  const previewSeek = (clientX: number) => {
+    const total = getTotalDuration();
+    if (total <= 0) return;
+    const target = getPointerTarget(clientX);
+    setProgress((target / total) * 100);
+    setCurrentTime(target);
   };
 
   const handleSeekStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disableSeek) return;
+    if (!videoRef.current || !progressRef.current || getTotalDuration() <= 0) return;
     setIsSeeking(true);
-    handleSeek(e);
+    previewSeek(e.clientX);
+    // Transcoded streams only restart once the drag is released
+    if (!transcoded) seekTo(getPointerTarget(e.clientX));
   };
 
   const handleSeekMove = (e: PointerEvent) => {
     if (disableSeek) return;
     if (!isSeeking || !progressRef.current || !videoRef.current) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    setProgress(pos * 100);
-    setCurrentTime(pos * getTotal());
+    previewSeek(e.clientX);
   };
 
   const handleSeekEnd = (e: PointerEvent) => {
     if (disableSeek) return;
     if (!isSeeking || !videoRef.current || !progressRef.current) return;
     setIsSeeking(false);
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    seekTo(pos * getTotal());
+    seekTo(getPointerTarget(e.clientX));
   };
 
   useEffect(() => {
@@ -272,14 +396,12 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
 
   const skipBackward = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (disableSeek) return;
-    if (videoRef.current) seekTo(timeOffset + videoRef.current.currentTime - 10);
+    seekTo(getPosition() - 10);
   };
 
   const skipForward = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (disableSeek) return;
-    if (videoRef.current) seekTo(timeOffset + videoRef.current.currentTime + 10);
+    seekTo(getPosition() + 10);
   };
 
   const changeSpeed = (newSpeed: number) => {
@@ -315,37 +437,39 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
     }
   };
 
-  // Keyboard controls
+  // Keyboard controls (read through a ref so the listener always sees the latest seek state)
+  const keyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  keyDownRef.current = (e: KeyboardEvent) => {
+    if (!containerRef.current?.contains(document.activeElement)) return;
+
+    switch (e.key) {
+      case " ":
+      case "k":
+        e.preventDefault();
+        togglePlay();
+        break;
+      case "f":
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case "m":
+        e.preventDefault();
+        toggleMute();
+        break;
+      case "ArrowRight":
+        skipForward();
+        break;
+      case "ArrowLeft":
+        skipBackward();
+        break;
+    }
+  };
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!containerRef.current?.contains(document.activeElement)) return;
-      
-      switch (e.key) {
-        case " ":
-        case "k":
-          e.preventDefault();
-          togglePlay();
-          break;
-        case "f":
-          e.preventDefault();
-          toggleFullscreen();
-          break;
-        case "m":
-          e.preventDefault();
-          toggleMute();
-          break;
-        case "ArrowRight":
-          skipForward();
-          break;
-        case "ArrowLeft":
-          skipBackward();
-          break;
-      }
-    };
-    
+    const handleKeyDown = (e: KeyboardEvent) => keyDownRef.current(e);
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isMuted, speed, timeOffset, onServerSeek, passedDuration]);
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -377,7 +501,7 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
       {/* Video Element */}
       <video
         ref={videoRef}
-        src={src}
+        src={videoSrc}
         poster={poster}
         className="w-full h-full object-contain cursor-pointer"
         onClick={togglePlay}
@@ -387,16 +511,22 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
         onCanPlay={handleCanPlay}
         onError={(e) => {
           console.error("Video error:", e.currentTarget.error);
+          if (transcoded && startOffsetRef.current !== lastGoodOffsetRef.current) {
+            // A failed jump falls back to the last position that played instead of killing the player
+            commitTranscodedSeek(lastGoodOffsetRef.current, isPlaying);
+            return;
+          }
           if (onError) onError(e);
         }}
         onWaiting={onWaiting}
         onPlaying={() => {
+          hasStartedRef.current = true;
           setIsPlaying(true);
           if (onPlaying) onPlaying();
         }}
         onEnded={onEnded}
         preload="auto"
-        autoPlay={autoPlay}
+        autoPlay={seekAutoPlay ?? autoPlay}
       >
         {subtitles?.map((sub, idx) => (
           <track
@@ -456,11 +586,11 @@ export default function VideoPlayer({ src, poster, title, subtitle, subtitles, a
         }`}
       >
         <h2 className="text-white/90 font-medium text-xl drop-shadow-lg max-w-3xl truncate px-4">
-          {title || subtitle || "Now Playing"}
+          {title || episodeTitle || "Now Playing"}
         </h2>
-        {title && subtitle && (
+        {title && episodeTitle && (
           <p className="text-white/60 text-sm drop-shadow-lg max-w-3xl truncate px-4 mt-1">
-            {subtitle}
+            {episodeTitle}
           </p>
         )}
       </div>

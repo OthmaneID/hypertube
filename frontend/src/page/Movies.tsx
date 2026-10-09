@@ -5,9 +5,7 @@ import { searchMovies, type SearchResultItem } from "../utils/api/movieService/s
 import type { PopularMoviesResponse } from "../utils/interfaces";
 import { BiArrowToTop, BiSearch, BiX, BiFilterAlt } from "react-icons/bi";
 import Card from "../components/Card";
-import VideoPlayer from "../components/VideoPlayer";
 import { useTranslation } from "react-i18next";
-import { getMovieSubtitles } from "../utils/api/movieService/subtitlesApi";
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -65,20 +63,6 @@ function Movies() {
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number>(0);
   const [showTopBtn, setShowTopBtn] = useState(false);
-  const [showTestVideo, setShowTestVideo] = useState(false);
-  const [testSubtitles, setTestSubtitles] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (showTestVideo) {
-      // Any developer can now easily fetch subtitles for ANY movie ID like this:
-      getMovieSubtitles(13558).then((subs) => {
-        console.log("Fetched Subtitles:", subs);
-        setTestSubtitles(subs);
-      });
-    } else {
-      setTestSubtitles([]);
-    }
-  }, [showTestVideo]);
 
   const isSearchMode = debouncedQuery.trim().length > 0;
   const hasActiveFilters = minRating > 0 || minYear > 1900 || maxYear < CURRENT_YEAR || selectedGenre > 0;
@@ -288,31 +272,7 @@ function Movies() {
             <BiFilterAlt />
             {t("movies.filtersBtn")}{hasActiveFilters ? " •" : ""}
           </button>
-
-          {/* Test Video Player Button */}
-          <button
-            onClick={() => setShowTestVideo((v) => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-              showTestVideo
-                ? "bg-red-600 text-white"
-                : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
-            }`}
-          >
-            Test Video Player
-          </button>
         </div>
-
-        {/* Video Player Display */}
-        {showTestVideo && (
-          <div className="w-full max-w-5xl mx-auto my-6">
-            <VideoPlayer
-              src="https://raw.githubusercontent.com/mediaelement/mediaelement-files/master/big_buck_bunny.mp4"
-              title="Big Buck Bunny (Test Video)"
-              poster="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg"
-              subtitles={testSubtitles.length > 0 ? testSubtitles : undefined}
-            />
-          </div>
-        )}
 
         {/* Filter panel */}
         {showFilters && (
