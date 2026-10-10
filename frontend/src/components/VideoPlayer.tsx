@@ -325,9 +325,13 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     }
 
     // Each transcoded seek restarts ffmpeg on the server, so rapid skips are merged into one
+    const resume = hasStartedRef.current ? isPlaying : autoPlay;
+    // Stop the old stream right away so it doesn't keep playing while the new one is prepared
+    video.pause();
+    setIsWaiting(true);
+    onWaiting?.();
     pendingSeekRef.current = clamped;
     seekRequestRef.current++;
-    const resume = hasStartedRef.current ? isPlaying : autoPlay;
     if (seekTimerRef.current) clearTimeout(seekTimerRef.current);
     seekTimerRef.current = setTimeout(() => {
       seekTimerRef.current = null;
@@ -559,9 +563,13 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
           }
           if (onError) onError(e);
         }}
-        onWaiting={onWaiting}
+        onWaiting={() => {
+          setIsWaiting(true);
+          onWaiting?.();
+        }}
         onPlaying={() => {
           hasStartedRef.current = true;
+          setIsWaiting(false);
           setIsPlaying(true);
           if (onPlaying) onPlaying();
         }}
@@ -607,8 +615,8 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         </div>
       </div>
 
-      {/* Buffering Indicator (hidden when Watch page provides its own overlay) */}
-      {!hidePlayerBuffering && isWaiting && (
+      {/* Buffering Indicator (the Watch page's own overlay is outside the fullscreen element, so show ours there) */}
+      {(!hidePlayerBuffering || isFullscreen) && isWaiting && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none transition-all z-10">
           <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
         </div>
