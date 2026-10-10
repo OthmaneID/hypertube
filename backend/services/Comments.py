@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from models.Comment import Comment
 from schema.Comment import CommentResponse
 from fastapi import HTTPException
+from datetime import datetime
 
 # from google import genai
 
@@ -74,7 +75,34 @@ def deleteComment(comment_id: int, db: Session, user_id: int):
         comment.is_deleted = True
         db.commit()
         return True
+    except HTTPException as e:
+        raise e
     except Exception as e:
         db.rollback()
         print(f"error while deleting comment: {e}")
         raise HTTPException(500, "error while deleting comment")
+
+
+def editComment(comment_id: int, content: str, user_id: int, db: Session):
+    try:
+        content = content.strip()
+        if not content:
+            raise HTTPException(400, "comment content cannot be empty")
+        comment = db.query(Comment).filter(Comment.id == comment_id).first()
+        if not comment:
+            raise HTTPException(404, "comment not found")
+        if comment.owner_id != user_id:
+            raise HTTPException(403, "you are not authorized to edit this comment")
+        if comment.is_deleted:
+            raise HTTPException(400, "cannot edit a deleted comment")
+        comment.content = content
+        comment.updated_at = datetime.now()
+        db.commit()
+        db.refresh(comment)
+        return CommentResponse.model_validate(comment)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        db.rollback()
+        print(f"error while editing comment: {e}")
+        raise HTTPException(500, "error while editing comment")

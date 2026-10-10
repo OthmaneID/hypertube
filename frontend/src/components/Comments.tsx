@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { BiX, BiSend, BiTrash, BiDotsVerticalRounded } from "react-icons/bi";
+import { BiX, BiSend, BiTrash, BiEdit } from "react-icons/bi";
 import { useAuth } from "../global/authContext";
 import { useTranslation } from "react-i18next";
 
@@ -22,6 +22,7 @@ interface Comment {
   owner_id: number;
   content: string;
   created_at: string;
+  updated_at?: string | null;
   owner: CommentOwner;
 }
 
@@ -42,6 +43,9 @@ export default function Comments({ movieId, show, setShow }: Props) {
   const [error, setError] = useState("");
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Close on Escape key
   useEffect(() => {
@@ -147,6 +151,38 @@ export default function Comments({ movieId, show, setShow }: Props) {
     }
   };
 
+  const startEdit = (comment: Comment) => {
+    setEditingId(comment.id);
+    setEditText(comment.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const saveEdit = async (commentId: number) => {
+    const content = editText.trim();
+    if (content === "" || isSavingEdit) return;
+    setIsSavingEdit(true);
+    try {
+      const response = await axios.patch(
+        `${BACKEND_URL}/comments/${commentId}`,
+        { content },
+        { withCredentials: true },
+      );
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? response.data : c)),
+      );
+      cancelEdit();
+    } catch (err) {
+      console.log(err);
+      alert(t("comments.failedEdit"));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleDelete = async (commentId: number) => {
     try {
       await axios.delete(`${BACKEND_URL}/comments/${commentId}`, {
@@ -219,14 +255,13 @@ export default function Comments({ movieId, show, setShow }: Props) {
           {comments.map((comment, idx) => {
             const isDeleted = comment.owner_id == -1;
             const isOwner = user?.id === comment.owner_id;
+            const isEditing = editingId === comment.id;
 
             // Ensure we construct the correct picture URL if it's not an absolute URL (like Google/42 pictures)
             let pictureUrl = comment.owner.picture;
             if (pictureUrl && !pictureUrl.startsWith("http")) {
               pictureUrl = `${BACKEND_URL}/${pictureUrl}`; // Adjust based on how you serve static files
             }
-            console.log("Comment owner picture URL:", pictureUrl);
-            console.log("Is_deleted:", isDeleted, "Is_owner:", isOwner);
             return (
               <div
                 key={`${comment.id}-${idx}`}
@@ -268,27 +303,76 @@ export default function Comments({ movieId, show, setShow }: Props) {
                 </div>
 
                 {/* Comment content */}
-                <p
-                  className={`text-sm ${isDeleted ? "text-gray-400 italic" : "text-gray-200"}`}
-                >
-                  {comment.content}
-                </p>
+                {isEditing ? (
+                  <div className="flex flex-col gap-2">
+                    <textarea
+                      className="w-full bg-gray-900/70 text-gray-200 text-sm rounded-lg px-3 py-2 resize-none outline-none focus:ring-1 focus:ring-gray-500"
+                      rows={3}
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          saveEdit(comment.id);
+                        } else if (e.key === "Escape") {
+                          // Keeps the panel's global Escape handler from closing the comments
+                          e.stopPropagation();
+                          cancelEdit();
+                        }
+                      }}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={cancelEdit}
+                        className="px-3 py-1 rounded-lg text-xs text-gray-300 hover:bg-gray-700/60 transition-colors"
+                      >
+                        {t("comments.cancel")}
+                      </button>
+                      <button
+                        onClick={() => saveEdit(comment.id)}
+                        disabled={isSavingEdit || editText.trim() === ""}
+                        className="px-3 py-1 rounded-lg text-xs bg-gray-700/60 text-white hover:bg-gray-600/70 disabled:opacity-50 transition-colors"
+                      >
+                        {t("comments.save")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p
+                    className={`text-sm whitespace-pre-wrap break-words ${isDeleted ? "text-gray-400 italic" : "text-gray-200"}`}
+                  >
+                    {comment.content}
+                  </p>
+                )}
 
                 {/* Footer */}
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-gray-500 text-xs">
                     {new Date(comment.created_at).toLocaleDateString()}
+                    {comment.updated_at && !isDeleted && (
+                      <span className="ml-1 italic">{t("comments.edited")}</span>
+                    )}
                   </span>
 
-                  {/* Delete Button - Shows on hover if user is owner */}
-                  {isOwner && !isDeleted && (
-                    <button
-                      onClick={() => handleDelete(comment.id)}
-                      className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                      title={t("comments.deleteComment")}
-                    >
-                      <BiTrash className="text-lg" />
-                    </button>
+                  {/* Edit / Delete buttons - show on hover if user is owner */}
+                  {isOwner && !isDeleted && !isEditing && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => startEdit(comment)}
+                        className="text-gray-400 hover:text-gray-200 p-1"
+                        title={t("comments.editComment")}
+                      >
+                        <BiEdit className="text-lg" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(comment.id)}
+                        className="text-red-400 hover:text-red-300 p-1"
+                        title={t("comments.deleteComment")}
+                      >
+                        <BiTrash className="text-lg" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

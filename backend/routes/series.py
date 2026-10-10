@@ -1,6 +1,7 @@
 from fastapi.routing import APIRouter
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.requests import Request
+from utils.discover import BrowseSort, build_discover_params
 from sqlalchemy.orm import Session
 from database import get_db
 from schema.User import UserResponse
@@ -11,9 +12,19 @@ from services.Series import GetSeries, getSerieDetails, getSerieCredits, getSeri
 router = APIRouter(prefix="/series")
 
 @router.get("/popular")
-def get_popular_series(request: Request, page:int, sort_by: str | None = None, user: UserResponse = Depends(get_current_user)):
+def get_popular_series(
+    request: Request,
+    page: int,
+    sort_by: BrowseSort | None = None,
+    genre: int | None = None,
+    min_rating: float | None = Query(None, ge=0, le=10),
+    year_from: int | None = None,
+    year_to: int | None = None,
+    user: UserResponse = Depends(get_current_user),
+):
     user_lang = user.preferred_language.value if user and user.preferred_language else "en"
-    return GetSeries(request, "popular", page, sort_by=sort_by, lang=user_lang)
+    discover_params = build_discover_params("tv", sort_by, genre, min_rating, year_from, year_to)
+    return GetSeries(request, "popular", page, discover_params=discover_params, lang=user_lang)
 
 
 @router.get("/genres")

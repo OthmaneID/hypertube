@@ -4,15 +4,26 @@ from fastapi.requests import Request
 from database import get_db
 from sqlalchemy.orm import Session
 from schema.User import UserResponse
-from fastapi import Depends
+from fastapi import Depends, Query
 from services.auth import get_current_user
+from utils.discover import BrowseSort, build_discover_params
 
 router = APIRouter(prefix="/movies")
 
 @router.get("/popular")
-def get_popular_movies(request:Request, page: int = 1, sort_by: str | None = None, user : UserResponse = Depends(get_current_user)):
+def get_popular_movies(
+    request: Request,
+    page: int = 1,
+    sort_by: BrowseSort | None = None,
+    genre: int | None = None,
+    min_rating: float | None = Query(None, ge=0, le=10),
+    year_from: int | None = None,
+    year_to: int | None = None,
+    user: UserResponse = Depends(get_current_user),
+):
     user_lang = user.preferred_language.value if user and user.preferred_language else "en"
-    return getMovies(request=request, page=page, sort_by=sort_by, lang=user_lang)
+    discover_params = build_discover_params("movie", sort_by, genre, min_rating, year_from, year_to)
+    return getMovies(request=request, page=page, discover_params=discover_params, lang=user_lang)
 
 
 @router.get("/genres")

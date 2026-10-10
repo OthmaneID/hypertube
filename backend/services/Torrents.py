@@ -16,6 +16,10 @@ import secrets
 import functools
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
+from sqlalchemy.dialects.postgresql import insert
+from database import sessionLocal
+from models.CachedTorrentFile import CachedTorrentFile
 
 # Global libtorrent state
 lt_session = None
@@ -26,6 +30,8 @@ wanted_files = {}
 torrent_add_lock = asyncio.Lock()
 # (hash, file index) -> (codec_name, pix_fmt, duration) from ffprobe
 probe_cache = {}
+# hash -> number of responses currently sending its data; the cleanup job never deletes these
+open_streams = {}
 # Authorizes ffmpeg's requests to the internal file endpoint, which has no user session
 INTERNAL_KEY = secrets.token_urlsafe(32)
 
@@ -46,6 +52,13 @@ def get_lt_session():
         settings['listen_interfaces'] = '0.0.0.0:6881'
         settings['enable_outgoing_utp'] = True
         settings['enable_incoming_utp'] = True
+        # Trackers share one tier; by default only one is tried at a time and dead ones eat the metadata timeout
+        settings['announce_to_all_trackers'] = True
+        settings['announce_to_all_tiers'] = True
+        settings['dht_bootstrap_nodes'] = (
+            'dht.libtorrent.org:25401,router.bittorrent.com:6881,'
+            'router.utorrent.com:6881,dht.transmissionbt.com:6881'
+        )
         lt_session.apply_settings(settings)
     return lt_session
 
@@ -206,6 +219,48 @@ async def wait_for_metadata(handle, request: Request, timeout=METADATA_TIMEOUT):
     return True
 
 
+def record_file_access(hash: str, file_idx: int, relative_path: str, size: int):
+    db = sessionLocal()
+    try:
+        stmt = insert(CachedTorrentFile).values(
+            info_hash=hash,
+            file_idx=file_idx,
+            relative_path=relative_path,
+            size=size,
+            last_accessed_at=datetime.now(),
+        )
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_cached_torrent_file",
+            set_={
+                "relative_path": stmt.excluded.relative_path,
+                "size": stmt.excluded.size,
+                "last_accessed_at": stmt.excluded.last_accessed_at,
+            },
+        )
+        db.execute(stmt)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"error while recording access to {hash}/{file_idx}: {e}")
+    finally:
+        db.close()
+
+
+async def track_stream(hash: str, generator):
+    open_streams[hash] = open_streams.get(hash, 0) + 1
+    try:
+        async for chunk in generator:
+            yield chunk
+    finally:
+        try:
+            # Closing the wrapper doesn't close the inner generator, whose finally stops ffmpeg
+            await generator.aclose()
+        finally:
+            open_streams[hash] -= 1
+            if open_streams[hash] <= 0:
+                open_streams.pop(hash, None)
+
+
 def drop_torrent(hash: str, handle):
     if active_torrents.get(hash) == handle:
         active_torrents.pop(hash, None)
@@ -362,6 +417,7 @@ async def open_stream_file(request: Request, hash: str) -> StreamFile | None:
         handle.prioritize_files([4 if i in wanted else 0 for i in range(files.num_files())])
 
     print(f"Found video file #{file_idx}: {files.file_path(file_idx)} at torrent offset {files.file_offset(file_idx)}")
+    await asyncio.to_thread(record_file_access, hash, file_idx, files.file_path(file_idx), files.file_size(file_idx))
     return resolve_stream_file(hash, handle, file_idx)
 
 
@@ -385,7 +441,7 @@ async def serve_range(request: Request, sf: StreamFile):
         print("Client disconnected while buffering")
         return Response(status_code=499)
 
-    generator = stream_file_range(sf.handle, sf.path, sf.offset, sf.piece_length, sf.last_piece, start, end)
+    generator = track_stream(sf.hash, stream_file_range(sf.handle, sf.path, sf.offset, sf.piece_length, sf.last_piece, start, end))
     media_type = f"video/{sf.ext}" if sf.is_native else "application/octet-stream"
     if range_header:
         return StreamingResponse(
@@ -585,7 +641,7 @@ async def stream_from_source(request: Request, hash: str):
         return await serve_range(request, sf)
 
     video_codec, pix_fmt, _ = await probe_stream(sf)
-    generator = stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt)
+    generator = track_stream(sf.hash, stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt))
     return StreamingResponse(
         generator,
         media_type="video/mp4"

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     smtp_google_pass : str
     smtp_google_email : str
     opensubtitles_api_key: str = ""
+    media_retention_days: float = 7
+    cleanup_interval_hours: float = 6
     
 
 settings = Settings()

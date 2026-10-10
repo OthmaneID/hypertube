@@ -158,9 +158,12 @@
     "searchResults": "Résultats de recherche",
     "searchPlaceholder": "Rechercher des films...",
     "sortLabel": "Trier :",
-    "sortAlpha": "A–Z",
-    "sortNewest": "Plus récents",
-    "sortRating": "Note ★",
+    "sort": {
+      "popular": "Popularité",
+      "alpha": "A–Z",
+      "year": "Plus récents",
+      "rating": "Note ★"
+    },
     "filtersBtn": "Filtres",
     "genreLabel": "Genre",
     "anyGenre": "Tous les genres",
@@ -177,13 +180,16 @@
   },
 
   "series": {
-    "pageTitle": "Découvrir des Séries",
+    "pageTitle": "Populaires · Séries",
     "searchResults": "Résultats de recherche",
     "searchPlaceholder": "Rechercher des séries...",
     "sortLabel": "Trier :",
-    "sortAlpha": "A–Z",
-    "sortNewest": "Plus récents",
-    "sortRating": "Note ★",
+    "sort": {
+      "popular": "Popularité",
+      "alpha": "A–Z",
+      "year": "Plus récents",
+      "rating": "Note ★"
+    },
     "filtersBtn": "Filtres",
     "genreLabel": "Genre",
     "anyGenre": "Tous les genres",
@@ -233,7 +239,11 @@
     "cannotUndo": "Cette action est irréversible.",
     "cancel": "Annuler",
     "delete": "Supprimer",
-    "failedDelete": "Échec de la suppression du commentaire"
+    "failedDelete": "Échec de la suppression du commentaire",
+    "editComment": "Modifier le commentaire",
+    "save": "Enregistrer",
+    "edited": "(modifié)",
+    "failedEdit": "Échec de la modification du commentaire"
   },
 
   "publicProfile": {
@@ -261,19 +271,10 @@
     "loggedOut": "Déconnecté"
   },
 
-  "series": {
-    "pageTitle": "Populaires · Séries",
-    "searchResults": "Résultats de recherche",
-    "searchPlaceholder": "Rechercher des séries...",
-    "loadingSeries": "Chargement des séries...",
-    "noSeries": "Aucune série trouvée. Veuillez réessayer plus tard.",
-    "noSeriesFiltered": "Aucune série ne correspond à vos filtres.",
-    "noResults": "Aucun résultat pour « {{query}} »"
-  },
-
   "common": {
     "loading": "Chargement...",
     "backToTop": "Retour en haut",
-    "archive": "archive"
+    "archive": "archive",
+    "loadMore": "Charger plus"
   }
 }

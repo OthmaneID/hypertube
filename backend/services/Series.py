@@ -8,6 +8,7 @@ from schema.User import UserResponse
 from sqlalchemy.orm import Session
 from models.User import User
 from models.Favorites import favoriteTypeEnum, Favorites
+from utils.discover import discover_cache_key
 
 
 #
@@ -39,10 +40,15 @@ def getGenres(request: Request, lang: str = "en"):
         return res.json()
 
 
-def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by: str | None = None, lang: str = "en"):
+def GetSeries(request: Request, category:str = "popular", page:int = 1, discover_params: dict | None = None, lang: str = "en"):
+    # TMDB Discover sorts and filters the whole catalog, so consecutive pages stay consistent
     tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
-    cache_key = f"discover_series_{sort_by}_{page}_{lang}" if sort_by else f"{category}_series_{page}_{lang}"
-    request_url = f"{settings.api_base_url}/discover/tv" if sort_by else f"{settings.api_base_url}/tv/{category}"
+    if discover_params:
+        cache_key = discover_cache_key("tv", discover_params, page, lang)
+        request_url = f"{settings.api_base_url}discover/tv"
+    else:
+        cache_key = f"{category}_series_{page}_{lang}"
+        request_url = f"{settings.api_base_url}tv/{category}"
     rd:redis.Redis = request.app.state.redis
     try:
         if rd is not None:
@@ -52,10 +58,7 @@ def GetSeries(request: Request, category:str = "popular", page:int = 1, sort_by:
     except Exception as e:
         pass
 
-    if sort_by:
-        res = requests.get(request_url, params={"language": tmdb_lang, "page": page, "sort_by": sort_by}, headers=headers)
-    else:
-        res = requests.get(request_url, params={"language": tmdb_lang, "page": page}, headers=headers)
+    res = requests.get(request_url, params={"language": tmdb_lang, "page": page, **(discover_params or {})}, headers=headers)
     data = res.json()
     try:
         if data:

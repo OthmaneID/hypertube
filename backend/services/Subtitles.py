@@ -161,7 +161,7 @@ async def resolve_language(client: httpx2.AsyncClient, candidates: list[dict], i
 
     for candidate in pick_stremio_candidates(candidates, lang, season, episode, filename):
         vtt_filename = f"{base}_{candidate.get('id', 'x')}.vtt"
-        if os.path.exists(os.path.join(SUBTITLES_DIR, vtt_filename)):
+        if touch_cached(vtt_filename):
             return vtt_filename
         try:
             res = await client.get(candidate["url"])
@@ -172,12 +172,22 @@ async def resolve_language(client: httpx2.AsyncClient, candidates: list[dict], i
         return save_vtt(vtt_filename, decode_subtitle(res.content, lang))
 
     official_filename = f"{base}_official.vtt"
-    if os.path.exists(os.path.join(SUBTITLES_DIR, official_filename)):
+    if touch_cached(official_filename):
         return official_filename
     raw = await fetch_official_subtitle(client, imdb_id, season, episode, lang)
     if raw:
         return save_vtt(official_filename, decode_subtitle(raw, lang))
     return None
+
+
+def touch_cached(vtt_filename: str) -> bool:
+    """Returns whether the subtitle is already cached; its mtime is the last-use date read by the cleanup job."""
+    path = os.path.join(SUBTITLES_DIR, vtt_filename)
+    try:
+        os.utime(path)
+        return True
+    except FileNotFoundError:
+        return False
 
 
 def save_vtt(vtt_filename: str, content: str) -> str | None:

@@ -1,7 +1,8 @@
 import { axiosInstance } from "../../axiosInstance";
 
+// Search only queries TMDB; archive.org results are never included
 export interface SearchResultItem {
-  id: number | null;
+  id: number;
   title: string;
   overview: string;
   poster_path: string | null;
@@ -10,9 +11,7 @@ export interface SearchResultItem {
   vote_count: number;
   genre_ids: number[];
   media_type: "movie" | "series";
-  source: "tmdb" | "archive";
-  archive_identifier?: string;
-  archive_url?: string;
+  source: "tmdb";
 }
 
 export interface SearchResponse {
@@ -20,7 +19,13 @@ export interface SearchResponse {
   page: number;
   results: SearchResultItem[];
   total_results: number;
+  total_pages: number;
+  has_more: boolean;
   sources: string[];
+}
+
+function emptyResponse(query: string, page: number): SearchResponse {
+  return { query, page, results: [], total_results: 0, total_pages: 0, has_more: false, sources: [] };
 }
 
 export async function searchMovies(
@@ -31,11 +36,9 @@ export async function searchMovies(
     const res = await axiosInstance.get("/search/movies", {
       params: { q: query, page },
     });
-    console.log("here")
-    console.log(res.data)
     return res.data;
   } catch (error: any) {
-    return { query, page, results: [], total_results: 0, sources: [] };
+    return emptyResponse(query, page);
   }
 }
 
@@ -49,6 +52,6 @@ export async function searchSeries(
     });
     return res.data;
   } catch (error: any) {
-    return { query, page, results: [], total_results: 0, sources: [] };
+    return emptyResponse(query, page);
   }
 }

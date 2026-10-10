@@ -13,4 +13,5 @@ class Comment(Base):
     movie_id : Mapped[int] = mapped_column(Integer, nullable = False)
     is_deleted : Mapped[bool] = mapped_column(Boolean, default=False)
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at : Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     owner : Mapped["User"] = relationship(back_populates="comments")
