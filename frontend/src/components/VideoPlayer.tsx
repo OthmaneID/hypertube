@@ -87,6 +87,8 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const seekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasStartedRef = useRef(false);
   const cueOriginalTimesRef = useRef(new WeakMap<TextTrackCue, [number, number]>());
+  // Bottom edge for subtitle cues (percent of the video height), or null for the default position
+  const cueLineRef = useRef<number | null>(null);
 
   const videoSrc = transcoded && startOffset > 0 ? withStartParam(src, startOffset) : src;
 
@@ -108,6 +110,20 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     return startOffsetRef.current + (videoRef.current?.currentTime || 0);
   };
 
+  const positionCue = (cue: TextTrackCue) => {
+    if (!("line" in cue)) return;
+    const vtt = cue as VTTCue;
+    const line = cueLineRef.current;
+    if (line === null) {
+      vtt.snapToLines = true;
+      vtt.line = "auto";
+    } else {
+      vtt.snapToLines = false;
+      vtt.lineAlign = "end";
+      vtt.line = line;
+    }
+  };
+
   // Subtitle cues are timed against the whole movie, so shift them by the transcoded start offset
   const applySubtitleOffset = useCallback(() => {
     const video = videoRef.current;
@@ -124,9 +140,34 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         }
         cue.startTime = original[0] - offset;
         cue.endTime = original[1] - offset;
+        positionCue(cue);
       }
     }
   }, []);
+
+  const controlsVisible = showControls || !isPlaying;
+
+  // Keep subtitles above the bottom controls while they are shown
+  useEffect(() => {
+    const updateCueLine = () => {
+      const video = videoRef.current;
+      const bar = progressRef.current;
+      const controls = bar?.parentElement;
+      if (!video || !bar || !controls) return;
+      // Layout offsets ignore the controls' slide-in transform
+      const barTop = controls.offsetTop + bar.offsetTop - video.offsetTop;
+      if (controlsVisible && video.offsetHeight > 0) {
+        const bottom = barTop - 12;
+        cueLineRef.current = Math.max(0, Math.min(100, (bottom / video.offsetHeight) * 100));
+      } else {
+        cueLineRef.current = null;
+      }
+      applySubtitleOffset();
+    };
+    updateCueLine();
+    window.addEventListener("resize", updateCueLine);
+    return () => window.removeEventListener("resize", updateCueLine);
+  }, [controlsVisible, isFullscreen, subtitles, applySubtitleOffset]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -527,6 +568,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         onEnded={onEnded}
         preload="auto"
         autoPlay={seekAutoPlay ?? autoPlay}
+        autoFocus={true}
       >
         {subtitles?.map((sub, idx) => (
           <track
@@ -536,6 +578,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
             srcLang={sub.srcLang}
             label={sub.label}
             default={sub.default}
+
           />
         ))}
       </video>
@@ -623,7 +666,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
           {/* Filled Progress */}
           <div
-            className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)]"
+            className="absolute top-0 left-0 h-full bg-linear-to-r from-purple-600 to-purple-400 rounded-full shadow-[0_0_12px_rgba(168,85,247,0.8)]"
             style={{ width: `${progress}%` }}
           />
 

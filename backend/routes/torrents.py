@@ -22,6 +22,9 @@ async def get_series_streams(request:Request, imdb_id : str, season: int, episod
 
 @router.get("/stream/{hash}/info")
 async def stream_torrent_info(request : Request, hash: str, user : UserResponse = Depends(get_current_user)):
+    """
+    
+    """
     return await get_stream_info(request, hash)
 
 
