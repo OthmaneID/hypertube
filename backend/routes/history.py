@@ -89,3 +89,8 @@ def unmark_watched(
     if deleted:
         return {"message": "Removed from history", "movie_id": movie_id}
     return {"message": "Was not in history", "movie_id": movie_id}
+
+
+@router.get("progress/{movie_id}")
+def get_progress(request: Request, movie_id : int):
+    pass

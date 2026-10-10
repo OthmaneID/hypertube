@@ -108,6 +108,15 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     if (!transcoded && hasMediaDuration) return mediaDuration;
     return passedDuration || (hasMediaDuration ? mediaDuration : 0);
   };
+  const update_progress = () => {
+    
+  }
+
+
+  const get_progress = () => {
+    
+  }
+
 
   const getPosition = () => {
     if (pendingSeekRef.current !== null) return pendingSeekRef.current;
