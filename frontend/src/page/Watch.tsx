@@ -171,7 +171,7 @@ function StreamPlayer({
 
   return (
     <div
-      className="relative w-full min-h-screen bg-black flex flex-col overflow-hidden"
+      className="relative w-full h-screen bg-black flex flex-col overflow-hidden"
       onMouseMove={resetTopBar}
     >
       {/* Ambient background glow — hidden when error */}
@@ -289,7 +289,7 @@ function StreamPlayer({
       )}
 
       {/* Video player — full-bleed theater */}
-      <div className="relative flex-1 flex items-center justify-center z-10">
+      <div className="relative flex-1 min-h-0 flex items-center justify-center z-10">
         {status !== "error" && (
           <div className="w-full h-full flex items-center justify-center">
             <VideoPlayer
