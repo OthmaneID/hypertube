@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from routes.auth import router as auth_router
 from config import settings
 import redis
+from sqlalchemy import text
 from database import Base, engine
 import models
 from authlib.integrations.starlette_client import OAuth
@@ -22,6 +23,8 @@ from routes.history import router as history_router
 from routes.torrents import router as torrents_router
 from routes.subtitles import router as subtitles_router
 from services.Torrents import get_lt_session
+from services.Cleanup import cleanup_loop
+import asyncio
 
 
 
@@ -29,6 +32,10 @@ from services.Torrents import get_lt_session
 PORT = settings.backend_port
 
 Base.metadata.create_all(bind=engine)
+
+# create_all() never adds columns to tables that already exist
+with engine.begin() as conn:
+    conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"))
 
 
 
@@ -56,8 +63,16 @@ async def lifespan(app: fastapi.FastAPI):
 
     # Start the BitTorrent session now so the DHT is bootstrapped before the first stream request
     get_lt_session()
+
+    cleanup_task = asyncio.create_task(cleanup_loop())
     
     yield
+
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
 
     if app.state.redis:
         app.state.redis.close()

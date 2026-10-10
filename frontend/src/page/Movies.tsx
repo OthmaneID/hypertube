@@ -1,11 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getPopularMovies, getGenres } from "../utils/api/movieService/moviesApi";
 import { searchMovies, type SearchResultItem } from "../utils/api/movieService/searchApi";
-import type { PopularMoviesResponse } from "../utils/interfaces";
+import {
+  BROWSE_SORTS,
+  type BrowseOptions,
+  type BrowseSort,
+  type PopularMoviesResponse,
+} from "../utils/interfaces";
 import { BiArrowToTop, BiSearch, BiX, BiFilterAlt } from "react-icons/bi";
 import Card from "../components/Card";
 import { useTranslation } from "react-i18next";
+import { useInfiniteScroll } from "../utils/useInfiniteScroll";
 
 // Debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -17,30 +23,37 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
+function dedupeById<T extends { id?: number | null }>(items: T[]): T[] {
+  return Array.from(new Map(items.map((item) => [item.id, item])).values());
+}
+
 const CURRENT_YEAR = new Date().getFullYear();
 
 function Movies() {
   const { t } = useTranslation();
-  // Popular mode state
-  const [isMoviesLoading, setIsMoviesLoading] = useState(false);
-  const [movies, setMovies] = useState<PopularMoviesResponse["results"]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMorePages, setHasMorePages] = useState(true);
-  const requestedPagesRef = useRef<Set<number>>(new Set());
-  const currentPageRef = useRef(currentPage);
-  const totalPagesRef = useRef(totalPages);
-  const hasMorePagesRef = useRef(hasMorePages);
-  const isMoviesLoadingRef = useRef(isMoviesLoading);
   const location = useLocation();
   const navigate = useNavigate();
-  
+
+  // Popular mode state
+  const [movies, setMovies] = useState<PopularMoviesResponse["results"]>([]);
+  const [isMoviesLoading, setIsMoviesLoading] = useState(false);
+  const [moviesHasMore, setMoviesHasMore] = useState(true);
+  // requestId invalidates responses that belong to previous sort/filter options
+  const popularRef = useRef<{ page: number; hasMore: boolean; loading: boolean; requestId: number; options: BrowseOptions }>(
+    { page: 0, hasMore: true, loading: false, requestId: 0, options: {} },
+  );
+
   // Search mode state
   const [query, setQuery] = useState(() => {
     const params = new URLSearchParams(location.search);
     return params.get("search") || "";
   });
   const debouncedQuery = useDebounce(query, 400);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [searchHasMore, setSearchHasMore] = useState(false);
+  // requestId invalidates responses that belong to a previous query
+  const searchRef = useRef({ query: "", page: 0, hasMore: false, loading: false, requestId: 0 });
 
   // Sync URL with query
   useEffect(() => {
@@ -50,22 +63,29 @@ function Movies() {
       navigate("/movies", { replace: true });
     }
   }, [debouncedQuery, navigate, location.search]);
-  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
 
-  // Sort & Filter state
-  const [sortBy, setSortBy] = useState<"alpha" | "year" | "rating">("alpha");
+  // Sort (browse mode only) & filter state: browse mode sends them to TMDB, search mode filters the loaded results
+  const [browseSort, setBrowseSort] = useState<BrowseSort>("popular");
   const [showFilters, setShowFilters] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [minYear, setMinYear] = useState(1900);
   const [maxYear, setMaxYear] = useState(CURRENT_YEAR);
-  
   const [genres, setGenres] = useState<{ id: number; name: string }[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number>(0);
   const [showTopBtn, setShowTopBtn] = useState(false);
 
   const isSearchMode = debouncedQuery.trim().length > 0;
   const hasActiveFilters = minRating > 0 || minYear > 1900 || maxYear < CURRENT_YEAR || selectedGenre > 0;
+  // Debounced so that typing a year or dragging the rating slider sends a single request
+  const filterKey = useDebounce(
+    JSON.stringify({
+      genre: selectedGenre || undefined,
+      minRating: minRating || undefined,
+      yearFrom: minYear > 1900 ? minYear : undefined,
+      yearTo: maxYear < CURRENT_YEAR ? maxYear : undefined,
+    }),
+    400,
+  );
 
   useEffect(() => {
     getGenres().then((data) => {
@@ -74,48 +94,6 @@ function Movies() {
       }
     });
   }, []);
-
-  // Sort + filter helper — works on both search results and popular movies
-  function processItems<T extends { title: string; release_date?: string; vote_average?: number; genre_ids?: number[] }>(items: T[]): T[] {
-    let result = [...items];
-
-    // Filter by genre
-    if (selectedGenre > 0) {
-      result = result.filter((i) => i.genre_ids?.includes(selectedGenre));
-    }
-
-    // Filter by rating
-    if (minRating > 0) {
-      result = result.filter((i) => (i.vote_average ?? 0) >= minRating);
-    }
-
-    // Filter by year
-    result = result.filter((i) => {
-      const year = parseInt(i.release_date?.slice(0, 4) || "0");
-      if (!year) return true; // no year data → don't exclude
-      return year >= minYear && year <= maxYear;
-    });
-
-    // Sort
-    result.sort((a, b) => {
-      if (sortBy === "alpha") return (a.title || "").localeCompare(b.title || "");
-      if (sortBy === "year") {
-        const ya = parseInt(a.release_date?.slice(0, 4) || "0");
-        const yb = parseInt(b.release_date?.slice(0, 4) || "0");
-        return yb - ya;
-      }
-      if (sortBy === "rating") return (b.vote_average ?? 0) - (a.vote_average ?? 0);
-      return 0;
-    });
-
-    return result;
-  }
-
-  // Keep refs in sync
-  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
-  useEffect(() => { totalPagesRef.current = totalPages; }, [totalPages]);
-  useEffect(() => { hasMorePagesRef.current = hasMorePages; }, [hasMorePages]);
-  useEffect(() => { isMoviesLoadingRef.current = isMoviesLoading; }, [isMoviesLoading]);
 
   // Handle showing/hiding the Go Top button
   useEffect(() => {
@@ -126,78 +104,112 @@ function Movies() {
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Infinite scroll for popular mode
-  const scrollContainer = document.getElementById("scrollContainer");
-  useEffect(() => {
-    if (isSearchMode) return;
-    setTimeout(() => {
-      const observer = new IntersectionObserver(handleIntersection, {
-        root: scrollContainer ?? null,
-        rootMargin: "100px",
-        threshold: 1.0,
-      });
-      const checker = document.getElementById("intersectionChecker");
-      if (checker?.checkVisibility) observer.observe(checker);
-      return () => observer.disconnect();
-    }, 300);
-  }, [isSearchMode]);
-
-  function fetchPopularMovies() {
-    if (!hasMorePagesRef.current || isMoviesLoadingRef.current) return;
-    if (requestedPagesRef.current.has(currentPageRef.current)) return;
-
-    requestedPagesRef.current.add(currentPageRef.current);
+  const loadMorePopular = useCallback(() => {
+    const state = popularRef.current;
+    if (state.loading || !state.hasMore) return;
+    const { requestId } = state;
+    state.loading = true;
     setIsMoviesLoading(true);
 
-    getPopularMovies(currentPageRef.current)
+    getPopularMovies(state.page + 1, state.options)
       .then((data) => {
-        setMovies((prev) => {
-          const combined = [...prev, ...data.results];
-          const uniqueMap = new Map(combined.map((movie) => [movie.id, movie]));
-          return Array.from(uniqueMap.values());
-        });
-        setTotalPages(data.total_pages);
-        totalPagesRef.current = data.total_pages;
-        setCurrentPage(data.page);
-        setHasMorePages(data.page < data.total_pages);
+        if (requestId !== state.requestId) return;
+        if (data.error) {
+          state.hasMore = false;
+        } else {
+          setMovies((prev) => dedupeById([...prev, ...data.results]));
+          state.page = data.page;
+          state.hasMore = data.page < data.total_pages;
+        }
+        setMoviesHasMore(state.hasMore);
       })
-      .finally(() => setIsMoviesLoading(false));
-  }
+      .finally(() => {
+        if (requestId !== state.requestId) return;
+        state.loading = false;
+        setIsMoviesLoading(false);
+      });
+  }, []);
 
+  // New sort or filters: restart the list from page 1
   useEffect(() => {
-    if (!isSearchMode) fetchPopularMovies();
-  }, [currentPage, hasMorePages, isMoviesLoading, isSearchMode]);
+    const state = popularRef.current;
+    state.requestId += 1;
+    state.options = { sort: browseSort, ...JSON.parse(filterKey) };
+    state.page = 0;
+    state.hasMore = true;
+    state.loading = false;
+    setMovies([]);
+    setMoviesHasMore(true);
+    setIsMoviesLoading(false);
+    loadMorePopular();
+  }, [browseSort, filterKey, loadMorePopular]);
 
-  function handleIntersection(entries: IntersectionObserverEntry[]) {
-    entries.forEach((entry) => {
-      if (
-        entry.isIntersecting &&
-        currentPageRef.current <= totalPagesRef.current &&
-        !isMoviesLoadingRef.current &&
-        hasMorePagesRef.current
-      ) {
-        setCurrentPage((prev) => prev + 1);
-      }
-    });
-  }
+  const loadMoreSearch = useCallback(() => {
+    const state = searchRef.current;
+    if (state.loading || !state.hasMore || !state.query) return;
+    const { requestId, query: currentQuery } = state;
+    const page = state.page + 1;
+    state.loading = true;
+    setIsSearchLoading(true);
 
-  // Search effect — only show TMDB results (filter out archive)
-  useEffect(() => {
-    if (!isSearchMode) {
-      setSearchResults([]);
-      return;
-    }
-    setIsSearching(true);
-    searchMovies(debouncedQuery)
+    searchMovies(currentQuery, page)
       .then((data) => {
-        // Only show TMDB results — archive results don't have reliable metadata
-        setSearchResults(data.results.filter((r) => r.source === "tmdb"));
+        if (requestId !== state.requestId) return;
+        setSearchResults((prev) => dedupeById(page === 1 ? data.results : [...prev, ...data.results]));
+        state.page = page;
+        state.hasMore = data.has_more;
+        setSearchHasMore(data.has_more);
       })
-      .finally(() => setIsSearching(false));
-  }, [debouncedQuery]);
+      .finally(() => {
+        if (requestId !== state.requestId) return;
+        state.loading = false;
+        setIsSearchLoading(false);
+      });
+  }, []);
+
+  // New query: restart the search from page 1
+  useEffect(() => {
+    const state = searchRef.current;
+    state.requestId += 1;
+    state.query = debouncedQuery.trim();
+    state.page = 0;
+    state.hasMore = state.query.length > 0;
+    state.loading = false;
+    setSearchResults([]);
+    setSearchHasMore(state.hasMore);
+    setIsSearchLoading(false);
+    loadMoreSearch();
+  }, [debouncedQuery, loadMoreSearch]);
+
+  const displayedSearch = searchResults;
+  const displayedMovies = movies;
+
+  const { sentinelRef, stalled, resume } = useInfiniteScroll({
+    loadMore: isSearchMode ? loadMoreSearch : loadMorePopular,
+    isLoading: isSearchMode ? isSearchLoading : isMoviesLoading,
+    hasMore: isSearchMode ? searchHasMore : moviesHasMore,
+    itemCount: isSearchMode ? displayedSearch.length : displayedMovies.length,
+    resetKey: [isSearchMode, debouncedQuery, browseSort, filterKey, selectedGenre, minRating, minYear, maxYear].join("|"),
+  });
+
+  function sortButton(key: string, active: boolean, onClick: () => void) {
+    return (
+      <button
+        key={key}
+        onClick={onClick}
+        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+          active
+            ? "bg-purple-600 text-white"
+            : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
+        }`}
+      >
+        {t(`movies.sort.${key}`)}
+      </button>
+    );
+  }
 
   function scrollBackUp() {
-    scrollContainer?.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("scrollContainer")?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function resetFilters() {
@@ -207,8 +219,8 @@ function Movies() {
     setSelectedGenre(0);
   }
 
-  const displayedSearch = processItems(searchResults);
-  const displayedMovies = processItems(movies);
+  const isLoading = isSearchMode ? isSearchLoading : isMoviesLoading;
+  const displayedCount = isSearchMode ? displayedSearch.length : displayedMovies.length;
 
   return (
     <div className="w-full p-4 flex flex-col justify-center ">
@@ -240,42 +252,30 @@ function Movies() {
           )}
         </div>
 
-        {/* Sort + Filter row */}
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          {/* Sort pills */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-gray-500 text-xs">{t("movies.sortLabel")}</span>
-            {(["alpha", "year", "rating"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSortBy(s)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                  sortBy === s
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
-                }`}
-              >
-                {s === "alpha" ? t("movies.sortAlpha") : s === "year" ? t("movies.sortNewest") : t("movies.sortRating")}
-              </button>
-            ))}
-          </div>
+        {/* Sort + Filter row (browse mode only; search keeps TMDB's relevance order unfiltered) */}
+        {!isSearchMode && (
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500 text-xs">{t("movies.sortLabel")}</span>
+              {BROWSE_SORTS.map((s) => sortButton(s, browseSort === s, () => setBrowseSort(s)))}
+            </div>
 
-          {/* Filter toggle button */}
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-              showFilters || hasActiveFilters
-                ? "bg-purple-600 text-white"
-                : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
-            }`}
-          >
-            <BiFilterAlt />
-            {t("movies.filtersBtn")}{hasActiveFilters ? " •" : ""}
-          </button>
-        </div>
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                showFilters || hasActiveFilters
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-800/70 text-gray-400 hover:bg-gray-700 hover:text-white"
+              }`}
+            >
+              <BiFilterAlt />
+              {t("movies.filtersBtn")}{hasActiveFilters ? " •" : ""}
+            </button>
+          </div>
+        )}
 
         {/* Filter panel */}
-        {showFilters && (
+        {!isSearchMode && showFilters && (
           <div className="max-w-2xl mx-auto w-full bg-gray-900/80 border border-white/10 rounded-2xl px-6 py-4 flex flex-col gap-4 backdrop-blur-sm">
             {/* Genre filter */}
             <div className="flex flex-col gap-1.5">
@@ -376,76 +376,71 @@ function Movies() {
       {/* Grid */}
       <div className="p-2 flex flex-row flex-wrap gap-3">
         {/* Search mode */}
-        {isSearchMode && (
-          <>
-            {isSearching && (
-              <div className="w-full flex justify-center items-center py-20">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">{t("movies.searching")}</span>
-                </div>
-              </div>
-            )}
-            {!isSearching && displayedSearch.length === 0 && (
-              <span className="text-xl text-gray-400 text-center w-full py-20">
-                {t("movies.noResults", { query: debouncedQuery })}
-              </span>
-            )}
-            {!isSearching &&
-              displayedSearch.map((item, index) => (
-                <Card
-                  key={`${item.source}-${item.id}-${index}`}
-                  url={`/movies/${item.id}`}
-                  id={item.id ?? undefined}
-                  poster={item.poster_path ?? undefined}
-                  title={item.title}
-                  vote={item.vote_average}
-                  year={
-                    item.release_date
-                      ? item.release_date.slice(0, 4)
-                      : undefined
-                  }
-                />
-              ))}
-          </>
-        )}
+        {isSearchMode &&
+          displayedSearch.map((item) => (
+            <Card
+              key={`search-${item.id}`}
+              url={`/movies/${item.id}`}
+              poster={item.poster_path ?? undefined}
+              title={item.title}
+              vote={item.vote_average}
+              year={
+                item.release_date
+                  ? item.release_date.slice(0, 4)
+                  : undefined
+              }
+            />
+          ))}
 
         {/* Popular mode */}
-        {!isSearchMode && (
-          <>
-            {displayedMovies.length === 0 && !isMoviesLoading ? (
-              <span className="text-xl text-gray-400 text-center w-full py-20">
-                {hasActiveFilters
-                  ? t("movies.noMoviesFiltered")
-                  : t("movies.noMovies")}
+        {!isSearchMode &&
+          displayedMovies.map((movie) => (
+            <Card
+              url={"/movies/" + movie.id}
+              key={`popular-${movie.id}`}
+              poster={movie.poster_path}
+              title={movie.title}
+              vote={movie.vote_average}
+              year={
+                movie.release_date
+                  ? new Date(movie.release_date).getFullYear().toString()
+                  : undefined
+              }
+            />
+          ))}
+
+        {displayedCount === 0 && !isLoading && !stalled && (
+          <span className="text-xl text-gray-400 text-center w-full py-20">
+            {isSearchMode
+              ? t("movies.noResults", { query: debouncedQuery })
+              : hasActiveFilters
+                ? t("movies.noMoviesFiltered")
+                : t("movies.noMovies")}
+          </span>
+        )}
+
+        <div className="w-full h-1" ref={sentinelRef}></div>
+
+        {isLoading && (
+          <div className={`w-full flex justify-center items-center ${displayedCount === 0 ? "py-20" : "py-10"}`}>
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+              <span className="text-gray-300">
+                {isSearchMode ? t("movies.searching") : t("movies.loadingMovies")}
               </span>
-            ) : (
-              displayedMovies.map((movie, index) => (
-                <Card
-                  url={"/movies/" + movie.id}
-                  key={index}
-                  id={movie.id}
-                  poster={movie.poster_path}
-                  title={movie.title}
-                  vote={movie.vote_average}
-                  year={
-                    movie.release_date
-                      ? new Date(movie.release_date).getFullYear().toString()
-                      : undefined
-                  }
-                />
-              ))
-            )}
-            <div className="w-full h-1" id="intersectionChecker"></div>
-            {isMoviesLoading && (
-              <div className="w-full flex justify-center items-center py-10">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                  <span className="text-gray-300">{t("movies.loadingMovies")}</span>
-                </div>
-              </div>
-            )}
-          </>
+            </div>
+          </div>
+        )}
+
+        {stalled && !isLoading && (
+          <div className="w-full flex justify-center py-6">
+            <button
+              onClick={resume}
+              className="px-4 py-2 rounded-full text-sm bg-gray-800/70 text-gray-300 hover:bg-gray-700 hover:text-white transition-all"
+            >
+              {t("common.loadMore")}
+            </button>
+          </div>
         )}
       </div>
 

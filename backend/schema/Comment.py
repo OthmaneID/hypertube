@@ -24,5 +24,6 @@ class CommentResponse(BaseModel):
     owner_id: int
     content: str
     created_at: datetime
+    updated_at: datetime | None = None
     owner: CommentOwner  # embedded owner info
     model_config = ConfigDict(from_attributes=True)

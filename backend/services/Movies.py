@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from models.User import User
 from models.Favorites import favoriteTypeEnum, Favorites
 import httpx2
+from utils.discover import discover_cache_key
 
 
 # for images : (https://image.tmdb.org/t/p/original/{path}.png || .svg or https://image.tmdb.org/t/p/w500/{path})
@@ -46,12 +47,16 @@ def getGenres(request: Request, lang: str = "en") :
         return res.json()
 
 
-def getMovies(request : Request, category: str = "popular", page: int = 1, sort_by: str | None = None, lang: str = "en"):
-    # Use TMDB Discover when a sort order is requested; keep existing popular feeds unchanged.
+def getMovies(request : Request, category: str = "popular", page: int = 1, discover_params: dict | None = None, lang: str = "en"):
+    # TMDB Discover sorts and filters the whole catalog, so consecutive pages stay consistent
     rd :redis.Redis= request.app.state.redis
     tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
-    cache_key = f"discover_movies_{sort_by}_{page}_{lang}" if sort_by else f"{category}_movies_{page}_{lang}"
-    request_url = f"{settings.api_base_url}discover/movie" if sort_by else f"{settings.api_base_url}movie/{category}"
+    if discover_params:
+        cache_key = discover_cache_key("movie", discover_params, page, lang)
+        request_url = f"{settings.api_base_url}discover/movie"
+    else:
+        cache_key = f"{category}_movies_{page}_{lang}"
+        request_url = f"{settings.api_base_url}movie/{category}"
     try:
         if rd is not None:
             cached_movies = rd.get(cache_key)
@@ -59,10 +64,7 @@ def getMovies(request : Request, category: str = "popular", page: int = 1, sort_
                 return json.loads(cached_movies)
     except Exception as e :
         pass
-    if sort_by:
-        res = requests.get(request_url, params={"language": tmdb_lang, "page": page, "sort_by": sort_by}, headers=headers)
-    else:
-        res = requests.get(request_url, params={"language": tmdb_lang, "page": page}, headers=headers)
+    res = requests.get(request_url, params={"language": tmdb_lang, "page": page, **(discover_params or {})}, headers=headers)
     try:
         if res.json():
             rd.setex(cache_key, 60 * 60 * 6, json.dumps(res.json()))

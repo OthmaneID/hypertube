@@ -1,19 +1,21 @@
 import { axiosInstance } from "../../axiosInstance";
-import type {
-  Credits,
-  MovieTrailers,
-  PopularSeriesResponse,
-  SerieDetails,
-  SerieSeasonDetails,
+import {
+  browseParams,
+  type BrowseOptions,
+  type Credits,
+  type MovieTrailers,
+  type PopularSeriesResponse,
+  type SerieDetails,
+  type SerieSeasonDetails,
 } from "../../interfaces";
 
 export async function getPopularSeries(
   page: number,
-  sortBy?: string,
+  options?: BrowseOptions,
 ): Promise<PopularSeriesResponse> {
   try {
     const res = await axiosInstance.get("/series/popular", {
-      params: { page, ...(sortBy ? { sort_by: sortBy } : {}) },
+      params: { page, ...browseParams(options) },
     });
     return res.data;
   } catch (error: any) {

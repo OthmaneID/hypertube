@@ -158,9 +158,12 @@
     "searchResults": "Search Results",
     "searchPlaceholder": "Search movies...",
     "sortLabel": "Sort:",
-    "sortAlpha": "A–Z",
-    "sortNewest": "Newest",
-    "sortRating": "Rating ★",
+    "sort": {
+      "popular": "Popular",
+      "alpha": "A–Z",
+      "year": "Newest",
+      "rating": "Rating ★"
+    },
     "filtersBtn": "Filters",
     "genreLabel": "Genre",
     "anyGenre": "Any Genre",
@@ -177,13 +180,16 @@
   },
 
   "series": {
-    "pageTitle": "Discover Series",
+    "pageTitle": "Popular · Series",
     "searchResults": "Search Results",
     "searchPlaceholder": "Search series...",
     "sortLabel": "Sort:",
-    "sortAlpha": "A–Z",
-    "sortNewest": "Newest",
-    "sortRating": "Rating ★",
+    "sort": {
+      "popular": "Popular",
+      "alpha": "A–Z",
+      "year": "Newest",
+      "rating": "Rating ★"
+    },
     "filtersBtn": "Filters",
     "genreLabel": "Genre",
     "anyGenre": "Any Genre",
@@ -233,7 +239,11 @@
     "cannotUndo": "This action cannot be undone.",
     "cancel": "Cancel",
     "delete": "Delete",
-    "failedDelete": "Failed to delete comment"
+    "failedDelete": "Failed to delete comment",
+    "editComment": "Edit comment",
+    "save": "Save",
+    "edited": "(edited)",
+    "failedEdit": "Failed to edit comment"
   },
 
   "publicProfile": {
@@ -261,19 +271,10 @@
     "loggedOut": "Logged out"
   },
 
-  "series": {
-    "pageTitle": "Popular · Series",
-    "searchResults": "Search Results",
-    "searchPlaceholder": "Search series...",
-    "loadingSeries": "Loading series...",
-    "noSeries": "No series found. Please try again later.",
-    "noSeriesFiltered": "No series match your filters.",
-    "noResults": "No results found for \"{{query}}\""
-  },
-
   "common": {
     "loading": "Loading...",
     "backToTop": "Back to top",
-    "archive": "archive"
+    "archive": "archive",
+    "loadMore": "Load more"
   }
 }

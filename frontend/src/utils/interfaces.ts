@@ -17,6 +17,29 @@ export interface Movie {
   vote_count?: number;
 }
 
+export type BrowseSort = "popular" | "rating" | "year" | "alpha";
+
+export const BROWSE_SORTS: BrowseSort[] = ["popular", "rating", "year", "alpha"];
+
+// Sorting and filtering are done by TMDB Discover so that infinite scroll stays consistent
+export interface BrowseOptions {
+  sort?: BrowseSort;
+  genre?: number;
+  minRating?: number;
+  yearFrom?: number;
+  yearTo?: number;
+}
+
+export function browseParams(options: BrowseOptions = {}) {
+  return {
+    ...(options.sort && options.sort !== "popular" ? { sort_by: options.sort } : {}),
+    ...(options.genre ? { genre: options.genre } : {}),
+    ...(options.minRating ? { min_rating: options.minRating } : {}),
+    ...(options.yearFrom ? { year_from: options.yearFrom } : {}),
+    ...(options.yearTo ? { year_to: options.yearTo } : {}),
+  };
+}
+
 export interface PopularMoviesResponse {
   page: number;
   results: Movie[];
