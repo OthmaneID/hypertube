@@ -87,8 +87,12 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const seekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasStartedRef = useRef(false);
   const cueOriginalTimesRef = useRef(new WeakMap<TextTrackCue, [number, number]>());
-  // Bottom edge for subtitle cues (percent of the video height), or null for the default position
-  const cueLineRef = useRef<number | null>(null);
+  // Cues are drawn by the player, not the browser: Chrome ignores VTTCue.lineAlign, so a native cue
+  // positioned above the controls hangs down from that line instead of sitting on it
+  const subtitleTextRef = useRef<HTMLSpanElement>(null);
+  const [hasActiveCue, setHasActiveCue] = useState(false);
+  // Distance in px from the player's bottom edge to the subtitles, or null for the default position
+  const [subtitleBottom, setSubtitleBottom] = useState<number | null>(null);
 
   const videoSrc = transcoded && startOffset > 0 ? withStartParam(src, startOffset) : src;
 
@@ -110,20 +114,6 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     return startOffsetRef.current + (videoRef.current?.currentTime || 0);
   };
 
-  const positionCue = (cue: TextTrackCue) => {
-    if (!("line" in cue)) return;
-    const vtt = cue as VTTCue;
-    const line = cueLineRef.current;
-    if (line === null) {
-      vtt.snapToLines = true;
-      vtt.line = "auto";
-    } else {
-      vtt.snapToLines = false;
-      vtt.lineAlign = "end";
-      vtt.line = line;
-    }
-  };
-
   // Subtitle cues are timed against the whole movie, so shift them by the transcoded start offset
   const applySubtitleOffset = useCallback(() => {
     const video = videoRef.current;
@@ -140,7 +130,6 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         }
         cue.startTime = original[0] - offset;
         cue.endTime = original[1] - offset;
-        positionCue(cue);
       }
     }
   }, []);
@@ -149,25 +138,48 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
   // Keep subtitles above the bottom controls while they are shown
   useEffect(() => {
-    const updateCueLine = () => {
-      const video = videoRef.current;
+    const updateSubtitleBottom = () => {
+      const container = containerRef.current;
       const bar = progressRef.current;
       const controls = bar?.parentElement;
-      if (!video || !bar || !controls) return;
+      if (!container || !bar || !controls) return;
       // Layout offsets ignore the controls' slide-in transform
-      const barTop = controls.offsetTop + bar.offsetTop - video.offsetTop;
-      if (controlsVisible && video.offsetHeight > 0) {
-        const bottom = barTop - 12;
-        cueLineRef.current = Math.max(0, Math.min(100, (bottom / video.offsetHeight) * 100));
-      } else {
-        cueLineRef.current = null;
-      }
-      applySubtitleOffset();
+      const barTop = controls.offsetTop + bar.offsetTop;
+      setSubtitleBottom(controlsVisible ? container.offsetHeight - barTop + 12 : null);
     };
-    updateCueLine();
-    window.addEventListener("resize", updateCueLine);
-    return () => window.removeEventListener("resize", updateCueLine);
-  }, [controlsVisible, isFullscreen, subtitles, applySubtitleOffset]);
+    updateSubtitleBottom();
+    window.addEventListener("resize", updateSubtitleBottom);
+    return () => window.removeEventListener("resize", updateSubtitleBottom);
+  }, [controlsVisible, isFullscreen]);
+
+  // Hidden tracks still load and activate their cues; the active ones are copied into the overlay
+  useEffect(() => {
+    const track = activeSubtitleIndex >= 0 ? videoRef.current?.textTracks[activeSubtitleIndex] : undefined;
+    const render = () => {
+      const el = subtitleTextRef.current;
+      if (!el) return;
+      const cues = Array.from(track?.activeCues ?? []).filter((cue): cue is VTTCue => cue instanceof VTTCue);
+      el.replaceChildren();
+      cues.forEach((cue, i) => {
+        if (i > 0) el.append("\n");
+        el.append(cue.getCueAsHTML());
+      });
+      setHasActiveCue(cues.length > 0);
+    };
+    render();
+    track?.addEventListener("cuechange", render);
+    return () => track?.removeEventListener("cuechange", render);
+  }, [activeSubtitleIndex, subtitles]);
+
+  const selectSubtitleTrack = (index: number) => {
+    const tracks = videoRef.current?.textTracks;
+    if (tracks) {
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].mode = i === index ? "hidden" : "disabled";
+      }
+    }
+    setActiveSubtitleIndex(index);
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -185,15 +197,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
   useEffect(() => {
     if (!subtitles) return;
-    const defaultIdx = subtitles.findIndex((s) => s.default);
-    // Tracks added after the video started are not auto-enabled by the `default` attribute
-    const tracks = videoRef.current?.textTracks;
-    if (tracks) {
-      for (let i = 0; i < tracks.length; i++) {
-        tracks[i].mode = i === defaultIdx ? "showing" : "hidden";
-      }
-    }
-    setActiveSubtitleIndex(defaultIdx);
+    selectSubtitleTrack(subtitles.findIndex((s) => s.default));
   }, [subtitles]);
 
   // Auto-hide controls when mouse is idle
@@ -456,12 +460,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   };
 
   const changeSubtitle = (index: number) => {
-    if (!videoRef.current) return;
-    const tracks = videoRef.current.textTracks;
-    for (let i = 0; i < tracks.length; i++) {
-      tracks[i].mode = i === index ? "showing" : "hidden";
-    }
-    setActiveSubtitleIndex(index);
+    selectSubtitleTrack(index);
     setShowSubtitlesMenu(false);
   };
 
@@ -578,6 +577,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         autoPlay={seekAutoPlay ?? autoPlay}
         autoFocus={true}
       >
+        {/* No `default` attribute: the browser would switch that track to "showing" and draw it too */}
         {subtitles?.map((sub, idx) => (
           <track
             key={idx}
@@ -585,11 +585,22 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
             src={sub.src}
             srcLang={sub.srcLang}
             label={sub.label}
-            default={sub.default}
-
           />
         ))}
       </video>
+
+      {/* Subtitles */}
+      <div
+        className={`absolute left-0 right-0 px-[5%] flex justify-center text-center pointer-events-none z-10 transition-[bottom] duration-300 ${
+          hasActiveCue ? "" : "hidden"
+        }`}
+        style={{ bottom: subtitleBottom !== null ? `${subtitleBottom}px` : "6%" }}
+      >
+        <span
+          ref={subtitleTextRef}
+          className="whitespace-pre-line bg-black/75 text-white px-2 py-0.5 rounded leading-snug box-decoration-clone text-[clamp(16px,2.4vw,40px)]"
+        />
+      </div>
 
       {/* Double click ripple indicators */}
       <div
