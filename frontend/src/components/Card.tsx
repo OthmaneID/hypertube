@@ -23,8 +23,8 @@ function Card({
   year?: string;
   isExternal?: boolean;
 }) {
-  const { t } = useTranslation();
   const { imageConfig } = useContext(ImageConfigContext);
+  const { t } = useTranslation();
   const base =
     imageConfig.images?.secure_base_url ?? "https://image.tmdb.org/t/p/";
   const size = imageConfig.images?.poster_sizes?.[5] ?? "w500";

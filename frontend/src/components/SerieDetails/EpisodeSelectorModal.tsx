@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { SerieDetails, SerieSeasonDetails, Episode } from '../../utils/interfaces';
 import { IoClose } from 'react-icons/io5';
 import { getSeasonDetails } from '../../utils/api/movieService/seriesApi';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -20,6 +21,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SerieSeasonDetails | null>(null);
   const [isLoadingSeason, setIsLoadingSeason] = useState(false);
+  const { t } = useTranslation();
 
   const currentSeason = seasons.find(s => s.season_number === selectedSeason) || seasons[0];
 
@@ -72,7 +74,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
           <div>
             <h2 className="text-2xl font-bold text-white">{serie.name}</h2>
             <p className="text-gray-400 text-sm mt-1">
-              {serie.number_of_seasons} seasons • {serie.number_of_episodes} episodes
+              {serie.number_of_seasons} {t("episodeSelector.seasons")} • {serie.number_of_episodes} {t("episodeSelector.episodes")}
             </p>
           </div>
           <button
@@ -87,7 +89,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
         <div className="flex flex-col md:flex-row h-full overflow-hidden">
           {/* Season Selector */}
           <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-gray-800 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Seasons</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">{t("episodeSelector.seasons")}</h3>
             <div className="flex md:flex-col gap-2 h-full overflow-y-auto overflow-x-auto pb-6 mb-2">
               {seasons.map((season) => (
                 <button
@@ -99,8 +101,8 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                     }`}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <span>Season {season.season_number}</span>
-                    <span className="text-xs opacity-70">{season.episode_count} eps</span>
+                    <span>{t("episodeSelector.season", { number: season.season_number })}</span>
+                    <span className="text-xs opacity-70">{season.episode_count} {t("episodeSelector.eps")}</span>
                   </div>
                 </button>
               ))}
@@ -112,10 +114,10 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
             <div className="flex-1 p-6 overflow-hidden flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">
-                  Season {currentSeason.season_number} Episodes
+                  {t("episodeSelector.seasonEpisodes", { number: currentSeason.season_number })}
                 </h3>
                 <span className="text-sm text-gray-400">
-                  {seasonDetails?.episodes?.length || currentSeason.episode_count} episodes
+                  {seasonDetails?.episodes?.length || currentSeason.episode_count} {t("episodeSelector.episodes")}
                 </span>
               </div>
 
@@ -185,7 +187,7 @@ function EpisodeSelectorModal({ serie, show, setShow, onEpisodeSelect }: Episode
                     );
                   })
                 ) : (
-                  <div className="w-full h-full flex justify-center items-center text-center text-gray-400 py-4">No episodes available</div>
+                  <div className="w-full h-full flex justify-center items-center text-center text-gray-400 py-4">{t("episodeSelector.noEpisodes")}</div>
                 )}
               </div>
             </div>

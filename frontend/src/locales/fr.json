@@ -275,8 +275,67 @@
     "loading": "Chargement...",
     "backToTop": "Retour en haut",
     "archive": "archive",
-    "loadMore": "Charger plus",
     "watched": "Vu",
-    "rewatch": "Revoir"
+    "rewatch": "Revoir",
+    "loadMore": "Charger plus"
+  },
+
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez vos préférences et les paramètres de votre compte"
+  },
+
+  "watch": {
+    "streaming": "En cours",
+    "buffering": "Mise en mémoire tampon",
+    "connecting": "Connexion",
+    "failed": "Échec",
+    "shortcuts": "Raccourcis",
+    "shortcutPlayPause": "Lecture / Pause",
+    "shortcutSkip": "Avancer 10s",
+    "shortcutMute": "Muet",
+    "shortcutFullscreen": "Plein écran",
+    "connectingToPeers": "Connexion aux pairs…",
+    "bufferingStream": "Mise en mémoire tampon…",
+    "findingSeeders": "Recherche de sources sur le réseau torrent",
+    "waitingForData": "En attente de données supplémentaires",
+    "streamUnavailable": "Flux indisponible",
+    "streamUnavailableDesc": "Ce torrent n'a peut-être pas de sources actives ou le fichier est introuvable. Essayez une autre source.",
+    "chooseSource": "Choisir une source",
+    "retry": "Réessayer",
+    "streamEnded": "Flux terminé",
+    "backToDetails": "Retour aux détails"
+  },
+
+  "streamOption": {
+    "unknown": "Inconnu",
+    "seeders": "sources",
+    "likelyDead": "(probablement inactif)",
+    "watchNow": "Regarder"
+  },
+
+  "streamingOptions": {
+    "title": "Options de streaming",
+    "descMovie": "Choisissez votre service de streaming pour \"{{name}}\"",
+    "descEpisode": "Choisissez votre service de streaming pour \"{{name}}\" - Saison {{season}}, Épisode {{episode}}",
+    "error": "Erreur lors du chargement des options de streaming",
+    "noOptions": "Aucune option de streaming disponible",
+    "showing": "{{count}} options de streaming disponibles",
+    "allOnline": "Tous les serveurs en ligne"
+  },
+
+  "episodeSelector": {
+    "seasons": "Saisons",
+    "season": "Saison {{number}}",
+    "eps": "éps",
+    "seasonEpisodes": "Épisodes de la saison {{number}}",
+    "episodes": "épisodes",
+    "noEpisodes": "Aucun épisode disponible"
+  },
+
+  "trailer": {
+    "noTrailers": "Aucune bande-annonce trouvée",
+    "loading": "Chargement des bandes-annonces...",
+    "published": "Publié le :"
   }
 }

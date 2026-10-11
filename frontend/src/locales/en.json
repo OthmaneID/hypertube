@@ -275,8 +275,67 @@
     "loading": "Loading...",
     "backToTop": "Back to top",
     "archive": "archive",
-    "loadMore": "Load more",
     "watched": "Watched",
-    "rewatch": "Rewatch"
+    "rewatch": "Rewatch",
+    "loadMore": "Load more"
+  },
+
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your preferences and account settings"
+  },
+
+  "watch": {
+    "streaming": "Streaming",
+    "buffering": "Buffering",
+    "connecting": "Connecting",
+    "failed": "Failed",
+    "shortcuts": "Shortcuts",
+    "shortcutPlayPause": "Play / Pause",
+    "shortcutSkip": "Skip 10s",
+    "shortcutMute": "Mute",
+    "shortcutFullscreen": "Fullscreen",
+    "connectingToPeers": "Connecting to peers…",
+    "bufferingStream": "Buffering stream…",
+    "findingSeeders": "Finding seeders on the torrent network",
+    "waitingForData": "Waiting for more data",
+    "streamUnavailable": "Stream unavailable",
+    "streamUnavailableDesc": "This torrent may have no active seeders, or the file could not be located. Try a different source.",
+    "chooseSource": "Choose source",
+    "retry": "Retry",
+    "streamEnded": "Stream ended",
+    "backToDetails": "Back to details"
+  },
+
+  "streamOption": {
+    "unknown": "Unknown",
+    "seeders": "seeders",
+    "likelyDead": "(likely dead)",
+    "watchNow": "Watch Now"
+  },
+
+  "streamingOptions": {
+    "title": "Streaming Options",
+    "descMovie": "Choose your preferred streaming service for \"{{name}}\"",
+    "descEpisode": "Choose your preferred streaming service for \"{{name}}\" - Season {{season}}, Episode {{episode}}",
+    "error": "Error loading streaming options",
+    "noOptions": "No streaming options available",
+    "showing": "Showing {{count}} streaming options",
+    "allOnline": "All servers online"
+  },
+
+  "episodeSelector": {
+    "seasons": "Seasons",
+    "season": "Season {{number}}",
+    "eps": "eps",
+    "seasonEpisodes": "Season {{number}} Episodes",
+    "episodes": "episodes",
+    "noEpisodes": "No episodes available"
+  },
+
+  "trailer": {
+    "noTrailers": "No trailers found",
+    "loading": "Loading trailers...",
+    "published": "Published:"
   }
 }

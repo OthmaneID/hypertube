@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Play, Hd, Monitor, Globe, ExternalLink, Clock, Users } from 'lucide-react';
 import type { StreamElement } from '../utils/interfaces';
 import { getSeeders } from '../utils/streams';
+import { useTranslation } from 'react-i18next';
 
 interface StreamOptionProps {
   stream: StreamElement;
@@ -15,6 +16,7 @@ function StreamOption({
   onClick
 }: StreamOptionProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { t } = useTranslation();
 
   const parseStream = (s: StreamElement) => {
     const [name1 = "", quality = ""] = (s.name || "").split("\n");
@@ -90,7 +92,7 @@ function StreamOption({
             {parsed.provider?.charAt(0).toUpperCase() || "T"}
           </div>
           <h3 className="text-white font-semibold text-sm truncate max-w-30" title={parsed.provider || parsed.addon}>
-            {parsed.provider || parsed.addon || "Unknown"}
+            {parsed.provider || parsed.addon || t("streamOption.unknown")}
           </h3>
         </div>
         {getQualityIcon(parsed.quality)}
@@ -98,7 +100,7 @@ function StreamOption({
 
       {/* Quality and Language */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-white font-bold text-lg">{parsed.quality || "Unknown"}</span>
+        <span className="text-white font-bold text-lg">{parsed.quality || t("streamOption.unknown")}</span>
         <div className="flex items-center gap-1 text-gray-400 text-xs">
           <Globe className="w-3 h-3" />
           <span>{language}</span>
@@ -109,8 +111,8 @@ function StreamOption({
       <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
         <div className={`flex items-center gap-1 ${likelyDead ? "text-red-400" : ""}`}>
           <Users className="w-3 h-3" />
-          <span>{formatUserCount(parsed.seeders)} seeders</span>
-          {likelyDead && <span>(likely dead)</span>}
+          <span>{formatUserCount(parsed.seeders)} {t("streamOption.seeders")}</span>
+          {likelyDead && <span>{t("streamOption.likelyDead")}</span>}
         </div>
         {parsed.size && (
           <div className="flex items-center gap-1">
@@ -141,7 +143,7 @@ function StreamOption({
       >
         <Play className="w-4 h-4" />
         <span>
-          Watch Now
+          {t("streamOption.watchNow")}
         </span>
       </div>
 

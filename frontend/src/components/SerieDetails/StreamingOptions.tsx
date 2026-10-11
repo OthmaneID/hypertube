@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { buildWatchPath, sortBySeeders } from "../../utils/streams";
 import type { StreamElement } from "../../utils/interfaces";
+import { useTranslation } from "react-i18next";
 
 interface StreamingOptionsProps {
   imdb_id?: string;
@@ -37,6 +38,7 @@ function StreamingOptions({
   })
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
@@ -95,10 +97,10 @@ function StreamingOptions({
             {/* Header */}
             <div className="mb-6">
               <h2 className="text-3xl font-bold text-white mb-2">
-                Streaming Options
+                {t("streamingOptions.title")}
               </h2>
               <p className="text-gray-400 text-sm">
-                Choose your preferred streaming service for "{serie_name}" - Season {seasonNumber}, Episode {episodeNumber}
+                {t("streamingOptions.descEpisode", { name: serie_name, season: seasonNumber, episode: episodeNumber })}
               </p>
             </div>
 
@@ -110,7 +112,7 @@ function StreamingOptions({
                 </div>
               ) : sourcesQuery.error ? (
                 <div className="text-red-400">
-                  Error loading streaming options
+                  {t("streamingOptions.error")}
                 </div>
               ) : streams.length > 0 ? (
                 streams.map((stream, index) => (
@@ -123,7 +125,7 @@ function StreamingOptions({
                 ))
               ) : (
                 <div className="text-gray-400">
-                  No streaming options available
+                  {t("streamingOptions.noOptions")}
                 </div>
               )}
             </div>
@@ -131,11 +133,11 @@ function StreamingOptions({
             {/* Footer Info */}
             <div className="mt-6 pt-4 border-t border-gray-800 text-gray-500 text-xs flex items-center justify-between">
               <span>
-                Showing {sourcesQuery.data?.streams?.length || 0} streaming options
+                {t("streamingOptions.showing", { count: sourcesQuery.data?.streams?.length || 0 })}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                All servers online
+                {t("streamingOptions.allOnline")}
               </span>
             </div>
           </div>
