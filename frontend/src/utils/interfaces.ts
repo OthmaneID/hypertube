@@ -4,7 +4,7 @@ export interface Movie {
   adult?: boolean;
   backdrop_path?: string;
   genre_ids?: Array<number>;
-  id?: number;
+  id: number;
   original_language?: string;
   original_title?: string;
   overview?: string;
@@ -185,7 +185,7 @@ export interface Serie {
   backdrop_path?: string;
   first_air_date?: string;
   genre_ids?: Array<number>;
-  id?: number;
+  id: number;
   name?: string;
   origin_country?: Array<string>;
   original_language?: string;
@@ -224,7 +224,7 @@ export interface SerieDetails {
     name?: string;
   }>;
   homepage?: string;
-  id?: number;
+  id: number;
   in_production?: boolean;
   languages?: string[];
   last_air_date?: string;

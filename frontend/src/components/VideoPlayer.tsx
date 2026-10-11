@@ -13,6 +13,7 @@ import {
   FastForward,
   MessageSquareText,
 } from "lucide-react";
+import { getProgress, updateProgress } from "../utils/api/userService/historyApi";
 
 export interface SubtitleTrack {
   src: string;
@@ -28,6 +29,10 @@ interface VideoPlayerProps {
   // Secondary line under the title, e.g. "S1 E3 · Pilot"
   episodeTitle?: string;
   subtitles?: SubtitleTrack[];
+  imdb_id?: string;
+  tmdb_id?: number;
+  season?: number;
+  episode?: number;
   autoPlay?: boolean;
   hidePlayerBuffering?: boolean;
   disableSeek?: boolean;
@@ -38,22 +43,46 @@ interface VideoPlayerProps {
   passedDuration?: number;
   onEnded?: () => void;
   onCanPlay?: () => void;
-  onWaiting?: ()   => void;
+  onWaiting?: () => void;
   onPlaying?: () => void;
   onError?: (e: any) => void;
 }
 
 const TRANSCODED_SEEK_DEBOUNCE_MS = 400;
+const PROGRESS_SAVE_INTERVAL_S = 10;
+// Past this share of the duration the movie or episode counts as watched
+const FINISHED_RATIO = 0.95;
 
 function withStartParam(src: string, start: number) {
   return `${src}${src.includes("?") ? "&" : "?"}start=${start.toFixed(1)}`;
 }
 
-export default function VideoPlayer({ src, poster, title, episodeTitle, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, transcoded = false, resolveSeekStart, passedDuration, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
+export default function VideoPlayer({
+  src,
+  poster,
+  imdb_id,
+  tmdb_id,
+  season,
+  episode,
+  title,
+  episodeTitle,
+  subtitles,
+  autoPlay = false,
+  hidePlayerBuffering = false,
+  disableSeek = false,
+  transcoded = false,
+  resolveSeekStart,
+  passedDuration,
+  onEnded,
+  onCanPlay,
+  onWaiting,
+  onPlaying,
+  onError,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
-  
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0 to 100
   const [currentTime, setCurrentTime] = useState(0);
@@ -63,16 +92,18 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isWaiting, setIsWaiting] = useState(true);
-  
+
   // New State for Settings and Speed
   const [speed, setSpeed] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
   const [isSpeedingUp, setIsSpeedingUp] = useState(false); // For hold-to-fast-forward
   const [showSubtitlesMenu, setShowSubtitlesMenu] = useState(false);
   const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number>(-1);
-  
+
   const [isSeeking, setIsSeeking] = useState(false);
-  const [doubleClickSide, setDoubleClickSide] = useState<"left" | "right" | null>(null);
+  const [doubleClickSide, setDoubleClickSide] = useState<
+    "left" | "right" | null
+  >(null);
 
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -86,7 +117,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const seekRequestRef = useRef(0);
   const seekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasStartedRef = useRef(false);
-  const cueOriginalTimesRef = useRef(new WeakMap<TextTrackCue, [number, number]>());
+  const cueOriginalTimesRef = useRef(
+    new WeakMap<TextTrackCue, [number, number]>(),
+  );
   // Cues are drawn by the player, not the browser: Chrome ignores VTTCue.lineAlign, so a native cue
   // positioned above the controls hangs down from that line instead of sitting on it
   const subtitleTextRef = useRef<HTMLSpanElement>(null);
@@ -94,7 +127,8 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   // Distance in px from the player's bottom edge to the subtitles, or null for the default position
   const [subtitleBottom, setSubtitleBottom] = useState<number | null>(null);
 
-  const videoSrc = transcoded && startOffset > 0 ? withStartParam(src, startOffset) : src;
+  const videoSrc =
+    transcoded && startOffset > 0 ? withStartParam(src, startOffset) : src;
 
   useEffect(() => {
     return () => {
@@ -104,19 +138,68 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
   const getTotalDuration = () => {
     const mediaDuration = videoRef.current?.duration;
-    const hasMediaDuration = mediaDuration !== undefined && Number.isFinite(mediaDuration) && mediaDuration > 0;
+    const hasMediaDuration =
+      mediaDuration !== undefined &&
+      Number.isFinite(mediaDuration) &&
+      mediaDuration > 0;
     if (!transcoded && hasMediaDuration) return mediaDuration;
     return passedDuration || (hasMediaDuration ? mediaDuration : 0);
   };
+  const lastSavedProgressRef = useRef(0);
+  // Nothing is saved until the stored progress is known, so an early save can't overwrite it with ~0
+  const progressLoadedRef = useRef(false);
+  // Position to jump to once the video can seek, cleared once used
+  const resumeAtRef = useRef<number | null>(null);
+
   const update_progress = () => {
-    
-  }
+    if (!imdb_id || tmdb_id === undefined) return;
+    if (!progressLoadedRef.current || resumeAtRef.current !== null) return;
+    const currentTime = Math.floor(getPosition());
+    if (Math.abs(currentTime - lastSavedProgressRef.current) < PROGRESS_SAVE_INTERVAL_S) return;
+    lastSavedProgressRef.current = currentTime;
+    const total = getTotalDuration();
+    updateProgress({
+      imdb_id,
+      tmdb_id,
+      season: season ?? null,
+      episode: episode ?? null,
+      watched_duration: currentTime,
+      is_finished: total > 0 && currentTime >= total * FINISHED_RATIO,
+    }).then((data) => {
+      console.log("data : ", data)
+    });
+  };
 
+  useEffect(() => {
+    setInterval(() => {
+      update_progress()
+    }, 5000)
+  })
 
-  const get_progress = () => {
-    
-  }
+  const resumeFromProgress = () => {
+    const target = resumeAtRef.current;
+    if (target === null) return;
+    resumeAtRef.current = null;
+    seekTo(target);
+  };
 
+  // A finished movie or episode starts over instead of resuming near the credits
+  useEffect(() => {
+    if (tmdb_id === undefined) return;
+    let cancelled = false;
+    getProgress(tmdb_id, season, episode).then((saved) => {
+      if (cancelled) return;
+      progressLoadedRef.current = true;
+      if (!saved || saved.is_finished || saved.watched_duration <= 0) return;
+      resumeAtRef.current = saved.watched_duration;
+      lastSavedProgressRef.current = saved.watched_duration;
+      // Metadata may already be loaded, otherwise handleLoadedMetadata resumes
+      if ((videoRef.current?.readyState ?? 0) >= 1) resumeFromProgress();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tmdb_id, season, episode]);
 
   const getPosition = () => {
     if (pendingSeekRef.current !== null) return pendingSeekRef.current;
@@ -154,7 +237,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
       if (!container || !bar || !controls) return;
       // Layout offsets ignore the controls' slide-in transform
       const barTop = controls.offsetTop + bar.offsetTop;
-      setSubtitleBottom(controlsVisible ? container.offsetHeight - barTop + 12 : null);
+      setSubtitleBottom(
+        controlsVisible ? container.offsetHeight - barTop + 12 : null,
+      );
     };
     updateSubtitleBottom();
     window.addEventListener("resize", updateSubtitleBottom);
@@ -163,11 +248,16 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
   // Hidden tracks still load and activate their cues; the active ones are copied into the overlay
   useEffect(() => {
-    const track = activeSubtitleIndex >= 0 ? videoRef.current?.textTracks[activeSubtitleIndex] : undefined;
+    const track =
+      activeSubtitleIndex >= 0
+        ? videoRef.current?.textTracks[activeSubtitleIndex]
+        : undefined;
     const render = () => {
       const el = subtitleTextRef.current;
       if (!el) return;
-      const cues = Array.from(track?.activeCues ?? []).filter((cue): cue is VTTCue => cue instanceof VTTCue);
+      const cues = Array.from(track?.activeCues ?? []).filter(
+        (cue): cue is VTTCue => cue instanceof VTTCue,
+      );
       el.replaceChildren();
       cues.forEach((cue, i) => {
         if (i > 0) el.append("\n");
@@ -194,9 +284,14 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     const video = videoRef.current;
     if (!video) return;
     const trackElements = Array.from(video.querySelectorAll("track"));
-    trackElements.forEach((t) => t.addEventListener("load", applySubtitleOffset));
+    trackElements.forEach((t) =>
+      t.addEventListener("load", applySubtitleOffset),
+    );
     applySubtitleOffset();
-    return () => trackElements.forEach((t) => t.removeEventListener("load", applySubtitleOffset));
+    return () =>
+      trackElements.forEach((t) =>
+        t.removeEventListener("load", applySubtitleOffset),
+      );
   }, [subtitles, startOffset, applySubtitleOffset]);
 
   useEffect(() => {
@@ -243,7 +338,8 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   };
 
   const handleTimeUpdate = () => {
-    if (!videoRef.current || isSeeking || pendingSeekRef.current !== null) return;
+    if (!videoRef.current || isSeeking || pendingSeekRef.current !== null)
+      return;
     if (startOffsetRef.current !== startOffset) return; // old stream still reporting before the new src renders
     const current = getPosition();
     const total = getTotalDuration();
@@ -260,6 +356,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
       setDuration(getTotalDuration());
       videoRef.current.playbackRate = speed; // Re-apply speed on load
       applySubtitleOffset();
+      resumeFromProgress();
     }
   };
 
@@ -321,7 +418,10 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     const video = videoRef.current;
     if (disableSeek || !video) return;
     const total = getTotalDuration();
-    const clamped = Math.max(0, total > 0 ? Math.min(target, total - 1) : target);
+    const clamped = Math.max(
+      0,
+      total > 0 ? Math.min(target, total - 1) : target,
+    );
 
     setCurrentTime(clamped);
     if (total > 0) setProgress((clamped / total) * 100);
@@ -333,7 +433,11 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
     // Data the current stream already delivered can be replayed without restarting it
     const local = clamped - startOffsetRef.current;
-    if (pendingSeekRef.current === null && local >= 0 && isLocallySeekable(video, local)) {
+    if (
+      pendingSeekRef.current === null &&
+      local >= 0 &&
+      isLocallySeekable(video, local)
+    ) {
       video.currentTime = local;
       return;
     }
@@ -390,7 +494,8 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
   const handleSeekStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disableSeek) return;
-    if (!videoRef.current || !progressRef.current || getTotalDuration() <= 0) return;
+    if (!videoRef.current || !progressRef.current || getTotalDuration() <= 0)
+      return;
     setIsSeeking(true);
     previewSeek(e.clientX);
     // Transcoded streams only restart once the drag is released
@@ -443,7 +548,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch((err) => console.error(err));
+      containerRef.current
+        .requestFullscreen()
+        .catch((err) => console.error(err));
       setIsFullscreen(true);
     } else {
       document.exitFullscreen();
@@ -526,9 +633,11 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   }, []);
 
   useEffect(() => {
-    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const handleFullscreenChange = () =>
+      setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   const formatTime = (time: number) => {
@@ -565,7 +674,10 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         onCanPlay={handleCanPlay}
         onError={(e) => {
           console.error("Video error:", e.currentTarget.error);
-          if (transcoded && startOffsetRef.current !== lastGoodOffsetRef.current) {
+          if (
+            transcoded &&
+            startOffsetRef.current !== lastGoodOffsetRef.current
+          ) {
             // A failed jump falls back to the last position that played instead of killing the player
             commitTranscodedSeek(lastGoodOffsetRef.current, isPlaying);
             return;
@@ -604,7 +716,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         className={`absolute left-0 right-0 px-[5%] flex justify-center text-center pointer-events-none z-10 transition-[bottom] duration-300 ${
           hasActiveCue ? "" : "hidden"
         }`}
-        style={{ bottom: subtitleBottom !== null ? `${subtitleBottom}px` : "6%" }}
+        style={{
+          bottom: subtitleBottom !== null ? `${subtitleBottom}px` : "6%",
+        }}
       >
         <span
           ref={subtitleTextRef}
@@ -617,7 +731,10 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         className={`absolute top-0 bottom-0 left-0 w-1/3 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
           doubleClickSide === "left" ? "opacity-100" : "opacity-0"
         }`}
-        style={{ background: "linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%)" }}
+        style={{
+          background:
+            "linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 100%)",
+        }}
       >
         <div className="bg-black/40 backdrop-blur-sm rounded-full p-4 flex flex-col items-center gap-1 animate-bounce">
           <RotateCcw className="w-8 h-8 text-white" />
@@ -628,7 +745,10 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         className={`absolute top-0 bottom-0 right-0 w-1/3 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
           doubleClickSide === "right" ? "opacity-100" : "opacity-0"
         }`}
-        style={{ background: "linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 100%)" }}
+        style={{
+          background:
+            "linear-gradient(to left, rgba(0,0,0,0.4) 0%, transparent 100%)",
+        }}
       >
         <div className="bg-black/40 backdrop-blur-sm rounded-full p-4 flex flex-col items-center gap-1 animate-bounce">
           <RotateCw className="w-8 h-8 text-white" />
@@ -651,7 +771,7 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
         </div>
       )}
 
-            {/* Top Title Bar (Glassmorphic) */}
+      {/* Top Title Bar (Glassmorphic) */}
       <div
         className={`absolute top-0 left-0 right-0 p-6 pt-8 pb-12 bg-gradient-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 pointer-events-none z-20 ${
           showControls || !isPlaying ? "opacity-100" : "opacity-0"
@@ -670,7 +790,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
       {/* Central Play/Pause overlay */}
       <div
         className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 ${
-          !isPlaying && !isWaiting ? "opacity-100 scale-100" : "opacity-0 scale-75"
+          !isPlaying && !isWaiting
+            ? "opacity-100 scale-100"
+            : "opacity-0 scale-75"
         }`}
       >
         <div className="bg-purple-600/80 hover:bg-purple-600 backdrop-blur-md text-white p-5 rounded-full shadow-[0_0_40px_rgba(147,51,234,0.5)] border border-purple-400/30">
@@ -681,13 +803,15 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
       {/* Bottom Controls (Glassmorphic) */}
       <div
         className={`absolute bottom-0 left-0 right-0 p-6 pt-16 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 z-20 ${
-          showControls || !isPlaying ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+          showControls || !isPlaying
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
         {/* Progress Bar */}
         <div
           ref={progressRef}
-          className={`relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-4 transition-all duration-200 flex items-center ${disableSeek ? 'cursor-default' : 'cursor-pointer'}`}
+          className={`relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-4 transition-all duration-200 flex items-center ${disableSeek ? "cursor-default" : "cursor-pointer"}`}
           onPointerDown={handleSeekStart}
         >
           {/* Buffer / Trail bar */}
@@ -702,7 +826,11 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
           {/* Seek Thumb */}
           <div
             className={`absolute w-3.5 h-3.5 bg-white rounded-full shadow-md transition-transform duration-100 ${
-              disableSeek ? 'hidden' : (isSeeking ? "scale-125 opacity-100" : "group-hover:opacity-100 opacity-0 hover:scale-110")
+              disableSeek
+                ? "hidden"
+                : isSeeking
+                  ? "scale-125 opacity-100"
+                  : "group-hover:opacity-100 opacity-0 hover:scale-110"
             }`}
             style={{ left: `calc(${progress}% - 7px)` }}
           />
@@ -715,26 +843,42 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
               onClick={togglePlay}
               className="hover:text-purple-400 transition-colors active:scale-95"
             >
-              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+              {isPlaying ? (
+                <Pause className="w-6 h-6" />
+              ) : (
+                <Play className="w-6 h-6" />
+              )}
             </button>
-            
+
             {/* Skip Backward 10s */}
-            <button disabled={disableSeek} onClick={skipBackward} className={`transition-colors active:scale-95 ${disableSeek ? 'text-gray-500 cursor-not-allowed' : 'hover:text-purple-400'}`}>
+            <button
+              disabled={disableSeek}
+              onClick={skipBackward}
+              className={`transition-colors active:scale-95 ${disableSeek ? "text-gray-500 cursor-not-allowed" : "hover:text-purple-400"}`}
+            >
               <RotateCcw className="w-5 h-5" />
             </button>
 
             {/* Skip Forward 10s */}
-            <button disabled={disableSeek} onClick={skipForward} className={`transition-colors active:scale-95 ${disableSeek ? 'text-gray-500 cursor-not-allowed' : 'hover:text-purple-400'}`}>
+            <button
+              disabled={disableSeek}
+              onClick={skipForward}
+              className={`transition-colors active:scale-95 ${disableSeek ? "text-gray-500 cursor-not-allowed" : "hover:text-purple-400"}`}
+            >
               <RotateCw className="w-5 h-5" />
             </button>
-            
+
             {/* Volume Control */}
             <div className="flex items-center gap-2 group/volume relative">
               <button
                 onClick={toggleMute}
                 className="hover:text-purple-400 transition-colors"
               >
-                {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="w-5 h-5" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
               </button>
               <input
                 type="range"
@@ -754,14 +898,15 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
           </div>
 
           <div className="flex items-center gap-4">
-            
             {/* Hold to Fast Forward */}
-            <button 
+            <button
               onPointerDown={handleSpeedUpPress}
               onPointerUp={handleSpeedUpRelease}
               onPointerLeave={handleSpeedUpRelease}
               className={`transition-colors active:scale-95 flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md ${
-                isSpeedingUp ? "bg-purple-600 text-white" : "text-gray-300 hover:text-white bg-white/10 hover:bg-white/20"
+                isSpeedingUp
+                  ? "bg-purple-600 text-white"
+                  : "text-gray-300 hover:text-white bg-white/10 hover:bg-white/20"
               }`}
               title="Hold to Fast Forward"
             >
@@ -771,13 +916,15 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
             {/* Subtitles Menu Toggle */}
             {subtitles && subtitles.length > 0 && (
               <div className="relative">
-                <button 
+                <button
                   onClick={() => {
                     setShowSubtitlesMenu(!showSubtitlesMenu);
                     setShowSettings(false);
                   }}
                   className={`transition-colors duration-300 ${
-                    showSubtitlesMenu || activeSubtitleIndex !== -1 ? "text-purple-400" : "text-gray-300 hover:text-white"
+                    showSubtitlesMenu || activeSubtitleIndex !== -1
+                      ? "text-purple-400"
+                      : "text-gray-300 hover:text-white"
                   }`}
                   title="Subtitles/Captions"
                 >
@@ -794,7 +941,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
                       <button
                         onClick={() => changeSubtitle(-1)}
                         className={`text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${
-                          activeSubtitleIndex === -1 ? "text-purple-400 font-medium bg-purple-500/10" : "text-gray-200"
+                          activeSubtitleIndex === -1
+                            ? "text-purple-400 font-medium bg-purple-500/10"
+                            : "text-gray-200"
                         }`}
                       >
                         Off
@@ -804,7 +953,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
                           key={idx}
                           onClick={() => changeSubtitle(idx)}
                           className={`text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${
-                            activeSubtitleIndex === idx ? "text-purple-400 font-medium bg-purple-500/10" : "text-gray-200"
+                            activeSubtitleIndex === idx
+                              ? "text-purple-400 font-medium bg-purple-500/10"
+                              : "text-gray-200"
                           }`}
                         >
                           {sub.label}
@@ -818,13 +969,15 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
 
             {/* Settings Menu Toggle */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => {
                   setShowSettings(!showSettings);
                   setShowSubtitlesMenu(false);
                 }}
                 className={`transition-colors hover:rotate-45 duration-300 ${
-                  showSettings ? "text-purple-400" : "text-gray-300 hover:text-white"
+                  showSettings
+                    ? "text-purple-400"
+                    : "text-gray-300 hover:text-white"
                 }`}
               >
                 <Settings className="w-5 h-5" />
@@ -842,7 +995,9 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
                         key={s}
                         onClick={() => changeSpeed(s)}
                         className={`text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${
-                          speed === s ? "text-purple-400 font-medium bg-purple-500/10" : "text-gray-200"
+                          speed === s
+                            ? "text-purple-400 font-medium bg-purple-500/10"
+                            : "text-gray-200"
                         }`}
                       >
                         {s === 1 ? "Normal" : `${s}x`}
@@ -857,7 +1012,11 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
               onClick={toggleFullscreen}
               className="text-gray-300 hover:text-white transition-colors active:scale-95"
             >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              {isFullscreen ? (
+                <Minimize className="w-5 h-5" />
+              ) : (
+                <Maximize className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>

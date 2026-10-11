@@ -5,16 +5,15 @@ from services.auth import get_current_user
 from schema.User import UserResponse
 from models.History import History
 from datetime import datetime
+from schema.History import HistoryUpdate
+from services.History import UpdateProgress, GetProgress
 
 router = APIRouter(prefix="/history")
 
 
 @router.get("/")
 def get_my_history(
-    request: Request,
-    db: Session = Depends(get_db),
-    user: UserResponse = Depends(get_current_user),
-):
+    request: Request,movie_id: str, db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
     """Return all movie_ids the current user has watched."""
     rows = (
         db.query(History)
@@ -22,23 +21,52 @@ def get_my_history(
         .order_by(History.created_at.desc())
         .all()
     )
-    return {"watched": [r.movie_id for r in rows]}
+    return {"watched": [r.imdb_id for r in rows]}
 
 
-@router.get("/check/{movie_id}")
+@router.get("/check/{tmdb_id}:{season}:{episode}")
 def check_watched(
     request: Request,
-    movie_id: str,
+    tmdb_id: int,
+    season: int,
+    episode: int,
     db: Session = Depends(get_db),
     user: UserResponse = Depends(get_current_user),
 ):
-    """Return whether the current user has watched this movie."""
-    row = (
-        db.query(History)
-        .filter(History.watcher_id == user.id, History.movie_id == str(movie_id))
-        .first()
-    )
-    return {"watched": row is not None}
+    """Return whether the current user has watched this movie or serie."""
+    if season == -1 and episode == -1:
+        rows = (
+            db.query(History)
+            .filter(History.watcher_id == user.id, History.tmdb_id == tmdb_id)
+            .order_by(History.last_viewed_at.desc(), History.created_at.desc())
+            .all()
+        )
+        if rows:
+            is_finished = any(r.is_finished for r in rows)
+            return {
+                "watched": True,
+                "duration": rows[0].watched_duration or 0,
+                "is_finished": is_finished,
+            }
+        return {"watched": False, "duration": 0, "is_finished": False}
+    else:
+        row = (
+            db.query(History)
+            .filter(
+                History.watcher_id == user.id,
+                History.tmdb_id == tmdb_id,
+                History.season == season,
+                History.episode == episode,
+            )
+            .first()
+        )
+        if row:
+            return {
+                "watched": True,
+                "duration": row.watched_duration or 0,
+                "is_finished": row.is_finished,
+            }
+        return {"watched": False, "duration": 0, "is_finished": False}
 
 
 @router.post("/{movie_id}")
@@ -55,7 +83,7 @@ def mark_watched(
     """
     existing = (
         db.query(History)
-        .filter(History.watcher_id == user.id, History.movie_id == str(movie_id))
+        .filter(History.watcher_id == user.id, History.imdb_id == str(movie_id))
         .first()
     )
     if existing:
@@ -82,7 +110,7 @@ def unmark_watched(
     """Remove a movie from the user's watch history (mark as unwatched)."""
     deleted = (
         db.query(History)
-        .filter(History.watcher_id == user.id, History.movie_id == str(movie_id))
+        .filter(History.watcher_id == user.id, History.imdb_id == str(movie_id))
         .delete(synchronize_session=False)
     )
     db.commit()
@@ -91,6 +119,21 @@ def unmark_watched(
     return {"message": "Was not in history", "movie_id": movie_id}
 
 
-@router.get("progress/{movie_id}")
-def get_progress(request: Request, movie_id : int):
-    pass
+
+
+
+@router.patch("/progress")
+def update_progress(request : Request, historyUpdate: HistoryUpdate, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
+    """Movie and serie progress share this route: season/episode are null for movies."""
+    return UpdateProgress(historyUpdate, user.id, db)
+
+# Declared before the movie route: "/progress/{movie_id}" would also match "1399:1:2" and fail int validation
+@router.get("/progress/{movie_id}:{season}:{episode}")
+def get_serie_progress(request: Request, movie_id : int, season : int, episode : int, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
+    return GetProgress(user.id, movie_id, db, season, episode)
+
+@router.get("/progress/{movie_id}")
+def get_movie_progress(request: Request, movie_id : int, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
+    return GetProgress(user.id, movie_id, db)
+
+

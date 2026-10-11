@@ -275,6 +275,8 @@
     "loading": "Chargement...",
     "backToTop": "Retour en haut",
     "archive": "archive",
-    "loadMore": "Charger plus"
+    "loadMore": "Charger plus",
+    "watched": "Vu",
+    "rewatch": "Revoir"
   }
 }

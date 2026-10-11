@@ -5,7 +5,7 @@ What it does
 ------------
 Video files downloaded through torrents and subtitle files are kept on disk so
 that a second viewer doesn't download them again. Anything nobody has watched
-for 7 days is now deleted automatically. A video that is playing at the moment
+for 30 days is now deleted automatically. A video that is playing at the moment
 the cleanup runs is never deleted.
 
 
@@ -25,7 +25,7 @@ Where the files live
 
 Files involved
 --------------
-  config.py                       media_retention_days (default 7) and
+  config.py                       media_retention_days (default 30) and
                                   cleanup_interval_hours (default 6)
   models/CachedTorrentFile.py     table "cached_torrent_files" (one row per
                                   streamed file of a torrent)

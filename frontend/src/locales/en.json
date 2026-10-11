@@ -275,6 +275,8 @@
     "loading": "Loading...",
     "backToTop": "Back to top",
     "archive": "archive",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "watched": "Watched",
+    "rewatch": "Rewatch"
   }
 }

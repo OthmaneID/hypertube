@@ -409,6 +409,7 @@ function SerieDetails() {
       {showStreams && (
         <StreamingOptions
           imdb_id={serie?.imdb_id}
+          tmdb_id={serie?.id}
           seasonNumber={selectedSeason ?? 0}
           episodeNumber={selectedEpisode ?? 0}
           serie_name={serie?.name ?? ""}

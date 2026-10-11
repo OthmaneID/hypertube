@@ -30,6 +30,8 @@ wanted_files = {}
 torrent_add_lock = asyncio.Lock()
 # (hash, file index) -> (codec_name, pix_fmt, duration) from ffprobe
 probe_cache = {}
+# (hash, file index) -> audio stream mapping (e.g. "0:2?") from ffprobe
+audio_probe_cache = {}
 # hash -> number of responses currently sending its data; the cleanup job never deletes these
 open_streams = {}
 # Authorizes ffmpeg's requests to the internal file endpoint, which has no user session
@@ -267,6 +269,8 @@ def drop_torrent(hash: str, handle):
         wanted_files.pop(hash, None)
         for key in [k for k in probe_cache if k[0] == hash]:
             probe_cache.pop(key)
+        for key in [k for k in audio_probe_cache if k[0] == hash]:
+            audio_probe_cache.pop(key)
     try:
         get_lt_session().remove_torrent(handle)
     except Exception as e:
@@ -363,7 +367,6 @@ async def get_torrent_handle(hash: str):
         if hash in active_torrents:
             print(f"Reusing existing torrent handle for {hash}")
             return active_torrents[hash]
-
         trackers = await get_trackers()
         print(f"trackers: {len(trackers)} trackers loaded")
 
@@ -488,6 +491,8 @@ async def run_ffprobe(sf: StreamFile, *args):
         return None
 
 
+
+
 async def probe_stream(sf: StreamFile):
     """Returns (codec_name, pix_fmt, duration) of the file's first video stream; all None if probing fails."""
     key = (sf.hash, sf.idx)
@@ -504,9 +509,45 @@ async def probe_stream(sf: StreamFile):
         duration = float(info.get("format", {}).get("duration"))
     except (TypeError, ValueError):
         duration = None
+
     result = (streams[0].get("codec_name"), streams[0].get("pix_fmt"), duration)
     probe_cache[key] = result
     return result
+
+
+async def probe_audio_stream(sf: StreamFile) -> str:
+    """Finds the original / English audio track, falling back to default or 0:a:0."""
+    key = (sf.hash, sf.idx)
+    if key in audio_probe_cache:
+        return audio_probe_cache[key]
+
+    info = await run_ffprobe(
+        sf, '-select_streams', 'a',
+        '-show_entries', 'stream=index:stream_tags=language,title:stream_disposition=default,original'
+    ) or {}
+    streams = info.get("streams") or []
+
+    selected_index = None
+    # 1. Look for English or explicitly tagged Original track
+    for s in streams:
+        tags = s.get("tags") or {}
+        lang = (tags.get("language") or "").lower()
+        title = (tags.get("title") or "").lower()
+        disp = s.get("disposition") or {}
+        if lang in ("eng", "en") or "english" in title or "original" in title or disp.get("original") == 1:
+            selected_index = s.get("index")
+            break
+
+    # 2. Fall back to track with default disposition
+    if selected_index is None:
+        for s in streams:
+            if (s.get("disposition") or {}).get("default") == 1:
+                selected_index = s.get("index")
+                break
+
+    mapping = f"0:{selected_index}?" if selected_index is not None else "0:a:0?"
+    audio_probe_cache[key] = mapping
+    return mapping
 
 
 def can_copy_video(video_codec, pix_fmt):
@@ -535,7 +576,7 @@ async def resolve_start_time(sf: StreamFile, start):
     return start
 
 
-def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
+def build_transcode_cmd(input_url, start, video_codec, pix_fmt, audio_map="0:a:0?"):
     copy_video = can_copy_video(video_codec, pix_fmt)
     if copy_video:
         video_args = ['-c:v', 'copy']
@@ -556,7 +597,7 @@ def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
             # Short GOP: each fMP4 fragment starts on a keyframe, so this bounds the startup delay
             '-g', '48',
         ]
-    print(f"Transcoding from {start:.1f}s: video={video_codec}/{pix_fmt} -> {'copy' if copy_video else 'libx264'}")
+    print(f"Transcoding from {start:.1f}s: video={video_codec}/{pix_fmt} -> {'copy' if copy_video else 'libx264'} audio={audio_map}")
 
     return [
         'ffmpeg', '-hide_banner', '-loglevel', 'error',
@@ -564,7 +605,7 @@ def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
         *(['-ss', f'{seek:.3f}'] if seek > 0 else []),
         '-i', input_url,
         # Explicit mapping: the default picks subtitle tracks too, and bitmap ones (PGS/VobSub) make ffmpeg exit
-        '-map', '0:v:0', '-map', '0:a:0?',
+        '-map', '0:v:0', '-map', audio_map,
         '-sn', '-dn',
         *video_args,
         '-c:a', 'aac', '-ac', '2', '-b:a', '160k',
@@ -574,9 +615,9 @@ def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
     ]
 
 
-async def stream_transcoded_video(input_url, start, video_codec, pix_fmt):
+async def stream_transcoded_video(input_url, start, video_codec, pix_fmt, audio_map="0:a:0?"):
     process = await asyncio.create_subprocess_exec(
-        *build_transcode_cmd(input_url, start, video_codec, pix_fmt),
+        *build_transcode_cmd(input_url, start, video_codec, pix_fmt, audio_map),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
@@ -641,7 +682,8 @@ async def stream_from_source(request: Request, hash: str):
         return await serve_range(request, sf)
 
     video_codec, pix_fmt, _ = await probe_stream(sf)
-    generator = track_stream(sf.hash, stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt))
+    audio_map = await probe_audio_stream(sf)
+    generator = track_stream(sf.hash, stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt, audio_map))
     return StreamingResponse(
         generator,
         media_type="video/mp4"

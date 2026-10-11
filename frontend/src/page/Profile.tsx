@@ -564,7 +564,7 @@ function Profile() {
                       <Card
                         key={movie.id}
                         url={`/movies/${movie.id}`}
-                        id={movie.id}
+                        tmdb_id={movie.id}
                         poster={movie.poster_path}
                         title={movie.title}
                         vote={movie.vote_average}
@@ -599,7 +599,7 @@ function Profile() {
                       <Card
                         key={serie.id}
                         url={`/series/${serie.id}`}
-                        id={serie.id}
+                        tmdb_id={serie.id}
                         poster={serie.poster_path}
                         title={serie.name}
                         vote={serie.vote_average}

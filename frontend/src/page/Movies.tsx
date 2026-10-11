@@ -382,6 +382,7 @@ function Movies() {
               key={`search-${item.id}`}
               url={`/movies/${item.id}`}
               poster={item.poster_path ?? undefined}
+              tmdb_id={item.id}
               title={item.title}
               vote={item.vote_average}
               year={
@@ -397,6 +398,7 @@ function Movies() {
           displayedMovies.map((movie) => (
             <Card
               url={"/movies/" + movie.id}
+              tmdb_id={movie.id}
               key={`popular-${movie.id}`}
               poster={movie.poster_path}
               title={movie.title}

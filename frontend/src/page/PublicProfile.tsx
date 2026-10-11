@@ -97,7 +97,9 @@ function PublicProfile() {
               ) : (
                 <ShieldX size={16} />
               )}
-              {user.is_verified ? t("publicProfile.verified") : t("publicProfile.notVerified")}
+              {user.is_verified
+                ? t("publicProfile.verified")
+                : t("publicProfile.notVerified")}
             </span>
           </div>
           <p className="mt-1 text-gray-400">@{user.username}</p>
@@ -120,7 +122,9 @@ function PublicProfile() {
       <section className="pt-8">
         <div className="mb-5 flex items-center gap-3">
           <Film size={20} className="text-gray-400" />
-          <h2 className="text-xl font-semibold">{t("publicProfile.favoriteMovies")}</h2>
+          <h2 className="text-xl font-semibold">
+            {t("publicProfile.favoriteMovies")}
+          </h2>
           <span className="text-sm text-gray-500">{favoriteMovies.length}</span>
         </div>
         {favoriteMovies.length > 0 ? (
@@ -129,7 +133,7 @@ function PublicProfile() {
               <Card
                 key={movie.id}
                 url={`/movies/${movie.id}`}
-                id={movie.id}
+                tmdb_id={movie.id}
                 poster={movie.poster_path}
                 title={movie.title}
                 vote={movie.vote_average}
@@ -151,7 +155,9 @@ function PublicProfile() {
       <section className="pt-10">
         <div className="mb-5 flex items-center gap-3">
           <Tv size={20} className="text-gray-400" />
-          <h2 className="text-xl font-semibold">{t("publicProfile.favoriteSeries")}</h2>
+          <h2 className="text-xl font-semibold">
+            {t("publicProfile.favoriteSeries")}
+          </h2>
           <span className="text-sm text-gray-500">{favoriteSeries.length}</span>
         </div>
         {favoriteSeries.length > 0 ? (
@@ -160,7 +166,7 @@ function PublicProfile() {
               <Card
                 key={serie.id}
                 url={`/series/${serie.id}`}
-                id={serie.id}
+                tmdb_id={serie.id}
                 poster={serie.poster_path}
                 title={serie.name}
                 vote={serie.vote_average}
@@ -187,12 +193,16 @@ function ProfileInfo({
   value?: string;
   icon?: ReactNode;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex items-start gap-3">
       {icon && <span className="mt-0.5 text-gray-500">{icon}</span>}
       <div>
         <p className="text-xs uppercase text-gray-500">{label}</p>
-        <p className="mt-1 text-sm text-gray-200">{value || t("publicProfile.notProvided")}</p>
+        <p className="mt-1 text-sm text-gray-200">
+          {value || t("publicProfile.notProvided")}
+        </p>
       </div>
     </div>
   );

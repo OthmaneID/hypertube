@@ -9,6 +9,7 @@ import type { StreamElement } from "../../utils/interfaces";
 
 interface StreamingOptionsProps {
   imdb_id?: string;
+  tmdb_id?: number;
   seasonNumber: number;
   episodeNumber: number;
   serie_name: string;
@@ -20,6 +21,7 @@ interface StreamingOptionsProps {
 
 function StreamingOptions({
   imdb_id,
+  tmdb_id,
   seasonNumber,
   episodeNumber,
   serie_name,
@@ -52,6 +54,7 @@ function StreamingOptions({
         buildWatchPath(stream, {
           duration,
           imdbId: imdb_id,
+          tmdbId: tmdb_id,
           season: seasonNumber,
           episode: episodeNumber,
           title: serie_name,

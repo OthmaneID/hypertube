@@ -9,6 +9,7 @@ import type { StreamElement } from "../../utils/interfaces";
 
 interface StreamingOptionsProps {
   movie_id?: string;
+  tmdb_id?: number;
   movie_name: string;
   setShowStreams: (show: boolean) => void;
   showStreams: boolean;
@@ -20,6 +21,7 @@ interface StreamingOptionsProps {
 
 function StreamingOptions({
   movie_id,
+  tmdb_id,
   movie_name,
   setShowStreams,
   showStreams,
@@ -61,7 +63,7 @@ function StreamingOptions({
 
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
-      navigate(buildWatchPath(stream, { duration, imdbId: movie_id, title: movie_name }));
+      navigate(buildWatchPath(stream, { duration, imdbId: movie_id, tmdbId: tmdb_id, title: movie_name }));
     }
   };
 

@@ -31,13 +31,13 @@ function PopularMovies() {
           {t("home.seeAll")} <BiChevronRight className="ml-1" />
         </Link>
       </div>
-      <div className="flex flex-row items-center h-85 overflow-auto gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-end h-90 overflow-auto gap-2 border-b-2 border-gray-600">
         {Movies.results.map((movie, index) => {
           const year = movie.release_date?.toString().split("-")[0];
           return <MovieCard
             url={"/movies/" + movie.id}
             key={index}
-            id={movie.id}
+            tmdb_id={movie.id}
             poster={movie.poster_path}
             title={movie.title}
             vote={movie.vote_average}

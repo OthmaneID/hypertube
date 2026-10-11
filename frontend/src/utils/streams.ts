@@ -12,6 +12,7 @@ export function sortBySeeders(streams: StreamElement[]): StreamElement[] {
 export interface WatchContext {
   duration?: number;
   imdbId?: string;
+  tmdbId?: number;
   season?: number;
   episode?: number;
   // Shown in the player: the movie or show name, and for episodes a line like "S1 E3 · Pilot"
@@ -19,7 +20,7 @@ export interface WatchContext {
   episodeTitle?: string;
 }
 
-export function buildWatchPath(stream: StreamElement, { duration, imdbId, season, episode, title, episodeTitle }: WatchContext = {}): string {
+export function buildWatchPath(stream: StreamElement, { duration, imdbId, tmdbId, season, episode, title, episodeTitle }: WatchContext = {}): string {
   const params = new URLSearchParams();
   if (stream.fileIdx !== undefined && stream.fileIdx !== null) {
     params.set("fileIdx", String(stream.fileIdx));
@@ -37,6 +38,7 @@ export function buildWatchPath(stream: StreamElement, { duration, imdbId, season
       params.set("episode", String(episode));
     }
   }
+  if (tmdbId !== undefined) params.set("tmdb", String(tmdbId));
   if (title) params.set("title", title);
   if (episodeTitle) params.set("episodeTitle", episodeTitle);
   const query = params.toString();

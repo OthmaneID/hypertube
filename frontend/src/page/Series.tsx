@@ -364,6 +364,7 @@ function Series() {
         {isSearchMode &&
           displayedSearch.map((item) => (
             <Card
+              tmdb_id={item.id}
               key={`search-${item.id}`}
               url={`/series/${item.id}`}
               poster={item.poster_path ?? undefined}
@@ -377,6 +378,7 @@ function Series() {
         {!isSearchMode &&
           displayedSeries.map((serie) => (
             <Card
+              tmdb_id={serie.id}
               url={"/series/" + serie.id}
               key={`popular-${serie.id}`}
               poster={serie.poster_path}

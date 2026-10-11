@@ -56,7 +56,7 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 20. [*] Add production year display to movie cards
 21. [*] Add IMDb/OMDb rating display to movie cards
 22. [*] Implement watched status tracking in History model
-23. [ ] Add visual differentiation for watched/unwatched movies
+23. [*] Add visual differentiation for watched/unwatched movies
 24. [*] Add sorting controls (name, genre, rating, year)
 25. [*] Add genre filter dropdown
 26. [*] Add year range filter
@@ -72,7 +72,7 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 33. [*] Add streaming from partial downloads (chunked streaming)
 34. [*] Create download cache directory structure
 35. [*] Implement movie file persistence after download
-36. [ ] Add cron job/scheduler to delete unwatched movies after 1 month
+36. [*] Add cron job/scheduler to delete unwatched movies after 1 month
 37. [*] Add subtitle search service (OpenSubtitles)
 38. [*] Download and save subtitles for movies
 39. [*] Add subtitle selection in video player

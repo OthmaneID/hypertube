@@ -363,6 +363,7 @@ function MovieDetails() {
       {showStreams && (
         <StreamingOptions
           movie_id={movie?.imdb_id}
+          tmdb_id={movie?.id}
           movie_name={movie?.title ?? ""}
           setShowStreams={setShowStreams}
           showStreams={showStreams}

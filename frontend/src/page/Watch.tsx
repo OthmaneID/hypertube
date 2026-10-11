@@ -41,6 +41,7 @@ function Watch() {
   const imdbId = queryParams.get("imdb");
   const seasonParam = queryParams.get("season");
   const episodeParam = queryParams.get("episode");
+  const tmdbParam = queryParams.get("tmdb");
   const subtitleQuery: SubtitleQuery | undefined = imdbId
     ? {
         imdbId,
@@ -61,6 +62,7 @@ function Watch() {
       isTranscoded={isTranscoded}
       passedDuration={passedDuration}
       subtitleQuery={subtitleQuery}
+      tmdbId={tmdbParam ? Number(tmdbParam) : undefined}
     />
   );
 }
@@ -81,6 +83,7 @@ function StreamPlayer({
   isTranscoded = false,
   passedDuration,
   subtitleQuery,
+  tmdbId,
 }: {
   streamUrl: string;
   hash: string;
@@ -90,6 +93,7 @@ function StreamPlayer({
   isTranscoded?: boolean;
   passedDuration?: number;
   subtitleQuery?: SubtitleQuery;
+  tmdbId?: number;
 }) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<PlayerStatus>("loading");
@@ -297,6 +301,10 @@ function StreamPlayer({
               title={title}
               episodeTitle={episodeTitle}
               autoPlay
+              imdb_id={imdbId}
+              tmdb_id={tmdbId}
+              season={season}
+              episode={episode}
               hidePlayerBuffering
               transcoded={transcoded}
               resolveSeekStart={resolveSeekStart}
