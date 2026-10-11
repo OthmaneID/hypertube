@@ -26,3 +26,4 @@ class HistoryResponse(BaseModel):
     last_viewed_at : Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+

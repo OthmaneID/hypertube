@@ -11,10 +11,24 @@ export interface ProgressUpdate {
 }
 
 
+
+
 export interface WatchedStatus {
   watched: boolean;
   duration?: number;
   is_finished?: boolean;
+}
+
+export interface SerieEpisodeHistory {
+  id: number;
+  imdb_id: string;
+  tmdb_id: number;
+  season: number;
+  episode: number;
+  watched_duration: number;
+  is_finished: boolean;
+  created_at?: string;
+  last_viewed_at?: string;
 }
 
 export async function checkWatched(
@@ -58,3 +72,17 @@ export async function getProgress(
     return null;
   }
 }
+
+
+
+export async function getSerieHistory(
+  tmdb_id: number
+): Promise<SerieEpisodeHistory[]> {
+  try {
+    const res = await axios.get(`/history/serie/${tmdb_id}`);
+    return res.data;
+  } catch (error: any) {
+    console.log("Error while getting serie history:", error.message);
+    return [];
+  }
+} 

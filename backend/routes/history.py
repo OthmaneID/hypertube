@@ -6,7 +6,7 @@ from schema.User import UserResponse
 from models.History import History
 from datetime import datetime
 from schema.History import HistoryUpdate
-from services.History import UpdateProgress, GetProgress
+from services.History import UpdateProgress, GetProgress, GetSerieHistory
 
 router = APIRouter(prefix="/history")
 
@@ -120,20 +120,23 @@ def unmark_watched(
 
 
 
-
-
 @router.patch("/progress")
 def update_progress(request : Request, historyUpdate: HistoryUpdate, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
     """Movie and serie progress share this route: season/episode are null for movies."""
-    return UpdateProgress(historyUpdate, user.id, db)
+    return UpdateProgress(historyUpdate, user, db)
 
 # Declared before the movie route: "/progress/{movie_id}" would also match "1399:1:2" and fail int validation
 @router.get("/progress/{movie_id}:{season}:{episode}")
 def get_serie_progress(request: Request, movie_id : int, season : int, episode : int, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
-    return GetProgress(user.id, movie_id, db, season, episode)
+    return GetProgress(user, movie_id, db, season, episode)
 
 @router.get("/progress/{movie_id}")
 def get_movie_progress(request: Request, movie_id : int, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
-    return GetProgress(user.id, movie_id, db)
+    return GetProgress(user, movie_id, db)
 
 
+
+@router.get("/serie/{tmdb_id}")
+def get_watched_episodes(request: Request, tmdb_id:int, db:Session = Depends(get_db), user:UserResponse = Depends(get_current_user)):
+    """return the history of the whole serie"""
+    return GetSerieHistory(request, tmdb_id, db, user)
