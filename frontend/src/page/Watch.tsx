@@ -4,6 +4,7 @@ import VideoPlayer, { type SubtitleTrack } from "../components/VideoPlayer";
 import { get_stream_info } from "../utils/api/movieService/torrentsApi";
 import type { StreamInfo } from "../utils/interfaces";
 import { getSubtitles, revokeSubtitles, type SubtitleQuery } from "../utils/api/movieService/subtitlesApi";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Wifi,
@@ -65,12 +66,7 @@ function Watch() {
   );
 }
 
-const SHORTCUTS = [
-  { key: "Space / K", action: "Play / Pause" },
-  { key: "← / →", action: "Skip 10s" },
-  { key: "M", action: "Mute" },
-  { key: "F", action: "Fullscreen" },
-];
+// Shortcuts are built inside the component so they can use t()
 
 function StreamPlayer({
   streamUrl,
@@ -92,6 +88,13 @@ function StreamPlayer({
   subtitleQuery?: SubtitleQuery;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const SHORTCUTS = [
+    { key: "Space / K", action: t("watch.shortcutPlayPause") },
+    { key: "← / →", action: t("watch.shortcutSkip") },
+    { key: "M", action: t("watch.shortcutMute") },
+    { key: "F", action: t("watch.shortcutFullscreen") },
+  ];
   const [status, setStatus] = useState<PlayerStatus>("loading");
   const [hasPlayed, setHasPlayed] = useState(false);
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
@@ -231,22 +234,22 @@ function StreamPlayer({
             {status === "playing" ? (
               <>
                 <Wifi className="w-3 h-3" />
-                Streaming
+                {t("watch.streaming")}
               </>
             ) : status === "buffering" ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                Buffering
+                {t("watch.buffering")}
               </>
             ) : status === "loading" ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                Connecting
+                {t("watch.connecting")}
               </>
             ) : status === "error" ? (
               <>
                 <WifiOff className="w-3 h-3" />
-                Failed
+                {t("watch.failed")}
               </>
             ) : null}
           </div>
@@ -273,7 +276,7 @@ function StreamPlayer({
           style={{ animation: "fadeUp 0.18s ease" }}
         >
           <p className="text-xs text-white/40 uppercase tracking-widest mb-3 font-semibold">
-            Shortcuts
+            {t("watch.shortcuts")}
           </p>
           <div className="flex flex-col gap-2">
             {SHORTCUTS.map(({ key, action }) => (
@@ -340,13 +343,13 @@ function StreamPlayer({
             <div className="text-center">
               <p className="text-white/90 text-sm font-medium">
                 {status === "loading"
-                  ? "Connecting to peers…"
-                  : "Buffering stream…"}
+                  ? t("watch.connectingToPeers")
+                  : t("watch.bufferingStream")}
               </p>
               <p className="text-white/30 text-xs mt-1">
                 {status === "loading"
-                  ? "Finding seeders on the torrent network"
-                  : "Waiting for more data"}
+                  ? t("watch.findingSeeders")
+                  : t("watch.waitingForData")}
               </p>
             </div>
 
@@ -376,11 +379,10 @@ function StreamPlayer({
 
             <div>
               <h2 className="text-white text-lg font-semibold mb-2">
-                Stream unavailable
+                {t("watch.streamUnavailable")}
               </h2>
               <p className="text-white/50 text-sm leading-relaxed">
-                This torrent may have no active seeders, or the file could not
-                be located. Try a different source.
+                {t("watch.streamUnavailableDesc")}
               </p>
             </div>
 
@@ -390,7 +392,7 @@ function StreamPlayer({
                 onClick={() => navigate(-1)}
               >
                 <ArrowLeft className="w-4 h-4" />
-                Choose source
+                {t("watch.chooseSource")}
               </button>
               <button
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-purple-200 text-sm font-medium transition-all border border-purple-500/20 hover:border-purple-500/40"
@@ -401,7 +403,7 @@ function StreamPlayer({
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
-                Retry
+                {t("watch.retry")}
               </button>
             </div>
           </div>
@@ -411,14 +413,14 @@ function StreamPlayer({
         {status === "ended" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 z-20 bg-black/60 backdrop-blur-sm">
             <p className="text-white/60 text-sm font-medium tracking-wide uppercase">
-              Stream ended
+              {t("watch.streamEnded")}
             </p>
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/18 text-white text-sm font-medium transition-all border border-white/10 hover:border-white/20"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to details
+              {t("watch.backToDetails")}
             </button>
           </div>
         )}

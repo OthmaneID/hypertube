@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ImageConfigContext } from "../global/imageConfigContext";
 import { useContext } from "react";
 import { Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 function Card({
   poster,
@@ -19,6 +20,7 @@ function Card({
   isExternal?: boolean;
 }) {
   const { imageConfig } = useContext(ImageConfigContext);
+  const { t } = useTranslation();
   const base =
     imageConfig.images?.secure_base_url ?? "https://image.tmdb.org/t/p/";
   const size = imageConfig.images?.poster_sizes?.[5] ?? "w500";
@@ -57,7 +59,7 @@ function Card({
         {/* archive.org badge */}
         {isExternal && (
           <div className="absolute top-3 left-3 px-1.5 py-0.5 rounded bg-amber-600/80 text-white text-[10px] font-bold tracking-wide">
-            archive
+            {t("common.archive")}
           </div>
         )}
 

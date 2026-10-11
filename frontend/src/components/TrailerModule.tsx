@@ -3,6 +3,7 @@ import { BiLeftArrowAlt, BiRightArrowAlt, BiX } from "react-icons/bi";
 import type { Trailer } from "../utils/interfaces";
 import { getMovieTrailers } from "../utils/api/movieService/moviesApi";
 import { getSerieTrailers } from "../utils/api/movieService/seriesApi";
+import { useTranslation } from "react-i18next";
 
 
 function TrailerModule({
@@ -19,6 +20,7 @@ function TrailerModule({
   const trailers = useRef<Array<Trailer>>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
   useEffect(() => {
     if (type == "movie") {
       getMovieTrailers(id)
@@ -137,7 +139,7 @@ function TrailerModule({
         <div className="flex flex-row flex-wrap items-center gap-6 z-75 h-full">
           {trailers.current.length === 0 && !isLoading ? (
             <div className="flex flex-col justify-center items-center gap-4 w-full h-[90%]">
-              <h1 className="text-gray-400 text-2xl">No trailers found</h1>
+              <h1 className="text-gray-400 text-2xl">{t("trailer.noTrailers")}</h1>
             </div>
           ) : (
             <div className="flex flex-col gap-2 w-full h-[90%] z-75">
@@ -145,7 +147,7 @@ function TrailerModule({
                 {isLoading ? (
                   <div className="w-full h-[90%] flex justify-center items-center">
                     <div className="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-                    <p className="text-gray-400 text-lg">Loading trailers...</p>
+                    <p className="text-gray-400 text-lg">{t("trailer.loading")}</p>
                   </div>
                 ) : (
                   <iframe
@@ -183,7 +185,7 @@ function TrailerModule({
                   <div className="flex flex-row justify-between w-[200px]">
                     {trailers.current?.at(currentIndex)?.published_at && (
                       <p className="text-xs text-gray-400 mt-1">
-                        Published:{" "}
+                        {t("trailer.published")}{" "}
                         {new Date(
                           trailers.current
                             ?.at(currentIndex)
