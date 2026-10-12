@@ -10,7 +10,9 @@ def UpdateProgress(data: HistoryUpdate,user : UserResponse, db: Session):
     """Create or update the watch progress of a movie, or of one episode when season/episode are set."""
     watcher_id = user.id
     try:
+        
         mode = ModeEnum.TV if data.season is not None and data.episode is not None else ModeEnum.MOVIE
+        
         entry = (
             db.query(History)
             .filter(
@@ -23,7 +25,7 @@ def UpdateProgress(data: HistoryUpdate,user : UserResponse, db: Session):
         )
         if entry:
             entry.watched_duration = data.watched_duration
-            entry.is_finished = data.is_finished
+            entry.is_finished = entry.is_finished or data.is_finished
         else:
             entry = History(
                 imdb_id=data.imdb_id,

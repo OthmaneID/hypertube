@@ -17,7 +17,7 @@ def _search_tmdb(kind: str, query: str, page: int, lang: str) -> tuple[list, int
     """Search TMDB movies ("movie") or series ("tv"); returns (results, total_pages)."""
     try:
         tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
-        url = f"{settings.api_base_url}search/{kind}"
+        url = f"{settings.api_base_url.rstrip('/')}/search/{kind}"
         res = requests.get(url, headers=TMDB_HEADERS, params={
             "query": query,
             "language": tmdb_lang,
@@ -50,7 +50,7 @@ def _search_tmdb(kind: str, query: str, page: int, lang: str) -> tuple[list, int
 
 def _cached_search(request: Request, kind: str, query: str, page: int, lang: str) -> dict:
     """Results keep TMDB's relevance order so that consecutive pages stay consistent."""
-    rd: redis.Redis = request.app.state.redis
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
     cache_key = f"search_{kind}_v2_{query.lower().strip()}_{page}_{lang}"
 
     try:

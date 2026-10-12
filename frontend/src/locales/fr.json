@@ -276,6 +276,8 @@
     "backToTop": "Retour en haut",
     "archive": "archive",
     "watched": "Vu",
+    "watching": "En cours",
+    "continue": "Reprendre",
     "rewatch": "Revoir",
     "loadMore": "Charger plus"
   },

@@ -66,9 +66,9 @@ def get_lt_session():
 
 async def getSources(request: Request, movie_id:str) -> SourcesResponse :
     api_url = f"https://torrentio.strem.fun/stream/movie/{movie_id}.json"
-    rd : redis.Redis = request.app.state.redis
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
     cache_key = f"movie_{movie_id}_sources"
-    
+
     # Try to get from cache
     try:
         if rd is not None:
@@ -79,7 +79,7 @@ async def getSources(request: Request, movie_id:str) -> SourcesResponse :
         print(f"Redis cache read error: {e}")
     except Exception as e:
         print(f"Cache deserialization error: {e}")
-    
+
     # Fetch from API
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -87,7 +87,7 @@ async def getSources(request: Request, movie_id:str) -> SourcesResponse :
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://torrentio.strem.fun/",
     }
-    
+
     try:
         async with httpx2.AsyncClient() as client:
             res = await client.get(api_url, headers=headers, timeout=10.0)
@@ -101,29 +101,29 @@ async def getSources(request: Request, movie_id:str) -> SourcesResponse :
     except Exception as e:
         print(f"Error fetching sources: {e}")
         raise Exception(f"Failed to fetch sources: {str(e)}")
-    
+
     # Validate response
     try:
         data = SourcesResponse.model_validate(res.json())
     except Exception as e:
         print(f"API response validation error: {e}")
         raise Exception(f"Invalid response format from API: {str(e)}")
-    
+
     # Cache the result
     try:
         if rd is not None and data:
             rd.setex(cache_key, 60 * 60 * 8, data.model_dump_json())
     except redis.RedisError as e:
         print(f"Redis cache write error: {e}")
-    
+
     return data
 
 
 async def getEpisodeStreams(request: Request, imdb_id: str, season: int, episode: int) -> SourcesResponse:
     api_url = f"https://torrentio.strem.fun/stream/series/{imdb_id}:{season}:{episode}.json"
-    rd : redis.Redis = request.app.state.redis
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
     cache_key = f"series_{imdb_id}_{season}_{episode}_sources"
-    
+
     # Try to get from cache
     try:
         if rd is not None:
@@ -134,7 +134,7 @@ async def getEpisodeStreams(request: Request, imdb_id: str, season: int, episode
         print(f"Redis cache read error: {e}")
     except Exception as e:
         print(f"Cache deserialization error: {e}")
-    
+
     # Fetch from API
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -142,7 +142,7 @@ async def getEpisodeStreams(request: Request, imdb_id: str, season: int, episode
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": "https://torrentio.strem.fun/",
     }
-    
+
     try:
         async with httpx2.AsyncClient() as client:
             res = await client.get(api_url, headers=headers, timeout=10.0)
@@ -156,21 +156,21 @@ async def getEpisodeStreams(request: Request, imdb_id: str, season: int, episode
     except Exception as e:
         print(f"Error fetching episode sources: {e}")
         raise Exception(f"Failed to fetch episode sources: {str(e)}")
-    
+
     # Validate response
     try:
         data = SourcesResponse.model_validate(res.json())
     except Exception as e:
         print(f"API response validation error: {e}")
         raise Exception(f"Invalid response format from API: {str(e)}")
-    
+
     # Cache the result
     try:
         if rd is not None and data:
             rd.setex(cache_key, 60 * 60 * 8, data.model_dump_json())
     except redis.RedisError as e:
         print(f"Redis cache write error: {e}")
-    
+
     return data
 
 

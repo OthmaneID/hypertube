@@ -276,6 +276,8 @@
     "backToTop": "Back to top",
     "archive": "archive",
     "watched": "Watched",
+    "watching": "Watching",
+    "continue": "Continue",
     "rewatch": "Rewatch",
     "loadMore": "Load more"
   },

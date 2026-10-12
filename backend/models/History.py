@@ -1,5 +1,5 @@
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy import Integer, String, ForeignKey, DateTime, FLOAT, Boolean, Column, Enum
+from sqlalchemy import Integer, String, ForeignKey, DateTime, FLOAT, Boolean, Column, Enum, UniqueConstraint
 from database import Base
 
 from datetime import datetime, timezone
@@ -26,6 +26,16 @@ class History(Base):
         onupdate=lambda: datetime.now(timezone.utc)
     )
     watcher : Mapped["User"] = relationship(back_populates="watched_history")
+    __table_args__ = (
+        UniqueConstraint(
+            "watcher_id",
+            "tmdb_id",
+            "season",
+            "episode",
+            name="uq_history_user_media",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
 # Late import to avoid circular dependency
 from models.User import User

@@ -38,7 +38,7 @@ def check_watched(
         rows = (
             db.query(History)
             .filter(History.watcher_id == user.id, History.tmdb_id == tmdb_id)
-            .order_by(History.last_viewed_at.desc(), History.created_at.desc())
+            .order_by(History.last_viewed_at.desc())
             .all()
         )
         if rows:
@@ -57,7 +57,7 @@ def check_watched(
                 History.tmdb_id == tmdb_id,
                 History.season == season,
                 History.episode == episode,
-            )
+            ).order_by(History.last_viewed_at.desc())
             .first()
         )
         if row:

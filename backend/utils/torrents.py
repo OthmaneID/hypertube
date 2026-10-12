@@ -6,17 +6,34 @@ import os
 def generate_peer_id():
     return b'-HT0001-' + os.urandom(12)
 
-async def get_trackers() :
-  trackers_api = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"
-  try:
-      async with httpx2.AsyncClient() as client:
-          res = await client.get(trackers_api)
-      # The API returns plain text with one tracker per line
-      trackers = res.text.strip().split('\n')
-      return [t.strip() for t in trackers if t.strip()]
-  except Exception as e:
-      print("error while getting trackers : ", e)
-      return []
+async def get_trackers(rd=None):
+    cache_key = "bittorrent_trackers_list"
+    try:
+        if rd is not None:
+            cached = rd.get(cache_key)
+            if cached:
+                import json
+                return json.loads(cached)
+    except Exception as e:
+        print("Redis cache read error for trackers: ", e)
+
+    trackers_api = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"
+    try:
+        async with httpx2.AsyncClient(timeout=10.0) as client:
+            res = await client.get(trackers_api)
+        # The API returns plain text with one tracker per line
+        trackers = res.text.strip().split('\n')
+        trackers_list = [t.strip() for t in trackers if t.strip()]
+        if trackers_list and rd is not None:
+            try:
+                import json
+                rd.setex(cache_key, 60 * 60 * 24, json.dumps(trackers_list))
+            except Exception as e:
+                print("Redis cache write error for trackers: ", e)
+        return trackers_list
+    except Exception as e:
+        print("error while getting trackers : ", e)
+        return []
 
 
 async def get_peers(trackers: list):

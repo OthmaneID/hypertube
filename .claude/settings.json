@@ -9,7 +9,8 @@
       "Bash(ffmpeg -hide_banner -i /tmp/test.mp4 -map 0:v:0 -map 0:1? -c:v copy -c:a aac -f null -)",
       "Bash(ffmpeg -hide_banner -i /tmp/test.mp4 -map 0:v:0 -map \"0:1?\" -c:v copy -c:a aac -f null -)",
       "mcp__claude-vscode__getDiagnostics",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(docker exec *)"
     ]
   }
 }
