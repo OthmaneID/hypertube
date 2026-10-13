@@ -191,8 +191,8 @@ def registerUser(request: Request, user: UserCreate, db: Session, oauth_provider
         user_serialized = UserResponse.model_validate(user_db)
         tokens = createTokens(user_serialized.email)
         http_response = Response(media_type="application/json")
-        http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
-        http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+        http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
+        http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")
 
         return http_response
     except Exception as e:
@@ -216,8 +216,8 @@ def loginEmail(request: Request, user: UserLogin, db:Session):
         tokens = createTokens(user_serialized.email)
 
         http_response = Response(media_type="application/json")
-        http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
-        http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+        http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
+        http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")
         return http_response
     except Exception as e:
         print(f"error while login: {e}")
@@ -260,7 +260,8 @@ async def googleLogin(request: Request, token: GoogleTokenResponse, db: Session,
                 redis.delete(user_serialized.email)
             tokens = createTokens(user_serialized.email)
             http_response = Response(media_type="application/json")
-            http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
+            http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
+            http_response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")
             return http_response
     except Exception as e:
         print("error while googleLogin : ", e)
@@ -317,8 +318,8 @@ async def fortyTwoLogin(request:Request, code:str, state:str, db:Session):
             redis.delete(user_serialized.email)
         tokens = createTokens(user_serialized.email)
         response = responses.RedirectResponse(url=f"{settings.frontend_url}/signin")
-        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
-        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
+        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")
         return response
     except Exception as e:
         print("error while login using 42: ", e)

@@ -36,7 +36,10 @@ function Watch() {
 
   const isTranscoded = filename ? !filename.toLowerCase().endsWith('.mp4') && !filename.toLowerCase().endsWith('.webm') : false;
 
-  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:8000";
   const streamUrl = `${backendUrl}/torrent/stream/${hash}?${streamParams.toString()}`;
 
   const imdbId = queryParams.get("imdb");

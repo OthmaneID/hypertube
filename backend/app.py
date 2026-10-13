@@ -59,7 +59,7 @@ async def lifespan(app: fastapi.FastAPI):
         client_kwargs={"scope": "openid email profile"},
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration"
     )
-    app.state.oauth: OAuth = oauth
+    app.state.oauth = oauth
 
     # Start the BitTorrent session now so the DHT is bootstrapped before the first stream request
     get_lt_session()
@@ -81,7 +81,7 @@ app = fastapi.FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     cors.CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.100.80:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]

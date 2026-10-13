@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     opensubtitles_api_key: str = ""
     media_retention_days: float = 30 # files deletion days
     cleanup_interval_hours: float = 6
+    cookie_secure: bool = False
     
 
 settings = Settings()

@@ -672,6 +672,7 @@ export default function VideoPlayer({
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onCanPlay={handleCanPlay}
+        crossOrigin="use-credentials"
         onError={(e) => {
           console.error("Video error:", e.currentTarget.error);
           if (

@@ -5,7 +5,7 @@ import { BiX, BiSend, BiTrash, BiEdit } from "react-icons/bi";
 import { useAuth } from "../global/authContext";
 import { useTranslation } from "react-i18next";
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 const LIMIT = 20;
 
 interface CommentOwner {

@@ -39,8 +39,8 @@ def refreshToken(request: Request):
             raise HTTPException(401, "Invalid refresh token")
         tokens = createTokens(user_email)
         response = Response(media_type="application/json")
-        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
-        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
+        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")
         return response
     except jwt.PyJWTError as e:
         print("JWT error : ", e)
