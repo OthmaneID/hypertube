@@ -1,12 +1,90 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from services.auth import get_current_user
 from schema.User import UserResponse
+from schema.History import ContinueWatchingItem, ProgressUpdate
 from models.History import History
 from datetime import datetime
 
 router = APIRouter(prefix="/history")
+
+COMPLETED_RATIO = 0.95
+
+
+@router.put("/progress")
+def save_progress(
+    request: Request,
+    body: ProgressUpdate,
+    db: Session = Depends(get_db),
+    user: UserResponse = Depends(get_current_user),
+):
+    """Store where the user is in a movie, or in the last episode watched of a show."""
+    entry = (
+        db.query(History)
+        .filter(
+            History.watcher_id == user.id,
+            History.movie_id == str(body.tmdb_id),
+            History.media_type == body.media_type,
+        )
+        .first()
+    )
+    if entry is None:
+        entry = History(movie_id=str(body.tmdb_id), watcher_id=user.id, media_type=body.media_type)
+        db.add(entry)
+
+    entry.title = body.title
+    entry.poster_path = body.poster_path
+    entry.season = body.season
+    entry.episode = body.episode
+    entry.episode_title = body.episode_title
+    entry.watched_duration = body.position
+    entry.duration = body.duration
+    entry.watch_path = body.watch_path
+    entry.updated_at = datetime.now()
+    db.commit()
+    return {"message": "Progress saved"}
+
+
+@router.get("/continue", response_model=list[ContinueWatchingItem])
+def get_continue_watching(
+    request: Request,
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user: UserResponse = Depends(get_current_user),
+):
+    """Return the current user's watched movies and shows, most recent first."""
+    rows = (
+        db.query(History)
+        .filter(
+            History.watcher_id == user.id,
+            History.media_type.isnot(None),
+            History.watch_path.isnot(None),
+        )
+        .order_by(History.updated_at.desc())
+        .limit(limit)
+        .all()
+    )
+    items = []
+    for row in rows:
+        position = row.watched_duration or 0
+        progress = min(1.0, position / row.duration) if row.duration else 0.0
+        items.append(ContinueWatchingItem(
+            media_type=row.media_type,
+            tmdb_id=int(row.movie_id),
+            title=row.title,
+            poster_path=row.poster_path,
+            season=row.season,
+            episode=row.episode,
+            episode_title=row.episode_title,
+            position=position,
+            duration=row.duration,
+            progress=progress,
+            completed=progress >= COMPLETED_RATIO,
+            watch_path=row.watch_path,
+            updated_at=row.updated_at or row.created_at,
+        ))
+    return items
 
 
 @router.get("/")

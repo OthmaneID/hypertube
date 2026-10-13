@@ -36,6 +36,10 @@ interface VideoPlayerProps {
   /** Where a transcoded stream can really start for a seek target (the server snaps to a keyframe) */
   resolveSeekStart?: (time: number) => Promise<number>;
   passedDuration?: number;
+  /** Where to start playing, in seconds (for a transcoded stream it should already be a keyframe) */
+  startAt?: number;
+  /** Reports the position as it plays, and right away on pause and at the end */
+  onProgress?: (position: number, duration: number, reason: ProgressReason) => void;
   onEnded?: () => void;
   onCanPlay?: () => void;
   onWaiting?: ()   => void;
@@ -43,20 +47,22 @@ interface VideoPlayerProps {
   onError?: (e: any) => void;
 }
 
+export type ProgressReason = "tick" | "pause" | "ended";
+
 const TRANSCODED_SEEK_DEBOUNCE_MS = 400;
 
 function withStartParam(src: string, start: number) {
   return `${src}${src.includes("?") ? "&" : "?"}start=${start.toFixed(1)}`;
 }
 
-export default function VideoPlayer({ src, poster, title, episodeTitle, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, transcoded = false, resolveSeekStart, passedDuration, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, title, episodeTitle, subtitles, autoPlay = false, hidePlayerBuffering = false, disableSeek = false, transcoded = false, resolveSeekStart, passedDuration, startAt, onProgress, onEnded, onCanPlay, onWaiting, onPlaying, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0 to 100
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(startAt ?? 0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -77,10 +83,13 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Transcoded streams always start at media time 0, so the real position is startOffset + currentTime
-  const [startOffset, setStartOffset] = useState(0);
+  const initialOffset = transcoded && startAt && startAt > 0 ? startAt : 0;
+  const [startOffset, setStartOffset] = useState(initialOffset);
   const [seekAutoPlay, setSeekAutoPlay] = useState<boolean | null>(null);
-  const startOffsetRef = useRef(0);
-  const lastGoodOffsetRef = useRef(0);
+  const startOffsetRef = useRef(initialOffset);
+  const lastGoodOffsetRef = useRef(initialOffset);
+  // A native file starts at 0, so the start time is applied once its metadata is known
+  const nativeStartRef = useRef(!transcoded && startAt && startAt > 0 ? startAt : null);
   const pendingSeekRef = useRef<number | null>(null);
   // Bumped by every seek, so a start resolved for an older seek is discarded
   const seekRequestRef = useRef(0);
@@ -244,10 +253,15 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
     } else {
       setProgress(0);
     }
+    onProgress?.(current, total, "tick");
   };
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
+      if (nativeStartRef.current !== null) {
+        videoRef.current.currentTime = nativeStartRef.current;
+        nativeStartRef.current = null;
+      }
       setDuration(getTotalDuration());
       videoRef.current.playbackRate = speed; // Re-apply speed on load
       applySubtitleOffset();
@@ -573,7 +587,11 @@ export default function VideoPlayer({ src, poster, title, episodeTitle, subtitle
           setIsPlaying(true);
           if (onPlaying) onPlaying();
         }}
-        onEnded={onEnded}
+        onPause={() => onProgress?.(getPosition(), getTotalDuration(), "pause")}
+        onEnded={() => {
+          onProgress?.(getPosition(), getTotalDuration(), "ended");
+          onEnded?.();
+        }}
         preload="auto"
         autoPlay={seekAutoPlay ?? autoPlay}
         autoFocus={true}

@@ -368,6 +368,8 @@ function MovieDetails() {
           showStreams={showStreams}
           year={new Date(movie?.release_date ?? "").getFullYear().toString()}
           duration={movie?.runtime ? movie.runtime * 60 : undefined}
+          tmdbId={movie?.id}
+          poster={movie?.poster_path}
         />
       )}
       {/* comments sidebar */}

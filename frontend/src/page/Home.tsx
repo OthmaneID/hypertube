@@ -1,3 +1,4 @@
+import ContinueWatching from "../components/Home/ContinueWatching";
 import PopularMovies from "../components/Home/PopularMovies";
 import PopularSeries from "../components/Home/PopularSeries";
 import NavBar from "../components/NavBar";
@@ -8,6 +9,7 @@ function Home() {
         <NavBar />
 
         <div className="flex flex-col w-full h-full">
+          <ContinueWatching />
           <PopularMovies />
           <PopularSeries />
         </div>

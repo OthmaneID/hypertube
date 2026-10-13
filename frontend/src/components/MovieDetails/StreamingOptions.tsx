@@ -17,6 +17,8 @@ interface StreamingOptionsProps {
   seasonNumber?: number | null;
   episodeNumber?: number | null;
   duration?: number;
+  tmdbId?: number;
+  poster?: string;
 }
 
 function StreamingOptions({
@@ -28,6 +30,8 @@ function StreamingOptions({
   seasonNumber,
   episodeNumber,
   duration,
+  tmdbId,
+  poster,
 }: StreamingOptionsProps) {
   const {
     data: streamingData,
@@ -63,7 +67,9 @@ function StreamingOptions({
 
   const handleStreamClick = (stream: StreamElement) => {
     if (stream.infoHash) {
-      navigate(buildWatchPath(stream, { duration, imdbId: movie_id, title: movie_name }));
+      navigate(
+        buildWatchPath(stream, { duration, imdbId: movie_id, title: movie_name, tmdbId, mediaType: "movie", poster })
+      );
     }
   };
 

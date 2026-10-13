@@ -17,6 +17,8 @@ interface StreamingOptionsProps {
   setShowStreams: (show: boolean) => void;
   showStreams: boolean;
   duration?: number;
+  tmdbId?: number;
+  poster?: string;
 }
 
 function StreamingOptions({
@@ -28,6 +30,8 @@ function StreamingOptions({
   setShowStreams,
   showStreams,
   duration,
+  tmdbId,
+  poster,
 }: StreamingOptionsProps) {
   const sourcesQuery = useQuery({
     queryKey: ["sources", imdb_id, seasonNumber, episodeNumber],
@@ -58,6 +62,9 @@ function StreamingOptions({
           episode: episodeNumber,
           title: serie_name,
           episodeTitle: episode_name ? `${episodeLabel} · ${episode_name}` : episodeLabel,
+          tmdbId,
+          mediaType: "tv",
+          poster,
         })
       );
     }

@@ -36,6 +36,19 @@ Base.metadata.create_all(bind=engine)
 # create_all() never adds columns to tables that already exist
 with engine.begin() as conn:
     conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"))
+    conn.execute(text("""
+        ALTER TABLE history
+            ADD COLUMN IF NOT EXISTS media_type VARCHAR,
+            ADD COLUMN IF NOT EXISTS title VARCHAR,
+            ADD COLUMN IF NOT EXISTS poster_path VARCHAR,
+            ADD COLUMN IF NOT EXISTS season INTEGER,
+            ADD COLUMN IF NOT EXISTS episode INTEGER,
+            ADD COLUMN IF NOT EXISTS episode_title VARCHAR,
+            ADD COLUMN IF NOT EXISTS duration FLOAT,
+            ADD COLUMN IF NOT EXISTS watch_path TEXT,
+            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP
+    """))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_history_watcher_updated ON history (watcher_id, updated_at)"))
 
 
 

@@ -86,7 +86,11 @@
   "home": {
     "popularMovies": "Popular - Movies",
     "popularSeries": "Popular - Series",
-    "seeAll": "See All"
+    "seeAll": "See All",
+    "continueWatching": "Continue Watching",
+    "watched": "Watched",
+    "minutesLeft_one": "{{count}} min left",
+    "minutesLeft_other": "{{count}} min left"
   },
 
   "emailVerification": {
@@ -150,7 +154,11 @@
     "favoriteMovies": "Favorite movies",
     "noFavoriteMovies": "No favorite movies yet.",
     "favoriteSeries": "Favorite series",
-    "noFavoriteSeries": "No favorite series yet."
+    "noFavoriteSeries": "No favorite series yet.",
+    "watchHistory": "Watch history",
+    "loadingHistory": "Loading your watch history...",
+    "errorHistory": "We couldn't load your watch history. Please try again later.",
+    "noHistory": "You haven't watched anything yet."
   },
 
   "movies": {

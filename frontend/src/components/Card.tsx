@@ -11,6 +11,8 @@ function Card({
   url,
   year,
   isExternal = false,
+  progress,
+  subtitle,
 }: {
   poster?: string;
   title?: string;
@@ -18,6 +20,10 @@ function Card({
   url: string;
   year?: string;
   isExternal?: boolean;
+  // How much was watched, from 0 to 1
+  progress?: number;
+  // Shown under the title instead of the year, e.g. "S1 E3"
+  subtitle?: string;
 }) {
   const { imageConfig } = useContext(ImageConfigContext);
   const { t } = useTranslation();
@@ -69,6 +75,16 @@ function Card({
             <div className="w-0 h-0 border-t-8 border-t-transparent border-l-14 border-l-white border-b-8 border-b-transparent ml-1" />
           </div>
         </div>
+
+        {/* Watch progress */}
+        {progress !== undefined && (
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/20">
+            <div
+              className="h-full bg-red-600"
+              style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Title + year */}
@@ -79,7 +95,9 @@ function Card({
         >
           {title}
         </p>
-        {year && (
+        {subtitle ? (
+          <p className="text-xs text-gray-500 mt-0.5 truncate" title={subtitle}>{subtitle}</p>
+        ) : year && (
           <p className="text-xs text-gray-500 mt-0.5">{year}</p>
         )}
       </div>

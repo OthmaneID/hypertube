@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import VideoPlayer, { type SubtitleTrack } from "../components/VideoPlayer";
+import VideoPlayer, { type ProgressReason, type SubtitleTrack } from "../components/VideoPlayer";
 import { get_stream_info } from "../utils/api/movieService/torrentsApi";
 import type { StreamInfo } from "../utils/interfaces";
 import { getSubtitles, revokeSubtitles, type SubtitleQuery } from "../utils/api/movieService/subtitlesApi";
+import { saveProgress, saveProgressKeepalive, type ProgressUpdate } from "../utils/api/historyApi";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -16,8 +17,18 @@ import {
 
 // Slightly longer than the backend's metadata timeout so its 504 arrives first
 const LOAD_TIMEOUT_MS = 70_000;
+// Progress is saved each time playback moves this many seconds, and on pause, end and leaving the page
+const SAVE_EVERY_SECONDS = 15;
+// Opening something for a few seconds doesn't add it to the history
+const MIN_SAVED_POSITION = 5;
 
 type PlayerStatus = "loading" | "buffering" | "playing" | "error" | "ended";
+type ProgressTarget = Omit<ProgressUpdate, "position" | "duration">;
+
+function positiveNumber(value: string | null) {
+  const n = value ? Number(value) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
 
 function Watch() {
   const { hash } = useParams();
@@ -51,9 +62,28 @@ function Watch() {
       }
     : undefined;
 
+  const resumeAt = positiveNumber(queryParams.get("t"));
+  const tmdbId = positiveNumber(queryParams.get("tmdb"));
+  const mediaType = queryParams.get("type");
+  let progressTarget: ProgressTarget | undefined;
+  if (tmdbId && (mediaType === "movie" || mediaType === "tv")) {
+    const pathParams = new URLSearchParams(location.search);
+    pathParams.delete("t");
+    progressTarget = {
+      media_type: mediaType,
+      tmdb_id: tmdbId,
+      title: title ?? "",
+      poster_path: queryParams.get("poster") || undefined,
+      season: mediaType === "tv" && seasonParam ? Number(seasonParam) : undefined,
+      episode: mediaType === "tv" && episodeParam ? Number(episodeParam) : undefined,
+      episode_title: episodeTitle,
+      watch_path: `${location.pathname}?${pathParams.toString()}`,
+    };
+  }
+
   return (
     <StreamPlayer
-      key={streamUrl}
+      key={`${streamUrl}#${resumeAt ?? 0}`}
       streamUrl={streamUrl}
       hash={hash || ""}
       streamQuery={streamParams.toString()}
@@ -62,6 +92,8 @@ function Watch() {
       isTranscoded={isTranscoded}
       passedDuration={passedDuration}
       subtitleQuery={subtitleQuery}
+      resumeAt={resumeAt}
+      progressTarget={progressTarget}
     />
   );
 }
@@ -77,6 +109,8 @@ function StreamPlayer({
   isTranscoded = false,
   passedDuration,
   subtitleQuery,
+  resumeAt,
+  progressTarget,
 }: {
   streamUrl: string;
   hash: string;
@@ -86,6 +120,8 @@ function StreamPlayer({
   isTranscoded?: boolean;
   passedDuration?: number;
   subtitleQuery?: SubtitleQuery;
+  resumeAt?: number;
+  progressTarget?: ProgressTarget;
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -119,9 +155,68 @@ function StreamPlayer({
     };
   }, [imdbId, season, episode, filename]);
 
+  // A resumed stream must know where it can really start (and whether it is transcoded) before it loads
+  const [startAt, setStartAt] = useState<number | null>(resumeAt ? null : 0);
+  useEffect(() => {
+    if (!resumeAt || !hash) return;
+    let cancelled = false;
+    get_stream_info(hash, new URLSearchParams(streamQuery), resumeAt)
+      .then((info) => {
+        if (cancelled) return;
+        setStreamInfo(info);
+        setStartAt(info.transcoded ? info.start : resumeAt);
+      })
+      .catch((err) => {
+        console.error("error while getting stream info : ", err);
+        if (!cancelled) setStartAt(resumeAt);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeAt, hash, streamQuery]);
+
+  const progressTargetRef = useRef(progressTarget);
+  progressTargetRef.current = progressTarget;
+  const lastProgressRef = useRef<{ position: number; duration: number } | null>(null);
+  const lastSavedPositionRef = useRef<number | null>(null);
+
+  const buildProgressUpdate = (position: number, duration: number): ProgressUpdate | null => {
+    const target = progressTargetRef.current;
+    if (!target) return null;
+    return { ...target, position, duration: duration > 0 ? duration : undefined };
+  };
+
+  const handleProgress = (position: number, duration: number, reason: ProgressReason) => {
+    lastProgressRef.current = { position, duration };
+    if (reason !== "ended" && position < MIN_SAVED_POSITION) return;
+    const lastSaved = lastSavedPositionRef.current;
+    if (reason === "tick" && lastSaved !== null && Math.abs(position - lastSaved) < SAVE_EVERY_SECONDS) return;
+    const update = buildProgressUpdate(position, duration);
+    if (!update) return;
+    lastSavedPositionRef.current = position;
+    saveProgress(update);
+  };
+
+  // Leaving the player (or closing the tab) saves the very last position
+  useEffect(() => {
+    const flush = () => {
+      const last = lastProgressRef.current;
+      if (!last || last.position < MIN_SAVED_POSITION || last.position === lastSavedPositionRef.current) return;
+      const update = buildProgressUpdate(last.position, last.duration);
+      if (!update) return;
+      lastSavedPositionRef.current = last.position;
+      saveProgressKeepalive(update);
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
   // Asked only once playback starts, so it doesn't compete with the initial buffering
   useEffect(() => {
-    if (!hasPlayed || !hash) return;
+    if (!hasPlayed || !hash || streamInfo) return;
     let cancelled = false;
     get_stream_info(hash, new URLSearchParams(streamQuery))
       .then((info) => {
@@ -132,7 +227,7 @@ function StreamPlayer({
     return () => {
       cancelled = true;
     };
-  }, [hasPlayed, hash, streamQuery]);
+  }, [hasPlayed, hash, streamQuery, streamInfo]);
 
   const transcoded = streamInfo?.transcoded ?? isTranscoded;
 
@@ -293,7 +388,7 @@ function StreamPlayer({
 
       {/* Video player — full-bleed theater */}
       <div className="relative flex-1 min-h-0 flex items-center justify-center z-10">
-        {status !== "error" && (
+        {status !== "error" && startAt !== null && (
           <div className="w-full h-full flex items-center justify-center">
             <VideoPlayer
               src={streamUrl}
@@ -304,6 +399,8 @@ function StreamPlayer({
               transcoded={transcoded}
               resolveSeekStart={resolveSeekStart}
               passedDuration={duration}
+              startAt={startAt}
+              onProgress={handleProgress}
               subtitles={subtitles.length > 0 ? subtitles : undefined}
               onCanPlay={() => setStatus("playing")}
               onWaiting={() =>

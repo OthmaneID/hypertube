@@ -20,9 +20,11 @@ import {
   X,
   Film,
   Tv,
+  History as HistoryIcon,
 } from "lucide-react";
 import { toast } from "react-toast";
 import Card from "../components/Card";
+import { ContinueWatchingCards, useContinueWatching } from "../components/Home/ContinueWatching";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -70,6 +72,8 @@ function Profile() {
       };
     },
   });
+
+  const historyQuery = useContinueWatching(50);
 
   const getProviderLabel = () => {
     switch (user?.oauth_provider?.toLowerCase()) {
@@ -537,6 +541,29 @@ function Profile() {
             </form>
           </div>
         )}
+
+        <section className="mt-10 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl sm:p-8">
+          <div className="mb-7 flex items-center gap-3">
+            <HistoryIcon size={22} className="text-gray-400" />
+            <h2 className="text-2xl font-semibold text-white">{t("profile.watchHistory")}</h2>
+            {historyQuery.data && (
+              <span className="text-sm text-gray-500">{historyQuery.data.length}</span>
+            )}
+          </div>
+          {historyQuery.isPending ? (
+            <p className="text-sm text-gray-400">{t("profile.loadingHistory")}</p>
+          ) : historyQuery.isError ? (
+            <p className="text-sm text-gray-400">{t("profile.errorHistory")}</p>
+          ) : historyQuery.data.length > 0 ? (
+            <div className="flex flex-nowrap justify-center gap-x-5 gap-y-8 sm:justify-start w-full overflow-x-auto py-3">
+              <ContinueWatchingCards items={historyQuery.data} />
+            </div>
+          ) : (
+            <p className="border-t border-white/10 py-6 text-sm text-gray-400">
+              {t("profile.noHistory")}
+            </p>
+          )}
+        </section>
 
         <section className="mt-10 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl sm:p-8">
           <h2 className="mb-7 text-2xl font-semibold text-white">{t("profile.favoritesTitle")}</h2>
