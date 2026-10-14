@@ -11,43 +11,72 @@ headers = {
 }
 
 def GetImageConfig(request: Request):
-    rd : redis.Redis = request.app.state.redis
-    if rd is not None and  rd.get("image_config"):
-        return json.loads(rd.get("image_config"))
-    res = requests.get(f"{settings.api_base_url}configuration")
-    
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
+    if rd is not None:
+        try:
+            cached = rd.get("image_config")
+            if cached:
+                return json.loads(cached)
+        except Exception:
+            pass
+
     try:
-        if res.json():
-            rd.setex("image_config", 60 * 60 * 24, json.dumps(res.json())) # the cache expires in 24h
-        return res.json()
+        res = requests.get(f"{settings.api_base_url.rstrip('/')}/configuration", headers=headers, timeout=10)
+        data = res.json()
+        if data and rd is not None and res.status_code == 200:
+            rd.setex("image_config", 60 * 60 * 24, json.dumps(data))
+        return data
     except Exception as e:
         print(f"error while fetching Image Config : {e}")
-        return res.json()
+        return {"images": {}, "change_keys": []}
     
 
 def GetMovieImages(request: Request, movie_id: int):
-    rd : redis.Redis = request.app.state.redis
-    if rd is not None and rd.get(f"movie_{movie_id}_images"):
-        return json.loads(rd.get(f"movie_{movie_id}_images"))
-    res = requests.get(f"{settings.api_base_url}movie/{movie_id}/images?language=en", headers=headers)
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
+    rd_name = f"movie_{movie_id}_images"
     try:
-        if res.json():
-            rd.setex(f"movie_{movie_id}_images", 60 * 60 * 24, json.dumps(res.json()))
-        return res.json()
+        if rd is not None:
+            cached = rd.get(rd_name)
+            if cached:
+                return json.loads(cached)
     except Exception as e:
-        print(f"error while fetching Movie Images : {e}")
-        return res.json()
+        print(f"Error while reading cached movie images: {e}")
+
+    try:
+        res = requests.get(f"{settings.api_base_url.rstrip('/')}/movie/{movie_id}/images?language=en", headers=headers, timeout=10)
+        data = res.json()
+        if isinstance(data, dict) and data and rd is not None and res.status_code == 200:
+            try:
+                rd.setex(rd_name, 60 * 60 * 24, json.dumps(data))
+            except Exception as e:
+                print(f"Error while caching movie images: {e}")
+        return data
+    except Exception as e:
+        print(f"Error while fetching movie images: {e}")
+        return {"backdrops": [], "logos": [], "posters": [], "error": str(e)}
+
 # /tv/{series_id}
 
 def GetSerieImages(request: Request, serie_id: int):
-    rd : redis.Redis = request.app.state.redis
-    if rd is not None and rd.get(f"serie_{serie_id}_images"):
-        return json.loads(rd.get(f"serie_{serie_id}_images"))
-    res = requests.get(f"{settings.api_base_url}tv/{serie_id}/images?language=en", headers=headers)
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
+    rd_name = f"serie_{serie_id}_images"
     try:
-        if res.json():
-            rd.setex(f"serie_{serie_id}_images", 60 * 60 * 24, json.dumps(res.json()))
-        return res.json()
+        if rd is not None:
+            cached = rd.get(rd_name)
+            if cached:
+                return json.loads(cached)
     except Exception as e:
-        print(f"error while fetching Movie Images : {e}")
-        return res.json()
+        print(f"Error while reading cached serie images: {e}")
+
+    try:
+        res = requests.get(f"{settings.api_base_url.rstrip('/')}/tv/{serie_id}/images?language=en", headers=headers, timeout=10)
+        data = res.json()
+        if isinstance(data, dict) and data and rd is not None and res.status_code == 200:
+            try:
+                rd.setex(rd_name, 60 * 60 * 24, json.dumps(data))
+            except Exception as e:
+                print(f"Error while caching serie images: {e}")
+        return data
+    except Exception as e:
+        print(f"Error while fetching serie images: {e}")
+        return {"backdrops": [], "logos": [], "posters": [], "error": str(e)}

@@ -41,8 +41,11 @@ class Settings(BaseSettings):
     smtp_google_pass : str
     smtp_google_email : str
     opensubtitles_api_key: str = ""
-    media_retention_days: float = 7
+    # Second search source; search falls back to TMDB alone when empty
+    trakt_client_id: str = ""
+    media_retention_days: float = 30 # files deletion days
     cleanup_interval_hours: float = 6
+    cookie_secure: bool = False
     
 
 settings = Settings()

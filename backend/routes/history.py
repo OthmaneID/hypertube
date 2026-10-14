@@ -3,47 +3,12 @@ from sqlalchemy.orm import Session
 from database import get_db
 from services.auth import get_current_user
 from schema.User import UserResponse
-from schema.History import ContinueWatchingItem, ProgressUpdate
 from models.History import History
 from datetime import datetime
+from schema.History import ContinueWatchingItem, HistoryUpdate
+from services.History import UpdateProgress, GetProgress, GetSerieHistory, GetContinueWatching
 
 router = APIRouter(prefix="/history")
-
-COMPLETED_RATIO = 0.95
-
-
-@router.put("/progress")
-def save_progress(
-    request: Request,
-    body: ProgressUpdate,
-    db: Session = Depends(get_db),
-    user: UserResponse = Depends(get_current_user),
-):
-    """Store where the user is in a movie, or in the last episode watched of a show."""
-    entry = (
-        db.query(History)
-        .filter(
-            History.watcher_id == user.id,
-            History.movie_id == str(body.tmdb_id),
-            History.media_type == body.media_type,
-        )
-        .first()
-    )
-    if entry is None:
-        entry = History(movie_id=str(body.tmdb_id), watcher_id=user.id, media_type=body.media_type)
-        db.add(entry)
-
-    entry.title = body.title
-    entry.poster_path = body.poster_path
-    entry.season = body.season
-    entry.episode = body.episode
-    entry.episode_title = body.episode_title
-    entry.watched_duration = body.position
-    entry.duration = body.duration
-    entry.watch_path = body.watch_path
-    entry.updated_at = datetime.now()
-    db.commit()
-    return {"message": "Progress saved"}
 
 
 @router.get("/continue", response_model=list[ContinueWatchingItem])
@@ -54,45 +19,12 @@ def get_continue_watching(
     user: UserResponse = Depends(get_current_user),
 ):
     """Return the current user's watched movies and shows, most recent first."""
-    rows = (
-        db.query(History)
-        .filter(
-            History.watcher_id == user.id,
-            History.media_type.isnot(None),
-            History.watch_path.isnot(None),
-        )
-        .order_by(History.updated_at.desc())
-        .limit(limit)
-        .all()
-    )
-    items = []
-    for row in rows:
-        position = row.watched_duration or 0
-        progress = min(1.0, position / row.duration) if row.duration else 0.0
-        items.append(ContinueWatchingItem(
-            media_type=row.media_type,
-            tmdb_id=int(row.movie_id),
-            title=row.title,
-            poster_path=row.poster_path,
-            season=row.season,
-            episode=row.episode,
-            episode_title=row.episode_title,
-            position=position,
-            duration=row.duration,
-            progress=progress,
-            completed=progress >= COMPLETED_RATIO,
-            watch_path=row.watch_path,
-            updated_at=row.updated_at or row.created_at,
-        ))
-    return items
+    return GetContinueWatching(user, db, limit)
 
 
 @router.get("/")
 def get_my_history(
-    request: Request,
-    db: Session = Depends(get_db),
-    user: UserResponse = Depends(get_current_user),
-):
+    request: Request,movie_id: str, db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
     """Return all movie_ids the current user has watched."""
     rows = (
         db.query(History)
@@ -100,23 +32,52 @@ def get_my_history(
         .order_by(History.created_at.desc())
         .all()
     )
-    return {"watched": [r.movie_id for r in rows]}
+    return {"watched": [r.imdb_id for r in rows]}
 
 
-@router.get("/check/{movie_id}")
+@router.get("/check/{tmdb_id}:{season}:{episode}")
 def check_watched(
     request: Request,
-    movie_id: str,
+    tmdb_id: int,
+    season: int,
+    episode: int,
     db: Session = Depends(get_db),
     user: UserResponse = Depends(get_current_user),
 ):
-    """Return whether the current user has watched this movie."""
-    row = (
-        db.query(History)
-        .filter(History.watcher_id == user.id, History.movie_id == str(movie_id))
-        .first()
-    )
-    return {"watched": row is not None}
+    """Return whether the current user has watched this movie or serie."""
+    if season == -1 and episode == -1:
+        rows = (
+            db.query(History)
+            .filter(History.watcher_id == user.id, History.tmdb_id == tmdb_id)
+            .order_by(History.last_viewed_at.desc())
+            .all()
+        )
+        if rows:
+            is_finished = any(r.is_finished for r in rows)
+            return {
+                "watched": True,
+                "duration": rows[0].watched_duration or 0,
+                "is_finished": is_finished,
+            }
+        return {"watched": False, "duration": 0, "is_finished": False}
+    else:
+        row = (
+            db.query(History)
+            .filter(
+                History.watcher_id == user.id,
+                History.tmdb_id == tmdb_id,
+                History.season == season,
+                History.episode == episode,
+            ).order_by(History.last_viewed_at.desc())
+            .first()
+        )
+        if row:
+            return {
+                "watched": True,
+                "duration": row.watched_duration or 0,
+                "is_finished": row.is_finished,
+            }
+        return {"watched": False, "duration": 0, "is_finished": False}
 
 
 @router.post("/{movie_id}")
@@ -133,7 +94,7 @@ def mark_watched(
     """
     existing = (
         db.query(History)
-        .filter(History.watcher_id == user.id, History.movie_id == str(movie_id))
+        .filter(History.watcher_id == user.id, History.imdb_id == str(movie_id))
         .first()
     )
     if existing:
@@ -160,10 +121,33 @@ def unmark_watched(
     """Remove a movie from the user's watch history (mark as unwatched)."""
     deleted = (
         db.query(History)
-        .filter(History.watcher_id == user.id, History.movie_id == str(movie_id))
+        .filter(History.watcher_id == user.id, History.imdb_id == str(movie_id))
         .delete(synchronize_session=False)
     )
     db.commit()
     if deleted:
         return {"message": "Removed from history", "movie_id": movie_id}
     return {"message": "Was not in history", "movie_id": movie_id}
+
+
+
+@router.patch("/progress")
+def update_progress(request : Request, historyUpdate: HistoryUpdate, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
+    """Movie and serie progress share this route: season/episode are null for movies."""
+    return UpdateProgress(historyUpdate, user, db)
+
+# Declared before the movie route: "/progress/{movie_id}" would also match "1399:1:2" and fail int validation
+@router.get("/progress/{movie_id}:{season}:{episode}")
+def get_serie_progress(request: Request, movie_id : int, season : int, episode : int, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
+    return GetProgress(user, movie_id, db, season, episode)
+
+@router.get("/progress/{movie_id}")
+def get_movie_progress(request: Request, movie_id : int, user: UserResponse = Depends(get_current_user), db : Session = Depends(get_db)):
+    return GetProgress(user, movie_id, db)
+
+
+
+@router.get("/serie/{tmdb_id}")
+def get_watched_episodes(request: Request, tmdb_id:int, db:Session = Depends(get_db), user:UserResponse = Depends(get_current_user)):
+    """return the history of the whole serie"""
+    return GetSerieHistory(request, tmdb_id, db, user)

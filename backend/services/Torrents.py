@@ -30,6 +30,8 @@ wanted_files = {}
 torrent_add_lock = asyncio.Lock()
 # (hash, file index) -> (codec_name, pix_fmt, duration) from ffprobe
 probe_cache = {}
+# (hash, file index) -> audio stream mapping (e.g. "0:2?") from ffprobe
+audio_probe_cache = {}
 # hash -> number of responses currently sending its data; the cleanup job never deletes these
 open_streams = {}
 # Authorizes ffmpeg's requests to the internal file endpoint, which has no user session
@@ -62,114 +64,66 @@ def get_lt_session():
         lt_session.apply_settings(settings)
     return lt_session
 
-async def getSources(request: Request, movie_id:str) -> SourcesResponse :
-    api_url = f"https://torrentio.strem.fun/stream/movie/{movie_id}.json"
-    rd : redis.Redis = request.app.state.redis
-    cache_key = f"movie_{movie_id}_sources"
-    
-    # Try to get from cache
+SOURCES_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://torrentio.strem.fun/",
+}
+SOURCES_CACHE_TTL = 60 * 60 * 8
+
+
+async def _fetch_sources(request: Request, api_url: str, cache_key: str) -> SourcesResponse:
+    """
+    An unreachable or refusing source returns an empty list with an error instead of a 5xx,
+    and failures are not cached so sources come back as soon as the provider answers again.
+    """
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
     try:
         if rd is not None:
             cached = rd.get(cache_key)
             if cached:
                 return SourcesResponse.model_validate_json(cached)
-    except redis.RedisError as e:
-        print(f"Redis cache read error: {e}")
     except Exception as e:
-        print(f"Cache deserialization error: {e}")
-    
-    # Fetch from API
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://torrentio.strem.fun/",
-    }
-    
+        print(f"Sources cache read error: {e}")
+
     try:
         async with httpx2.AsyncClient() as client:
-            res = await client.get(api_url, headers=headers, timeout=10.0)
+            res = await client.get(api_url, headers=SOURCES_HEADERS, timeout=10.0)
             res.raise_for_status()
-    except httpx2.HTTPStatusError as e:
-        print(f"HTTP error fetching sources: {e}")
-        raise Exception(f"Failed to fetch sources from API: {e.response.status_code}")
-    except httpx2.TimeoutException:
-        print("Timeout fetching sources")
-        raise Exception("Timeout while fetching sources from API")
-    except Exception as e:
-        print(f"Error fetching sources: {e}")
-        raise Exception(f"Failed to fetch sources: {str(e)}")
-    
-    # Validate response
-    try:
         data = SourcesResponse.model_validate(res.json())
+    except httpx2.HTTPStatusError as e:
+        print(f"Sources provider answered {e.response.status_code} for {api_url}")
+        return SourcesResponse(streams=[], error=f"Source provider unavailable ({e.response.status_code})")
+    except httpx2.TimeoutException:
+        print(f"Sources provider timed out for {api_url}")
+        return SourcesResponse(streams=[], error="Source provider timed out")
     except Exception as e:
-        print(f"API response validation error: {e}")
-        raise Exception(f"Invalid response format from API: {str(e)}")
-    
-    # Cache the result
+        print(f"Error fetching sources from {api_url}: {e}")
+        return SourcesResponse(streams=[], error="Source provider unavailable")
+
     try:
-        if rd is not None and data:
-            rd.setex(cache_key, 60 * 60 * 8, data.model_dump_json())
-    except redis.RedisError as e:
-        print(f"Redis cache write error: {e}")
-    
+        if rd is not None:
+            rd.setex(cache_key, SOURCES_CACHE_TTL, data.model_dump_json())
+    except Exception as e:
+        print(f"Sources cache write error: {e}")
     return data
+
+
+async def getSources(request: Request, movie_id: str) -> SourcesResponse:
+    return await _fetch_sources(
+        request,
+        f"https://torrentio.strem.fun/stream/movie/{movie_id}.json",
+        f"movie_{movie_id}_sources",
+    )
 
 
 async def getEpisodeStreams(request: Request, imdb_id: str, season: int, episode: int) -> SourcesResponse:
-    api_url = f"https://torrentio.strem.fun/stream/series/{imdb_id}:{season}:{episode}.json"
-    rd : redis.Redis = request.app.state.redis
-    cache_key = f"series_{imdb_id}_{season}_{episode}_sources"
-    
-    # Try to get from cache
-    try:
-        if rd is not None:
-            cached = rd.get(cache_key)
-            if cached:
-                return SourcesResponse.model_validate_json(cached)
-    except redis.RedisError as e:
-        print(f"Redis cache read error: {e}")
-    except Exception as e:
-        print(f"Cache deserialization error: {e}")
-    
-    # Fetch from API
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://torrentio.strem.fun/",
-    }
-    
-    try:
-        async with httpx2.AsyncClient() as client:
-            res = await client.get(api_url, headers=headers, timeout=10.0)
-            res.raise_for_status()
-    except httpx2.HTTPStatusError as e:
-        print(f"HTTP error fetching episode sources: {e}")
-        raise Exception(f"Failed to fetch episode sources from API: {e.response.status_code}")
-    except httpx2.TimeoutException:
-        print("Timeout fetching episode sources")
-        raise Exception("Timeout while fetching episode sources from API")
-    except Exception as e:
-        print(f"Error fetching episode sources: {e}")
-        raise Exception(f"Failed to fetch episode sources: {str(e)}")
-    
-    # Validate response
-    try:
-        data = SourcesResponse.model_validate(res.json())
-    except Exception as e:
-        print(f"API response validation error: {e}")
-        raise Exception(f"Invalid response format from API: {str(e)}")
-    
-    # Cache the result
-    try:
-        if rd is not None and data:
-            rd.setex(cache_key, 60 * 60 * 8, data.model_dump_json())
-    except redis.RedisError as e:
-        print(f"Redis cache write error: {e}")
-    
-    return data
+    return await _fetch_sources(
+        request,
+        f"https://torrentio.strem.fun/stream/series/{imdb_id}:{season}:{episode}.json",
+        f"series_{imdb_id}_{season}_{episode}_sources",
+    )
 
 
 def request_pieces(handle, first_piece, last_piece):
@@ -267,6 +221,8 @@ def drop_torrent(hash: str, handle):
         wanted_files.pop(hash, None)
         for key in [k for k in probe_cache if k[0] == hash]:
             probe_cache.pop(key)
+        for key in [k for k in audio_probe_cache if k[0] == hash]:
+            audio_probe_cache.pop(key)
     try:
         get_lt_session().remove_torrent(handle)
     except Exception as e:
@@ -363,7 +319,6 @@ async def get_torrent_handle(hash: str):
         if hash in active_torrents:
             print(f"Reusing existing torrent handle for {hash}")
             return active_torrents[hash]
-
         trackers = await get_trackers()
         print(f"trackers: {len(trackers)} trackers loaded")
 
@@ -488,6 +443,8 @@ async def run_ffprobe(sf: StreamFile, *args):
         return None
 
 
+
+
 async def probe_stream(sf: StreamFile):
     """Returns (codec_name, pix_fmt, duration) of the file's first video stream; all None if probing fails."""
     key = (sf.hash, sf.idx)
@@ -504,9 +461,45 @@ async def probe_stream(sf: StreamFile):
         duration = float(info.get("format", {}).get("duration"))
     except (TypeError, ValueError):
         duration = None
+
     result = (streams[0].get("codec_name"), streams[0].get("pix_fmt"), duration)
     probe_cache[key] = result
     return result
+
+
+async def probe_audio_stream(sf: StreamFile) -> str:
+    """Finds the original / English audio track, falling back to default or 0:a:0."""
+    key = (sf.hash, sf.idx)
+    if key in audio_probe_cache:
+        return audio_probe_cache[key]
+
+    info = await run_ffprobe(
+        sf, '-select_streams', 'a',
+        '-show_entries', 'stream=index:stream_tags=language,title:stream_disposition=default,original'
+    ) or {}
+    streams = info.get("streams") or []
+
+    selected_index = None
+    # 1. Look for English or explicitly tagged Original track
+    for s in streams:
+        tags = s.get("tags") or {}
+        lang = (tags.get("language") or "").lower()
+        title = (tags.get("title") or "").lower()
+        disp = s.get("disposition") or {}
+        if lang in ("eng", "en") or "english" in title or "original" in title or disp.get("original") == 1:
+            selected_index = s.get("index")
+            break
+
+    # 2. Fall back to track with default disposition
+    if selected_index is None:
+        for s in streams:
+            if (s.get("disposition") or {}).get("default") == 1:
+                selected_index = s.get("index")
+                break
+
+    mapping = f"0:{selected_index}?" if selected_index is not None else "0:a:0?"
+    audio_probe_cache[key] = mapping
+    return mapping
 
 
 def can_copy_video(video_codec, pix_fmt):
@@ -535,7 +528,7 @@ async def resolve_start_time(sf: StreamFile, start):
     return start
 
 
-def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
+def build_transcode_cmd(input_url, start, video_codec, pix_fmt, audio_map="0:a:0?"):
     copy_video = can_copy_video(video_codec, pix_fmt)
     if copy_video:
         video_args = ['-c:v', 'copy']
@@ -556,7 +549,7 @@ def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
             # Short GOP: each fMP4 fragment starts on a keyframe, so this bounds the startup delay
             '-g', '48',
         ]
-    print(f"Transcoding from {start:.1f}s: video={video_codec}/{pix_fmt} -> {'copy' if copy_video else 'libx264'}")
+    print(f"Transcoding from {start:.1f}s: video={video_codec}/{pix_fmt} -> {'copy' if copy_video else 'libx264'} audio={audio_map}")
 
     return [
         'ffmpeg', '-hide_banner', '-loglevel', 'error',
@@ -564,7 +557,7 @@ def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
         *(['-ss', f'{seek:.3f}'] if seek > 0 else []),
         '-i', input_url,
         # Explicit mapping: the default picks subtitle tracks too, and bitmap ones (PGS/VobSub) make ffmpeg exit
-        '-map', '0:v:0', '-map', '0:a:0?',
+        '-map', '0:v:0', '-map', audio_map,
         '-sn', '-dn',
         *video_args,
         '-c:a', 'aac', '-ac', '2', '-b:a', '160k',
@@ -574,9 +567,9 @@ def build_transcode_cmd(input_url, start, video_codec, pix_fmt):
     ]
 
 
-async def stream_transcoded_video(input_url, start, video_codec, pix_fmt):
+async def stream_transcoded_video(input_url, start, video_codec, pix_fmt, audio_map="0:a:0?"):
     process = await asyncio.create_subprocess_exec(
-        *build_transcode_cmd(input_url, start, video_codec, pix_fmt),
+        *build_transcode_cmd(input_url, start, video_codec, pix_fmt, audio_map),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
@@ -641,7 +634,8 @@ async def stream_from_source(request: Request, hash: str):
         return await serve_range(request, sf)
 
     video_codec, pix_fmt, _ = await probe_stream(sf)
-    generator = track_stream(sf.hash, stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt))
+    audio_map = await probe_audio_stream(sf)
+    generator = track_stream(sf.hash, stream_transcoded_video(internal_url(sf), parse_start_time(request), video_codec, pix_fmt, audio_map))
     return StreamingResponse(
         generator,
         media_type="video/mp4"

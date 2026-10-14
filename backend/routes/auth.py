@@ -54,6 +54,7 @@ def refresh_token(request: Request):
 def logout(request: Request):
     response = Response(content=json.dumps({"message": "Logged out successfully"}), media_type="application/json")
     response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
     return response
 
 

@@ -25,7 +25,7 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 - ✅ CORS middleware
 - ✅ Basic routing structure
 
-## ❌ MISSING IMPLEMENTATION (95 tasks)
+## ❌ MISSING IMPLEMENTATION (33 tasks)
 
 ### USER MANAGEMENT (14 tasks)
 
@@ -50,13 +50,13 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 
 15. [*] Add search input field to Movies/Series pages
 16. [*] Create search service that queries TMDB API
-17. [ ] Add torrent source integration (legittorrents.info or archive.org)
-18. [ ] Create backend search endpoint combining multiple sources
+17. [*] Add torrent source integration (legittorrents.info or archive.org)
+18. [*] Create backend search endpoint combining multiple sources
 19. [*] Update frontend to display search results
 20. [*] Add production year display to movie cards
-21. [ ] Add IMDb/OMDb rating display to movie cards
-22. [ ] Implement watched status tracking in History model
-23. [ ] Add visual differentiation for watched/unwatched movies
+21. [*] Add IMDb/OMDb rating display to movie cards
+22. [*] Implement watched status tracking in History model
+23. [*] Add visual differentiation for watched/unwatched movies
 24. [*] Add sorting controls (name, genre, rating, year)
 25. [*] Add genre filter dropdown
 26. [*] Add year range filter
@@ -65,20 +65,20 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 ### TORRENT/STREAMING (15 tasks)
 
 28. [*] Install libtorrent or transmission library
-29. [ ] Create torrent download service
-30. [ ] Implement background torrent download with progress tracking
-31. [ ] Add video streaming endpoint for downloaded files
-32. [ ] Integrate video player component in frontend
-33. [ ] Add streaming from partial downloads (chunked streaming)
-34. [ ] Create download cache directory structure
-35. [ ] Implement movie file persistence after download
-36. [ ] Add cron job/scheduler to delete unwatched movies after 1 month
-37. [ ] Add subtitle search service (OpenSubtitles)
-38. [ ] Download and save subtitles for movies
-39. [ ] Add subtitle selection in video player
-40. [ ] Install FFmpeg for video conversion
-41. [ ] Create video conversion service (mkv to mp4/webm)
-42. [ ] Implement on-the-fly conversion for streaming
+29. [*] Create torrent download service
+30. [*] Implement background torrent download with progress tracking
+31. [*] Add video streaming endpoint for downloaded files
+32. [*] Integrate video player component in frontend
+33. [*] Add streaming from partial downloads (chunked streaming)
+34. [*] Create download cache directory structure
+35. [*] Implement movie file persistence after download
+36. [*] Add cron job/scheduler to delete unwatched movies after 1 month
+37. [*] Add subtitle search service (OpenSubtitles)
+38. [*] Download and save subtitles for movies
+39. [*] Add subtitle selection in video player
+40. [*] Install FFmpeg for video conversion
+41. [*] Create video conversion service (mkv to mp4/webm)
+42. [*] Implement on-the-fly conversion for streaming
 
 ### COMMENTS SYSTEM (10 tasks)
 
@@ -117,16 +117,16 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 ### SECURITY (10 tasks)
 
 71. [ ] Add input validation to all form fields
-72. [ ] Add email validation with regex
+72. [*] Add email validation with regex
 73. [ ] Add password strength validation
-74. [ ] Add SQL injection protection (parameterized queries)
-75. [ ] Add XSS protection for user-generated content
+74. [*] Add SQL injection protection (parameterized queries)
+75. [*] Add XSS protection for user-generated content
 76. [ ] Add CSRF protection for state-changing operations
 77. [ ] Add security headers (CSP, X-Frame-Options, etc.)
 78. [ ] Add rate limiting to prevent abuse
-79. [ ] Verify .env is in .gitignore
+79. [*] Verify .env is in .gitignore
 80. [ ] Remove any hardcoded credentials from code
-81. [ ] Add file upload validation for profile pictures
+81. [*] Add file upload validation for profile pictures
 
 ### FRONTEND/RESPONSIVE (5 tasks)
 
@@ -145,11 +145,11 @@ This todolist covers all requirements from the Hypertube subject PDF and is orga
 
 ### LANGUAGE/INTERNATIONALIZATION (5 tasks)
 
-91. [ ] Add language preference field to user settings
-92. [ ] Create language translation files (i18n)
-93. [ ] Implement language switcher component
-94. [ ] Set English as default language
-95. [ ] Add language detection from browser preferences
+91. [*] Add language preference field to user settings
+92. [*] Create language translation files (i18n)
+93. [*] Implement language switcher component
+94. [*] Set English as default language
+95. [*] Add language detection from browser preferences
 
 ## 🎯 RECOMMENDED IMPLEMENTATION ORDER
 

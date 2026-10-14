@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 interface StreamingOptionsProps {
   imdb_id?: string;
+  tmdb_id?: number;
   seasonNumber: number;
   episodeNumber: number;
   serie_name: string;
@@ -17,12 +18,12 @@ interface StreamingOptionsProps {
   setShowStreams: (show: boolean) => void;
   showStreams: boolean;
   duration?: number;
-  tmdbId?: number;
   poster?: string;
 }
 
 function StreamingOptions({
   imdb_id,
+  tmdb_id,
   seasonNumber,
   episodeNumber,
   serie_name,
@@ -30,7 +31,6 @@ function StreamingOptions({
   setShowStreams,
   showStreams,
   duration,
-  tmdbId,
   poster,
 }: StreamingOptionsProps) {
   const sourcesQuery = useQuery({
@@ -58,12 +58,11 @@ function StreamingOptions({
         buildWatchPath(stream, {
           duration,
           imdbId: imdb_id,
+          tmdbId: tmdb_id,
           season: seasonNumber,
           episode: episodeNumber,
           title: serie_name,
           episodeTitle: episode_name ? `${episodeLabel} · ${episode_name}` : episodeLabel,
-          tmdbId,
-          mediaType: "tv",
           poster,
         })
       );
@@ -114,7 +113,7 @@ function StreamingOptions({
                 <div className="flex items-center justify-center h-screen">
                   <div className="animate-spin rounded-full h-32 w-32 border-b-3 border-purple-700"></div>
                 </div>
-              ) : sourcesQuery.error ? (
+              ) : sourcesQuery.error || sourcesQuery.data?.error ? (
                 <div className="text-red-400">
                   {t("streamingOptions.error")}
                 </div>

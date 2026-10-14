@@ -25,6 +25,7 @@ import {
 import { toast } from "react-toast";
 import Card from "../components/Card";
 import { ContinueWatchingCards, useContinueWatching } from "../components/Home/ContinueWatching";
+import ApiAccess from "../components/Profile/ApiAccess";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -91,7 +92,6 @@ function Profile() {
   useEffect(() => {
     // Initialize with auth user data if available
     if (authUser) {
-      console.log("Initializing with auth user:", authUser);
       setUser(authUser);
       setFormData({
         username: authUser.username || "",
@@ -109,9 +109,7 @@ function Profile() {
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      console.log("Fetching user profile from API...");
       const userData = await getUserProfile();
-      console.log("User data received:", userData);
       setUser(userData);
       setFormData({
         username: userData.username || "",
@@ -119,8 +117,7 @@ function Profile() {
         last_name: userData.last_name || "",
         preferred_language: userData.preferred_language || "en",
       });
-    } catch (error: any) {
-      console.error("Error fetching profile:", error);
+    } catch {
       toast.error(t("profile.loadFailed"));
     } finally {
       setLoading(false);
@@ -171,7 +168,6 @@ function Profile() {
       toast.error(
         error.response?.data?.detail || "Failed to update profile picture",
       );
-      console.error(error);
     } finally {
       setUpdating(false);
     }
@@ -189,7 +185,6 @@ function Profile() {
       toast.success(t("profile.profileUpdated"));
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to update profile");
-      console.error(error);
     } finally {
       setUpdating(false);
     }
@@ -229,7 +224,6 @@ function Profile() {
       });
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to change password");
-      console.error(error);
     } finally {
       setUpdating(false);
     }
@@ -542,6 +536,8 @@ function Profile() {
           </div>
         )}
 
+        {activeTab === "security" && <ApiAccess />}
+
         <section className="mt-10 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl sm:p-8">
           <div className="mb-7 flex items-center gap-3">
             <HistoryIcon size={22} className="text-gray-400" />
@@ -591,7 +587,7 @@ function Profile() {
                       <Card
                         key={movie.id}
                         url={`/movies/${movie.id}`}
-                        id={movie.id}
+                        tmdb_id={movie.id}
                         poster={movie.poster_path}
                         title={movie.title}
                         vote={movie.vote_average}
@@ -626,7 +622,7 @@ function Profile() {
                       <Card
                         key={serie.id}
                         url={`/series/${serie.id}`}
-                        id={serie.id}
+                        tmdb_id={serie.id}
                         poster={serie.poster_path}
                         title={serie.name}
                         vote={serie.vote_average}

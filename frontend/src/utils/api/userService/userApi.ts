@@ -6,7 +6,6 @@ export async function getUserProfile(): Promise<User> {
         const res = await axios.get("/user/me");
         return res.data;
     } catch (error: any) {
-        console.log("Error while getting user profile:", error.message);
         throw new Error(error.message);
     }
 }
@@ -16,7 +15,6 @@ export async function getUserById(userId: number): Promise<User> {
         const res = await axios.get(`/user/${userId}`);
         return res.data;
     } catch (error: any) {
-        console.log(`Error while getting user profile for userId ${userId}:`, error.message);
         throw new Error(error.message);
     }
 }
@@ -26,7 +24,6 @@ export async function updateUserProfile(userUpdate: Partial<User>): Promise<User
         const res = await axios.patch("/user/me", userUpdate);
         return res.data;
     } catch (error: any) {
-        console.log("Error while updating user profile:", error.message);
         throw new Error(error.message);
     }
 }
@@ -43,7 +40,6 @@ export async function updateProfilePicture(file: File): Promise<User> {
         });
         return res.data;
     } catch (error: any) {
-        console.log("Error while updating profile picture:", error.message);
         throw new Error(error.message);
     }
 }
@@ -56,7 +52,6 @@ export async function changePassword(oldPassword: string, newPassword: string): 
         });
         return res.data;
     } catch (error: any) {
-        console.log("Error while changing password:", error.message);
         throw new Error(error.message);
     }
 }
@@ -70,7 +65,6 @@ export async function addFavorite(id: number, type: "movie" | "series"): Promise
         });
         return res.data;
     } catch (error: any) {
-        console.log(`Error while adding favorite ${type} with id ${id}:`, error.message);
         throw new Error(error.message);
     }
 }
@@ -80,7 +74,6 @@ export async function removeFavorite(favorite_id: number, favorite_type: "movie"
         const res = await axios.delete(`user/favorites`, { data: { favorite_id, favorite_type } });
         return res.data;
     } catch (error: any) {
-        console.log(`Error while removing favorite ${favorite_type} with id ${favorite_id}:`, error.message);
         throw new Error(error.message);
     }
 

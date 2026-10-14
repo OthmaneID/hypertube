@@ -6,7 +6,6 @@ export async function getImageConfig(): Promise<ImageConfig> {
     const res = await axiosInstance.get("/images/config");
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching images configuration : ", error.message);
     return {error:error.message}
   }
 }
@@ -16,7 +15,6 @@ export async function getMovieImages(movie_id: number): Promise<MovieImages> {
     const res = await axiosInstance.get(`/images/movie/${movie_id}`);
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching movie details : ", error.message);
     return { id: movie_id, error: error.message };
   }
 }
@@ -27,7 +25,6 @@ export async function getSerieImages(serie_id: number): Promise<MovieImages> {
     const res = await axiosInstance.get(`/images/serie/${serie_id}`);
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching serie details : ", error.message);
     return { id: serie_id, error: error.message };
   }
 }

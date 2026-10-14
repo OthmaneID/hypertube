@@ -27,7 +27,22 @@ def createTokens(user_email: str):
     }
     refresh_token = jwt.encode(refresh_payload, settings.jwt_secret, algorithm="HS256")
     return access_token, refresh_token
-    
+
+
+# "typ" keeps API tokens and website cookies from being accepted in place of each other
+API_TOKEN_TYPE = "api"
+
+
+def createApiToken(user_id: int, client_id: str) -> str:
+    payload = {
+        "sub": str(user_id),
+        "client_id": client_id,
+        "typ": API_TOKEN_TYPE,
+        "exp": datetime.now().timestamp() + settings.jwt_expiration,
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
 def refreshToken(request: Request):
     try:
         refresh_token = request.cookies.get("refresh_token")
@@ -39,8 +54,8 @@ def refreshToken(request: Request):
             raise HTTPException(401, "Invalid refresh token")
         tokens = createTokens(user_email)
         response = Response(media_type="application/json")
-        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=True, samesite="lax")
-        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=True, samesite="lax")
+        response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
+        response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")
         return response
     except jwt.PyJWTError as e:
         print("JWT error : ", e)

@@ -88,7 +88,6 @@
     "popularSeries": "Popular - Series",
     "seeAll": "See All",
     "continueWatching": "Continue Watching",
-    "watched": "Watched",
     "minutesLeft_one": "{{count}} min left",
     "minutesLeft_other": "{{count}} min left"
   },
@@ -158,7 +157,32 @@
     "watchHistory": "Watch history",
     "loadingHistory": "Loading your watch history...",
     "errorHistory": "We couldn't load your watch history. Please try again later.",
-    "noHistory": "You haven't watched anything yet."
+    "noHistory": "You haven't watched anything yet.",
+    "api": {
+      "title": "API access",
+      "description": "Create a client to use the Hypertube REST API. Exchange its id and secret at POST /api/oauth/token for a token that acts as you.",
+      "namePlaceholder": "Client name (e.g. my script)",
+      "create": "Create client",
+      "creating": "Creating...",
+      "created": "API client created",
+      "createFailed": "Could not create the API client",
+      "secretOnce": "Copy the secret now: it won't be shown again.",
+      "clientId": "Client id",
+      "clientSecret": "Client secret",
+      "example": "Example",
+      "copy": "Copy",
+      "copied": "Copied",
+      "dismiss": "Done",
+      "noClients": "You don't have any API clients yet.",
+      "loadFailed": "Could not load your API clients.",
+      "createdOn": "Created {{date}}",
+      "lastUsed": "last used {{date}}",
+      "neverUsed": "never used",
+      "revoke": "Revoke",
+      "revoked": "API client revoked",
+      "revokeFailed": "Could not revoke the API client",
+      "revokeConfirm": "Revoke \"{{name}}\"? Scripts using it will stop working."
+    }
   },
 
   "movies": {
@@ -283,6 +307,10 @@
     "loading": "Loading...",
     "backToTop": "Back to top",
     "archive": "archive",
+    "watched": "Watched",
+    "watching": "Watching",
+    "continue": "Continue",
+    "rewatch": "Rewatch",
     "loadMore": "Load more"
   },
 

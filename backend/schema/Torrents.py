@@ -18,6 +18,8 @@ class SourcesResponse(BaseModel):
     cacheMaxAge: int = 3600
     staleRevalidate: int = 14400
     staleError: int = 604800
+    # Set when the provider could not be reached; streams is then empty
+    error: Optional[str] = None
 
 
 class StreamInfoResponse(BaseModel):

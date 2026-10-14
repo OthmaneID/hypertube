@@ -141,8 +141,8 @@ function SerieDetails() {
           prevSerie ? { ...prevSerie, is_favorite: true } : prevSerie,
         );
       }
-    } catch (error: any) {
-      console.log("Error while adding to favorites:", error.message);
+    } catch {
+      // The favorite button simply keeps its previous state
     }
   };
   const handleRemoveFromFavorites = async () => {
@@ -153,8 +153,8 @@ function SerieDetails() {
           prevSerie ? { ...prevSerie, is_favorite: false } : prevSerie,
         );
       }
-    } catch (error: any) {
-      console.log("Error while removing from favorites:", error.message);
+    } catch {
+      // The favorite button simply keeps its previous state
     }
   };
 
@@ -409,6 +409,7 @@ function SerieDetails() {
       {showStreams && (
         <StreamingOptions
           imdb_id={serie?.imdb_id}
+          tmdb_id={serie?.id}
           seasonNumber={selectedSeason ?? 0}
           episodeNumber={selectedEpisode ?? 0}
           serie_name={serie?.name ?? ""}
@@ -416,7 +417,6 @@ function SerieDetails() {
           setShowStreams={setShowStreams}
           showStreams={showStreams}
           duration={serie?.episode_run_time?.[0] ? serie.episode_run_time[0] * 60 : undefined}
-          tmdbId={serie?.id}
           poster={serie?.poster_path}
         />
       )}

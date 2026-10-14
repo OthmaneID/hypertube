@@ -1,10 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import Card from "../Card";
-import { getContinueWatching, type ContinueWatchingItem } from "../../utils/api/historyApi";
-
-// Resuming a little earlier than the saved spot helps the user pick the story back up
-const RESUME_REWIND_SECONDS = 5;
+import { getContinueWatching, type ContinueWatchingItem } from "../../utils/api/userService/historyApi";
 
 export function useContinueWatching(limit = 20) {
   return useQuery({
@@ -16,10 +13,10 @@ export function useContinueWatching(limit = 20) {
   });
 }
 
+// A finished item opens without a time, so the player starts it over
 function resumePath(item: ContinueWatchingItem) {
-  if (item.completed) return item.watch_path;
-  const start = Math.floor(Math.max(0, item.position - RESUME_REWIND_SECONDS));
-  if (start === 0) return item.watch_path;
+  const start = Math.floor(item.position);
+  if (item.completed || start <= 0) return item.watch_path;
   return `${item.watch_path}${item.watch_path.includes("?") ? "&" : "?"}t=${start}`;
 }
 
@@ -31,7 +28,7 @@ export function ContinueWatchingCards({ items }: { items: ContinueWatchingItem[]
       if (item.episode_title) return item.episode_title;
       if (item.season !== null && item.episode !== null) return `S${item.season} E${item.episode}`;
     }
-    if (item.completed) return t("home.watched");
+    if (item.completed) return undefined;
     if (item.duration) {
       return t("home.minutesLeft", { count: Math.max(1, Math.round((item.duration - item.position) / 60)) });
     }
@@ -44,6 +41,7 @@ export function ContinueWatchingCards({ items }: { items: ContinueWatchingItem[]
         <Card
           key={`${item.media_type}-${item.tmdb_id}`}
           url={resumePath(item)}
+          tmdb_id={item.tmdb_id}
           poster={item.poster_path ?? undefined}
           title={item.title ?? undefined}
           progress={item.progress}
@@ -65,7 +63,7 @@ function ContinueWatching() {
       <div className="flex flex-row justify-between items-center px-2">
         <h4 className="text-4xl text-white font-thin">{t("home.continueWatching")}</h4>
       </div>
-      <div className="flex flex-row items-center h-85 overflow-auto gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-center h-85 shrink-0 overflow-auto gap-2 border-b-2 border-gray-600">
         <ContinueWatchingCards items={items} />
       </div>
     </div>

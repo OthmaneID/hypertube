@@ -11,7 +11,6 @@ export async function get_sources(
     );
     return res.data;
   } catch (err: any) {
-    console.log("error while getting sources : ", err);
     return { streams: [], error: err.message };
   }
 }
@@ -27,7 +26,6 @@ export async function get_episode_streams(
     );
     return res.data;
   } catch (err: any) {
-    console.log("error while getting episode sources : ", err);
     return { streams: [], error: err.message };
   }
 }

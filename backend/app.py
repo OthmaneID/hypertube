@@ -22,6 +22,7 @@ from routes.search import router as search_router
 from routes.history import router as history_router
 from routes.torrents import router as torrents_router
 from routes.subtitles import router as subtitles_router
+from routes.api import router as api_router
 from services.Torrents import get_lt_session
 from services.Cleanup import cleanup_loop
 import asyncio
@@ -31,6 +32,14 @@ import asyncio
 
 PORT = settings.backend_port
 
+# The old history layout (one movie_id per row) can't be altered into the per-episode one
+with engine.begin() as conn:
+    legacy_history = conn.execute(text(
+        "SELECT 1 FROM information_schema.columns WHERE table_name = 'history' AND column_name = 'movie_id'"
+    )).first()
+    if legacy_history:
+        conn.execute(text("DROP TABLE history"))
+
 Base.metadata.create_all(bind=engine)
 
 # create_all() never adds columns to tables that already exist
@@ -38,17 +47,15 @@ with engine.begin() as conn:
     conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP"))
     conn.execute(text("""
         ALTER TABLE history
-            ADD COLUMN IF NOT EXISTS media_type VARCHAR,
             ADD COLUMN IF NOT EXISTS title VARCHAR,
             ADD COLUMN IF NOT EXISTS poster_path VARCHAR,
-            ADD COLUMN IF NOT EXISTS season INTEGER,
-            ADD COLUMN IF NOT EXISTS episode INTEGER,
             ADD COLUMN IF NOT EXISTS episode_title VARCHAR,
             ADD COLUMN IF NOT EXISTS duration FLOAT,
-            ADD COLUMN IF NOT EXISTS watch_path TEXT,
-            ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP
+            ADD COLUMN IF NOT EXISTS watch_path TEXT
     """))
-    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_history_watcher_updated ON history (watcher_id, updated_at)"))
+    conn.execute(text(
+        "CREATE INDEX IF NOT EXISTS ix_history_watcher_last_viewed ON history (watcher_id, last_viewed_at)"
+    ))
 
 
 
@@ -72,7 +79,7 @@ async def lifespan(app: fastapi.FastAPI):
         client_kwargs={"scope": "openid email profile"},
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration"
     )
-    app.state.oauth: OAuth = oauth
+    app.state.oauth = oauth
 
     # Start the BitTorrent session now so the DHT is bootstrapped before the first stream request
     get_lt_session()
@@ -94,7 +101,7 @@ app = fastapi.FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     cors.CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.100.80:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -117,6 +124,7 @@ app.include_router(search_router)
 app.include_router(history_router)
 app.include_router(torrents_router)
 app.include_router(subtitles_router)
+app.include_router(api_router)
 
 
 

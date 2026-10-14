@@ -5,7 +5,7 @@ import { BiX, BiSend, BiTrash, BiEdit } from "react-icons/bi";
 import { useAuth } from "../global/authContext";
 import { useTranslation } from "react-i18next";
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 const LIMIT = 20;
 
 interface CommentOwner {
@@ -73,8 +73,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
         if (response.data.length < LIMIT) {
           setHasMore(false);
         }
-      } catch (err) {
-        console.log(err);
+      } catch {
         setIsError(true);
         setError(t("comments.failedLoad"));
       } finally {
@@ -107,8 +106,8 @@ export default function Comments({ movieId, show, setShow }: Props) {
           setHasMore(false);
         }
       }
-    } catch (err) {
-      console.log(err);
+    } catch {
+      // Scrolling again retries the same page
     } finally {
       setIsFetchingMore(false);
     }
@@ -140,7 +139,6 @@ export default function Comments({ movieId, show, setShow }: Props) {
       setComments((prev) => [response.data, ...prev]);
       setCommentInput("");
     } catch (err: unknown) {
-      console.log(err);
       setIsError(true);
       if (axios.isAxiosError(err) && err.response?.status === 400) {
         // If it's the NSFW error from our new AI check
@@ -175,8 +173,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
         prev.map((c) => (c.id === commentId ? response.data : c)),
       );
       cancelEdit();
-    } catch (err) {
-      console.log(err);
+    } catch {
       alert(t("comments.failedEdit"));
     } finally {
       setIsSavingEdit(false);
@@ -195,8 +192,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
           c.id === commentId ? { ...c, content: "[deleted]", owner_id: -1 } : c,
         ),
       );
-    } catch (err) {
-      console.log(err);
+    } catch {
       alert(t("comments.failedDelete"));
     }
   };

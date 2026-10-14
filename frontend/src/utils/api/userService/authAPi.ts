@@ -9,7 +9,6 @@ export async function emailRegister(username:string, email:string, password:stri
         const res = await axios.post("/auth/register", { username, email, password, first_name: firstName, last_name: lastName })
         return res.data
     }catch(error:any) {
-        console.log("error while email registering  : ", error.message)
         return {error: error.message}
     }
 }
@@ -20,7 +19,6 @@ export async function emailLogin(email: string, password: string): Promise<AuthR
         const res = await axios.post("/auth/login", {email,password})
         return res.data
     }catch(error:any){
-        console.log("error while login using email : ", error.message)
         return {error: error.message}
     }
 }
@@ -32,7 +30,6 @@ export async function googleLogin(token: TokenResponse): Promise<AuthResponse>{
         const res = await axios.post("/auth/google", token)
         return res.data
     }catch(error:any){
-        console.log("error while login using google : ", error.message)
         return {error: error.message}
     }
 }
@@ -43,7 +40,6 @@ export async function get_current_user(): Promise<User> {
         const res = await axios.get("/auth/me")
         return res.data
     } catch (error: any) {
-        console.log("error whle getting current user :", error.message)
         throw new Error(error.message)
     }
 }
@@ -54,7 +50,6 @@ export async function user_logout(): Promise<any> {
         const res = await axios.post("/auth/logout")
         return res.data
     }catch(error:any) {
-        console.log("error while logging out :", error.message)
         throw new Error(error.message)
     }
 }
@@ -64,7 +59,6 @@ export async function refresh_token():Promise<any> {
         const res = await axios.post("/auth/refresh")
         return res.data
     } catch (error: any) {
-        console.log("error while refreshing token :", error.message)
         throw new Error(error.message)
     }
 }
@@ -75,7 +69,6 @@ export async function forgot_password(email: string): Promise<any> {
         const res = await axios.post("/auth/forgot-password", { email })
         return res.data
     } catch (error: any) {
-        console.log("error while sending forgot password email :", error.message)
         throw new Error(error.message)
     }
 }
@@ -85,7 +78,6 @@ export async function reset_password(token: string, newPass: string): Promise<an
         const res = await axios.post("/auth/reset-password", { token, new_pass: newPass })
         return res.data
     } catch (error: any) {
-        console.log("error while reseting password : ", error.message)
         throw new Error(error.message);
     }
 }

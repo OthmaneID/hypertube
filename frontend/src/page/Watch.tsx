@@ -4,7 +4,12 @@ import VideoPlayer, { type ProgressReason, type SubtitleTrack } from "../compone
 import { get_stream_info } from "../utils/api/movieService/torrentsApi";
 import type { StreamInfo } from "../utils/interfaces";
 import { getSubtitles, revokeSubtitles, type SubtitleQuery } from "../utils/api/movieService/subtitlesApi";
-import { saveProgress, saveProgressKeepalive, type ProgressUpdate } from "../utils/api/historyApi";
+import {
+  getProgress,
+  updateProgress,
+  updateProgressKeepalive,
+  type ProgressUpdate,
+} from "../utils/api/userService/historyApi";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -21,9 +26,13 @@ const LOAD_TIMEOUT_MS = 70_000;
 const SAVE_EVERY_SECONDS = 15;
 // Opening something for a few seconds doesn't add it to the history
 const MIN_SAVED_POSITION = 5;
+// Resuming a little earlier than the saved spot helps the user pick the story back up
+const RESUME_REWIND_SECONDS = 5;
+// Past this share of the duration the movie or episode counts as watched
+const FINISHED_RATIO = 0.95;
 
 type PlayerStatus = "loading" | "buffering" | "playing" | "error" | "ended";
-type ProgressTarget = Omit<ProgressUpdate, "position" | "duration">;
+type ProgressTarget = Omit<ProgressUpdate, "watched_duration" | "is_finished" | "duration">;
 
 function positiveNumber(value: string | null) {
   const n = value ? Number(value) : NaN;
@@ -47,7 +56,10 @@ function Watch() {
 
   const isTranscoded = filename ? !filename.toLowerCase().endsWith('.mp4') && !filename.toLowerCase().endsWith('.webm') : false;
 
-  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:8000";
   const streamUrl = `${backendUrl}/torrent/stream/${hash}?${streamParams.toString()}`;
 
   const imdbId = queryParams.get("imdb");
@@ -64,18 +76,18 @@ function Watch() {
 
   const resumeAt = positiveNumber(queryParams.get("t"));
   const tmdbId = positiveNumber(queryParams.get("tmdb"));
-  const mediaType = queryParams.get("type");
   let progressTarget: ProgressTarget | undefined;
-  if (tmdbId && (mediaType === "movie" || mediaType === "tv")) {
+  if (tmdbId && imdbId) {
     const pathParams = new URLSearchParams(location.search);
     pathParams.delete("t");
+    const isEpisode = seasonParam !== null && episodeParam !== null;
     progressTarget = {
-      media_type: mediaType,
+      imdb_id: imdbId,
       tmdb_id: tmdbId,
-      title: title ?? "",
+      season: isEpisode ? Number(seasonParam) : null,
+      episode: isEpisode ? Number(episodeParam) : null,
+      title,
       poster_path: queryParams.get("poster") || undefined,
-      season: mediaType === "tv" && seasonParam ? Number(seasonParam) : undefined,
-      episode: mediaType === "tv" && episodeParam ? Number(episodeParam) : undefined,
       episode_title: episodeTitle,
       watch_path: `${location.pathname}?${pathParams.toString()}`,
     };
@@ -155,46 +167,66 @@ function StreamPlayer({
     };
   }, [imdbId, season, episode, filename]);
 
-  // A resumed stream must know where it can really start (and whether it is transcoded) before it loads
-  const [startAt, setStartAt] = useState<number | null>(resumeAt ? null : 0);
+  // Where to start: the time in the link, otherwise the saved progress (a finished one starts over).
+  // The player waits for it, because a resumed transcoded stream must start at the right keyframe
+  const savedTmdbId = progressTarget?.tmdb_id;
+  const savedSeason = progressTarget?.season ?? undefined;
+  const savedEpisode = progressTarget?.episode ?? undefined;
+  const [startAt, setStartAt] = useState<number | null>(resumeAt || savedTmdbId ? null : 0);
   useEffect(() => {
-    if (!resumeAt || !hash) return;
+    if (!hash || (!resumeAt && !savedTmdbId)) return;
     let cancelled = false;
-    get_stream_info(hash, new URLSearchParams(streamQuery), resumeAt)
-      .then((info) => {
+    (async () => {
+      let target = resumeAt;
+      if (target === undefined && savedTmdbId) {
+        const saved = await getProgress(savedTmdbId, savedSeason, savedEpisode);
+        if (saved && !saved.is_finished && saved.watched_duration > 0) target = saved.watched_duration;
+      }
+      if (target !== undefined) target = Math.max(0, target - RESUME_REWIND_SECONDS);
+      if (!target) {
+        if (!cancelled) setStartAt(0);
+        return;
+      }
+      try {
+        const info = await get_stream_info(hash, new URLSearchParams(streamQuery), target);
         if (cancelled) return;
         setStreamInfo(info);
-        setStartAt(info.transcoded ? info.start : resumeAt);
-      })
-      .catch((err) => {
-        console.error("error while getting stream info : ", err);
-        if (!cancelled) setStartAt(resumeAt);
-      });
+        setStartAt(info.transcoded ? info.start : target);
+      } catch {
+        if (!cancelled) setStartAt(target);
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [resumeAt, hash, streamQuery]);
+  }, [resumeAt, hash, streamQuery, savedTmdbId, savedSeason, savedEpisode]);
 
   const progressTargetRef = useRef(progressTarget);
   progressTargetRef.current = progressTarget;
-  const lastProgressRef = useRef<{ position: number; duration: number } | null>(null);
+  const lastProgressRef = useRef<{ position: number; duration: number; ended: boolean } | null>(null);
   const lastSavedPositionRef = useRef<number | null>(null);
 
-  const buildProgressUpdate = (position: number, duration: number): ProgressUpdate | null => {
+  const buildProgressUpdate = (position: number, duration: number, ended: boolean): ProgressUpdate | null => {
     const target = progressTargetRef.current;
     if (!target) return null;
-    return { ...target, position, duration: duration > 0 ? duration : undefined };
+    return {
+      ...target,
+      watched_duration: Math.floor(position),
+      is_finished: ended || (duration > 0 && position >= duration * FINISHED_RATIO),
+      duration: duration > 0 ? duration : undefined,
+    };
   };
 
   const handleProgress = (position: number, duration: number, reason: ProgressReason) => {
-    lastProgressRef.current = { position, duration };
-    if (reason !== "ended" && position < MIN_SAVED_POSITION) return;
+    const ended = reason === "ended";
+    lastProgressRef.current = { position, duration, ended };
+    if (!ended && position < MIN_SAVED_POSITION) return;
     const lastSaved = lastSavedPositionRef.current;
     if (reason === "tick" && lastSaved !== null && Math.abs(position - lastSaved) < SAVE_EVERY_SECONDS) return;
-    const update = buildProgressUpdate(position, duration);
+    const update = buildProgressUpdate(position, duration, ended);
     if (!update) return;
     lastSavedPositionRef.current = position;
-    saveProgress(update);
+    updateProgress(update);
   };
 
   // Leaving the player (or closing the tab) saves the very last position
@@ -202,10 +234,10 @@ function StreamPlayer({
     const flush = () => {
       const last = lastProgressRef.current;
       if (!last || last.position < MIN_SAVED_POSITION || last.position === lastSavedPositionRef.current) return;
-      const update = buildProgressUpdate(last.position, last.duration);
+      const update = buildProgressUpdate(last.position, last.duration, last.ended);
       if (!update) return;
       lastSavedPositionRef.current = last.position;
-      saveProgressKeepalive(update);
+      updateProgressKeepalive(update);
     };
     window.addEventListener("pagehide", flush);
     return () => {
@@ -223,7 +255,7 @@ function StreamPlayer({
         if (!cancelled) setStreamInfo(info);
       })
       // Without it the player keeps guessing from the file extension
-      .catch((err) => console.error("error while getting stream info : ", err));
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

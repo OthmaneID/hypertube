@@ -5,10 +5,10 @@ import NavBar from "../components/NavBar";
 
 function Home() {
     return (
-      <div className="home flex flex-col w-full h-full">
+      <div className="home flex flex-col w-full min-h-full">
         <NavBar />
 
-        <div className="flex flex-col w-full h-full">
+        <div className="flex flex-col w-full">
           <ContinueWatching />
           <PopularMovies />
           <PopularSeries />

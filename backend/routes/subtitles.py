@@ -21,8 +21,9 @@ async def get_subtitles_route(
     for a movie or, when season/episode are given, a series episode.
     """
     user_lang = user.preferred_language.value if user and user.preferred_language else "en"
+    rd = getattr(request.app.state, "redis", None)
     return await get_subtitles(
-        request.app.state.redis,
+        rd,
         imdb_id=imdb_id,
         season=season,
         episode=episode,

@@ -1,6 +1,7 @@
 import { axiosInstance } from "../../axiosInstance";
 
-// Search only queries TMDB; archive.org results are never included
+// Search merges TMDB and Trakt (when the backend has a Trakt key); results are sorted by name
+// and `id` is always the TMDB id
 export interface SearchResultItem {
   id: number;
   title: string;
@@ -11,7 +12,7 @@ export interface SearchResultItem {
   vote_count: number;
   genre_ids: number[];
   media_type: "movie" | "series";
-  source: "tmdb";
+  sources: ("tmdb" | "trakt")[];
 }
 
 export interface SearchResponse {

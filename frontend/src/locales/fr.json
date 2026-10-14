@@ -88,7 +88,6 @@
     "popularSeries": "Populaires - Séries",
     "seeAll": "Voir tout",
     "continueWatching": "Reprendre la lecture",
-    "watched": "Vu",
     "minutesLeft_one": "{{count}} min restante",
     "minutesLeft_other": "{{count}} min restantes"
   },
@@ -158,7 +157,32 @@
     "watchHistory": "Historique de visionnage",
     "loadingHistory": "Chargement de votre historique...",
     "errorHistory": "Impossible de charger votre historique. Veuillez réessayer plus tard.",
-    "noHistory": "Vous n'avez encore rien regardé."
+    "noHistory": "Vous n'avez encore rien regardé.",
+    "api": {
+      "title": "Accès API",
+      "description": "Créez un client pour utiliser l'API REST d'Hypertube. Échangez son identifiant et son secret sur POST /api/oauth/token contre un jeton qui agit en votre nom.",
+      "namePlaceholder": "Nom du client (ex. mon script)",
+      "create": "Créer un client",
+      "creating": "Création...",
+      "created": "Client API créé",
+      "createFailed": "Impossible de créer le client API",
+      "secretOnce": "Copiez le secret maintenant : il ne sera plus affiché.",
+      "clientId": "Identifiant du client",
+      "clientSecret": "Secret du client",
+      "example": "Exemple",
+      "copy": "Copier",
+      "copied": "Copié",
+      "dismiss": "Terminé",
+      "noClients": "Vous n'avez pas encore de client API.",
+      "loadFailed": "Impossible de charger vos clients API.",
+      "createdOn": "Créé le {{date}}",
+      "lastUsed": "utilisé le {{date}}",
+      "neverUsed": "jamais utilisé",
+      "revoke": "Révoquer",
+      "revoked": "Client API révoqué",
+      "revokeFailed": "Impossible de révoquer le client API",
+      "revokeConfirm": "Révoquer « {{name}} » ? Les scripts qui l'utilisent cesseront de fonctionner."
+    }
   },
 
   "movies": {
@@ -283,6 +307,10 @@
     "loading": "Chargement...",
     "backToTop": "Retour en haut",
     "archive": "archive",
+    "watched": "Vu",
+    "watching": "En cours",
+    "continue": "Reprendre",
+    "rewatch": "Revoir",
     "loadMore": "Charger plus"
   },
 

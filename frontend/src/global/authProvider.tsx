@@ -36,8 +36,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           i18n.changeLanguage(user.preferred_language);
         }
       })
-      .catch((error: any) => {
-        console.log("error : ", error);
+      .catch(() => {
         logout();
       });
   }, []);
@@ -77,7 +76,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         get_current_user().then((userData: any) => {
-          console.log("Glogin user : ", userData);
           setUser(userData);
           localStorage.setItem("user", JSON.stringify(userData));
           setIsAuthenticated(true);
@@ -87,9 +85,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
           window.location.replace(back_to_url);
         });
       })
-      .catch((error) => {
-        console.log("error : ", error);
-      });
+      .catch(() => {});
   }
 
   function register(
@@ -123,9 +119,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(true);
             if (userData?.preferred_language) i18n.changeLanguage(userData.preferred_language);
           })
-          .catch((error) => {
-            console.log("error : ", error);
-          });
+          .catch(() => {});
       })
       .finally(() => {
         setLoading(false);

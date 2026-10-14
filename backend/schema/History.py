@@ -1,35 +1,50 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from typing import Literal
+from models.History import ModeEnum
+from typing import Literal, Optional
 
-
-MediaType = Literal["movie", "tv"]
-
-
-# Sent by the player while the user watches
-class ProgressUpdate(BaseModel):
-    media_type: MediaType
+class HistoryUpdate(BaseModel): # update through sending some video.currentTime from client side, movie_id, season, episode, mode
+    imdb_id:str
     tmdb_id: int
-    title: str = Field(max_length=500)
-    poster_path: str | None = Field(None, max_length=500)
-    season: int | None = Field(None, ge=0)
-    episode: int | None = Field(None, ge=0)
-    episode_title: str | None = Field(None, max_length=500)
-    position: float = Field(ge=0)
-    duration: float | None = Field(None, gt=0)
-    watch_path: str = Field(pattern=r"^/watch/", max_length=2048)
+    season: Optional[int]
+    episode : Optional[int]
+    watched_duration : int
+    is_finished : bool = False
+    # Optional: only needed for the "continue watching" list
+    title: Optional[str] = Field(None, max_length=500)
+    poster_path: Optional[str] = Field(None, max_length=500)
+    episode_title: Optional[str] = Field(None, max_length=500)
+    duration: Optional[float] = Field(None, gt=0)
+    watch_path: Optional[str] = Field(None, pattern=r"^/watch/", max_length=2048)
+     
+
+
+
+class HistoryResponse(BaseModel):
+    id : int
+    mode : ModeEnum
+    imdb_id : str
+    tmdb_id : int
+    season : Optional[int] =  None
+    episode : Optional[int] = None
+    is_finished: bool
+    watched_duration: int
+    last_viewed_at : Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ContinueWatchingItem(BaseModel):
-    media_type: MediaType
+    media_type: Literal["movie", "tv"]
     tmdb_id: int
-    title: str | None
-    poster_path: str | None
-    season: int | None
-    episode: int | None
-    episode_title: str | None
+    title: Optional[str]
+    poster_path: Optional[str]
+    season: Optional[int]
+    episode: Optional[int]
+    episode_title: Optional[str]
     position: float
-    duration: float | None
+    duration: Optional[float]
+    # 0 to 1
     progress: float
     completed: bool
     watch_path: str

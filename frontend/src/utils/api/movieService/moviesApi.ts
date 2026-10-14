@@ -18,7 +18,6 @@ export async function getPopularMovies(
     });
     return res.data;
   } catch (error: any) {
-    console.log("error while fetchin popular movies . ", error.message);
     return {
       page: 1,
       results: [],
@@ -34,7 +33,6 @@ export async function getMovieDetails(movie_id: number): Promise<MovieDetails> {
     const res = await axiosInstance.get(`/movies/details/${movie_id}`);
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching movie details : ", error.message);
     return { id: movie_id, error: error.message };
   }
 }
@@ -44,7 +42,6 @@ export async function getMovieCredits(movie_id: number): Promise<Credits> {
     const res = await axiosInstance.get(`/movies/credits/${movie_id}`);
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching movie cast : ", error.message);
     return { error: error.message };
   }
 }
@@ -56,7 +53,6 @@ export async function getMovieTrailers(
     const res = await axiosInstance.get(`/movies/videos/${movie_id}`);
     return res.data;
   } catch (error: any) {
-    console.log("error while fetching movie trailers : ", error.message);
     return { error: error.message };
   }
 }
@@ -65,8 +61,7 @@ export async function getGenres(): Promise<{ genres: Array<{ id: number; name: s
   try {
     const res = await axiosInstance.get("/movies/genres");
     return res.data;
-  } catch (error: any) {
-    console.log("error while fetching genres: ", error.message);
+  } catch {
     return { genres: [] };
   }
 }

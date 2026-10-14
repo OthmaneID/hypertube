@@ -128,8 +128,8 @@ function MovieDetails() {
         setMovie(prevMovie => prevMovie ? { ...prevMovie, is_favorite: true } : prevMovie);
       }
     }
-    catch (error: any) {
-      console.log("Error while adding to favorites:", error.message);
+    catch {
+      // The favorite button simply keeps its previous state
     }
   }
   const handleRemoveFromFavorites = async () => {
@@ -139,8 +139,8 @@ function MovieDetails() {
         setMovie(prevMovie => prevMovie ? { ...prevMovie, is_favorite: false } : prevMovie);
       }
     }
-    catch (error: any) {
-      console.log("Error while removing from favorites:", error.message);
+    catch {
+      // The favorite button simply keeps its previous state
     }
   }
 
@@ -363,12 +363,12 @@ function MovieDetails() {
       {showStreams && (
         <StreamingOptions
           movie_id={movie?.imdb_id}
+          tmdb_id={movie?.id}
           movie_name={movie?.title ?? ""}
           setShowStreams={setShowStreams}
           showStreams={showStreams}
           year={new Date(movie?.release_date ?? "").getFullYear().toString()}
           duration={movie?.runtime ? movie.runtime * 60 : undefined}
-          tmdbId={movie?.id}
           poster={movie?.poster_path}
         />
       )}

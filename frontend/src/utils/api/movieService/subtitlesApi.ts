@@ -27,15 +27,13 @@ export async function getSubtitles({ imdbId, season, episode, filename }: Subtit
           const vtt = await axiosInstance.get<string>(track.src, { responseType: "text" });
           const blob = new Blob([vtt.data], { type: "text/vtt" });
           return { ...track, src: URL.createObjectURL(blob) };
-        } catch (error) {
-          console.error(`Failed to load ${track.label} subtitles:`, error);
+        } catch {
           return null;
         }
       }),
     );
     return tracks.filter((track): track is SubtitleTrack => track !== null);
-  } catch (error) {
-    console.error(`Failed to fetch subtitles for ${imdbId}:`, error);
+  } catch {
     return [];
   }
 }

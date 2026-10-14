@@ -26,9 +26,6 @@ function Register() {
     onSuccess: (response: TokenResponse) => {
       Glogin(response);
     },
-    onError: (error: any) => {
-      console.log(error);
-    },
   });
 
   return (
