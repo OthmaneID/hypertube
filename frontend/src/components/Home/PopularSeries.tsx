@@ -21,9 +21,11 @@ function PopularSeries() {
     });
   }, []);
   return (
-    <div className="popular-movies flex flex-col py-4 gap-4 w-[calc(100vw-120px)] h-full px-2">
+    <div className="popular-series flex flex-col py-4 gap-4 w-[calc(100vw-120px)] h-full px-2 overflow-y-hidden">
       <div className="flex flex-row justify-between items-center px-2">
-        <h4 className="text-4xl text-white font-thin">{t("home.popularSeries")}</h4>
+        <h4 className="text-4xl text-white font-thin">
+          {t("home.popularSeries")}
+        </h4>
         <Link
           to="/series"
           className="text-lg text-nowrap flex flex-nowrap items-center text-gray-400 hover:text-white transition duration-300"
@@ -31,7 +33,7 @@ function PopularSeries() {
           {t("home.seeAll")} <BiChevronRight className="ml-1" />
         </Link>
       </div>
-      <div className="flex flex-row items-center h-85 shrink-0 overflow-auto gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-end h-90 shrink-0 overflow-x-auto overflow-y-hidden gap-2 border-b-2 border-gray-600">
         {Series.results.map((serie, index) => {
           const year = serie.first_air_date?.toString().split("-")[0];
           return (
