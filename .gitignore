@@ -6,7 +6,8 @@ __pycache__/
 node_modules/
 
 postgres/
-
+.claude/
+*.txt
 profile_pictures/
 torrent/
 
