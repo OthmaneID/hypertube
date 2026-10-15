@@ -23,6 +23,9 @@ from datetime import datetime
 
 def AddComment(comment: str, owner_id: int, movie_id: int, db: Session):
     try:
+        comment = comment.strip()
+        if not comment:
+            raise HTTPException(400, "comment content cannot be empty")
         # if CheckCommentNSFW(comment):
         #     raise HTTPException(400, "comment contain nsfw content")
         comment_obj = Comment(content=comment, owner_id=owner_id, movie_id=movie_id)

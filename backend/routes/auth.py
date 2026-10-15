@@ -7,7 +7,7 @@ from schema.GoogleToken import GoogleTokenResponse
 from database import get_db
 from fastapi import Body, Depends, Response
 from sqlalchemy.orm import Session
-from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, refreshToken , forgotPassword, resetPassword, verifyEmail, resendVerificationEmail
+from services.auth import googleLogin, loginEmail, registerUser, fortyTwoLogin, get_current_user, get_optional_user, refreshToken , forgotPassword, resetPassword, verifyEmail, resendVerificationEmail
 
 import json
 from config import settings
@@ -43,7 +43,7 @@ async def forty_two_login(request: Request, code:str, state: str, db: Session = 
 
 
 @router.get("/me")
-def me(request: Request, user:UserResponse = Depends(get_current_user)):
+def me(request: Request, user: UserResponse | None = Depends(get_optional_user)):
     return user
 
 @router.post("/refresh")

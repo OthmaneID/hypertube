@@ -1,10 +1,13 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StringConstraints
 from datetime import datetime
+from typing import Annotated
+
+COMMENT_MAX_LENGTH = 2000
 
 
 # What the client sends in the request body
 class CommentCreate(BaseModel):
-    content: str
+    content: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=COMMENT_MAX_LENGTH)]
 
 
 # Nested owner info embedded in each comment response

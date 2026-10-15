@@ -27,6 +27,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     get_current_user()
       .then((user: any) => {
+        if (!user) {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          localStorage.removeItem("user");
+          return;
+        }
         setUser(user);
         localStorage.setItem("user", JSON.stringify(user));
         setIsAuthenticated(true);

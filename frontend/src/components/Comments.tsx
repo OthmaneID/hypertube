@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 const LIMIT = 20;
+// Same limit as the backend (schema/Comment.py)
+const COMMENT_MAX_LENGTH = 2000;
 
 interface CommentOwner {
   id: number;
@@ -306,6 +308,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
                       rows={3}
                       autoFocus
                       value={editText}
+                      maxLength={COMMENT_MAX_LENGTH}
                       onChange={(e) => setEditText(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -399,6 +402,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
                   placeholder={t("comments.placeholder")}
                   rows={2}
                   value={commentInput}
+                  maxLength={COMMENT_MAX_LENGTH}
                   onChange={(e) => setCommentInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {

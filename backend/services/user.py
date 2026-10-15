@@ -11,6 +11,7 @@ from models.User import User, oauthEnum
 from models.Favorites import favoriteTypeEnum, Favorites
 from utils.auth import hashPass
 import bcrypt
+from utils.validation import password_error
 
 
 def _invalidate_favorite_details_cache(
@@ -92,6 +93,9 @@ def updatePassword(request: Request, old_pass: str, new_pass: str, db: Session, 
             return {"error": "user not found"}
         if  user_db.oauth_provider == oauthEnum.EMAIL and not bcrypt.checkpw(old_pass.encode("utf-8"), user_db.password.encode("utf-8")):
             return {"error": "Wrong password"}
+        weak = password_error(new_pass)
+        if weak:
+            return {"error": weak}
         user_db.password = hashPass(new_pass)
         user_db.oauth_provider = oauthEnum.EMAIL
         db.commit()

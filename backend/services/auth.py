@@ -10,6 +10,7 @@ from schema.GoogleToken import GoogleTokenResponse
 from sqlalchemy.orm import Session
 import jwt
 import bcrypt
+from utils.validation import password_error
 import hashlib
 from models.User import User, oauthEnum
 from models.Token import Token, tokenTypeEnum
@@ -58,7 +59,9 @@ def get_current_user(request:Request, db:Session = Depends(get_db)):
                 payload = {"user_email": user_email}
             except jwt.PyJWTError:
                 raise HTTPException(401, "Invalid or expired refresh token")
-        
+        except jwt.PyJWTError:
+            raise HTTPException(401, "Invalid token")
+
         user_email = payload.get("user_email")
 
         if not user_email:
@@ -86,6 +89,17 @@ def get_current_user(request:Request, db:Session = Depends(get_db)):
     except Exception as e:
         print("Exception : ", e)
         raise HTTPException(500, "Internal server error")
+
+
+def get_optional_user(request: Request, db: Session = Depends(get_db)) -> UserResponse | None:
+    # A logged-out visitor is a normal state, not an error: answering 401 here
+    # would print a network error in the browser console on every public page
+    try:
+        return get_current_user(request, db)
+    except HTTPException as e:
+        if e.status_code in (401, 404):
+            return None
+        raise
 
 
 
@@ -369,6 +383,9 @@ def resetPassword(request: Request, token: str, new_pass: str, db:Session):
         # check if token is expired
         if not token_db or not token_db.expires_at or token_db.expires_at <= datetime.now():
             return Response(content=json.dumps({"error": "Invalid or expired token"}), media_type="application/json", status_code=400)
+        weak = password_error(new_pass)
+        if weak:
+            return Response(content=json.dumps({"error": weak}), media_type="application/json", status_code=400)
         user_db = token_db.user
         user_db.password = hashPass(new_pass)
         db.delete(token_db)

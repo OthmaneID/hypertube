@@ -1,7 +1,13 @@
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
-from typing import List
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
+from typing import Annotated, List
+from utils.validation import check_password, PASSWORD_MAX_LENGTH
 from models.User import oauthEnum , preferredLanguageEnum
+
+
+# Names users type themselves; surrounding spaces are dropped before the length check
+PersonName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)]
+Password = Annotated[str, Field(max_length=PASSWORD_MAX_LENGTH), AfterValidator(check_password)]
 
 
 class UserBase(BaseModel):
@@ -17,7 +23,9 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
+    first_name: PersonName
+    last_name: PersonName
+    password: Password
 
 # class UserUpdate(UserBase):
 #     pass
@@ -37,8 +45,8 @@ class UserUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     username: str | None = Field(default=None, min_length=4, max_length=50)
-    first_name: str | None = None
-    last_name: str | None = None
+    first_name: PersonName | None = None
+    last_name: PersonName | None = None
     preferred_language : preferredLanguageEnum | None = None
 
     @model_validator(mode="after")

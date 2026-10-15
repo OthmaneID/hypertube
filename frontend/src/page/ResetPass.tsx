@@ -3,6 +3,7 @@ import { ArrowLeft, Eye, EyeOff, KeyRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { reset_password } from "../utils/api/userService/authAPi";
 import { useTranslation } from "react-i18next";
+import { passwordError } from "../utils/validation";
 
 function ResetPass() {
   const { t } = useTranslation();
@@ -28,6 +29,12 @@ function ResetPass() {
 
     if (password !== confirmPass) {
       setError(t("resetPass.passwordsMismatch"));
+      return;
+    }
+
+    const weakPassword = passwordError(password);
+    if (weakPassword) {
+      setError(t(weakPassword));
       return;
     }
 

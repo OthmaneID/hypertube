@@ -83,6 +83,19 @@
     "update": "Update password"
   },
 
+  "validation": {
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordTooLong": "Password must be at most 128 characters",
+    "passwordCase": "Password must contain both lowercase and uppercase letters",
+    "passwordDigit": "Password must contain at least one digit",
+    "passwordSpecial": "Password must contain at least one special character",
+    "passwordCommon": "Password is too common, avoid simple English words",
+    "nameRequired": "This field is required",
+    "nameTooLong": "Must be at most 50 characters",
+    "usernameLength": "Username must be between 4 and 50 characters",
+    "emailInvalid": "Enter a valid email address"
+  },
+
   "home": {
     "popularMovies": "Popular - Movies",
     "popularSeries": "Popular - Series",

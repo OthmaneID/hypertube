@@ -35,7 +35,8 @@ export async function googleLogin(token: TokenResponse): Promise<AuthResponse>{
 }
 
 
-export async function get_current_user(): Promise<User> {
+// Resolves to null when nobody is logged in
+export async function get_current_user(): Promise<User | null> {
     try {
         const res = await axios.get("/auth/me")
         return res.data

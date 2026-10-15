@@ -23,6 +23,7 @@ import {
   History as HistoryIcon,
 } from "lucide-react";
 import { toast } from "react-toast";
+import { nameError, passwordError, usernameError } from "../utils/validation";
 import Card from "../components/Card";
 import { ContinueWatchingCards, useContinueWatching } from "../components/Home/ContinueWatching";
 import ApiAccess from "../components/Profile/ApiAccess";
@@ -176,9 +177,22 @@ function Profile() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const invalid =
+      usernameError(formData.username) ??
+      nameError(formData.first_name) ??
+      nameError(formData.last_name);
+    if (invalid) {
+      toast.error(t(invalid));
+      return;
+    }
+
     try {
       setUpdating(true);
-      const updatedUser = await updateUserProfile(formData);
+      const updatedUser = await updateUserProfile({
+        ...formData,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+      });
       setUser(updatedUser);
       setAuthUser(updatedUser);
       i18n.changeLanguage(formData.preferred_language);
@@ -198,17 +212,23 @@ function Profile() {
       return;
     }
 
-    if (passwordData.newPassword.length < 8) {
-      toast.error(t("profile.passwordTooShort"));
+    const weakPassword = passwordError(passwordData.newPassword);
+    if (weakPassword) {
+      toast.error(t(weakPassword));
       return;
     }
 
     try {
       setUpdating(true);
-      await changePassword(
+      const result = await changePassword(
         isEmailAccount ? passwordData.oldPassword : "",
         passwordData.newPassword,
       );
+      // The backend answers 200 with an error field for a wrong current password
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
       const updatedUser = user ? { ...user, oauth_provider: "email" } : user;
       setUser(updatedUser);
       if (updatedUser) setAuthUser(updatedUser);

@@ -83,6 +83,19 @@
     "update": "Mettre à jour le mot de passe"
   },
 
+  "validation": {
+    "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+    "passwordTooLong": "Le mot de passe doit contenir au plus 128 caractères",
+    "passwordCase": "Le mot de passe doit contenir des minuscules et des majuscules",
+    "passwordDigit": "Le mot de passe doit contenir au moins un chiffre",
+    "passwordSpecial": "Le mot de passe doit contenir au moins un caractère spécial",
+    "passwordCommon": "Mot de passe trop courant, évitez les mots anglais simples",
+    "nameRequired": "Ce champ est obligatoire",
+    "nameTooLong": "50 caractères maximum",
+    "usernameLength": "Le nom d'utilisateur doit contenir entre 4 et 50 caractères",
+    "emailInvalid": "Entrez une adresse e-mail valide"
+  },
+
   "home": {
     "popularMovies": "Populaires - Films",
     "popularSeries": "Populaires - Séries",

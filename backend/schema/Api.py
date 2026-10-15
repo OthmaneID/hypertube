@@ -1,5 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from schema.User import Password
 
 
 class TokenResponse(BaseModel):
@@ -26,7 +27,7 @@ class ApiUserUpdate(BaseModel):
 
     username: str | None = Field(default=None, min_length=4, max_length=50)
     email: EmailStr | None = None
-    password: str | None = Field(default=None, min_length=8, max_length=128)
+    password: Password | None = None
     picture_url: str | None = Field(default=None, max_length=2048)
 
     @field_validator("picture_url")

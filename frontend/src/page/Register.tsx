@@ -3,24 +3,48 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../global/authContext";
 import { useGoogleLogin, type TokenResponse } from "@react-oauth/google";
 import { useTranslation } from "react-i18next";
+import {
+  emailError as checkEmail,
+  nameError,
+  passwordError as checkPassword,
+  usernameError as checkUsername,
+} from "../utils/validation";
+
+type Field = "username" | "firstName" | "lastName" | "email" | "password" | "confirmPassword";
 
 function Register() {
   const [username, setUsername] = useState("");
-  const [usernameError, setUsernameError] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // i18n keys of the current validation errors, by field
+  const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const { register, Glogin } = useAuth();
   const { t } = useTranslation();
 
   function submit(e: Event) {
     e.preventDefault();
-    register(username, email, password, confirmPassword, firstName, lastName);
+    const found: Partial<Record<Field, string>> = {};
+    const check = (field: Field, error: string | null) => {
+      if (error) found[field] = error;
+    };
+    check("username", checkUsername(username));
+    check("firstName", nameError(firstName));
+    check("lastName", nameError(lastName));
+    check("email", checkEmail(email));
+    check("password", checkPassword(password));
+    if (password !== confirmPassword) found.confirmPassword = "auth.passwordMismatch";
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+    register(username, email, password, confirmPassword, firstName.trim(), lastName.trim());
   }
+
+  const fieldError = (field: Field) =>
+    errors[field] ? (
+      <p className="mt-1 text-sm text-red-400">{t(errors[field])}</p>
+    ) : null;
 
   const google_login = useGoogleLogin({
     onSuccess: (response: TokenResponse) => {
@@ -60,7 +84,7 @@ function Register() {
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={(e: any) => submit(e)}>
+            <form className="space-y-4" noValidate onSubmit={(e: any) => submit(e)}>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
                   {t("register.usernameLabel")}
@@ -74,8 +98,8 @@ function Register() {
                   required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
+                {fieldError("username")}
               </div>
-              <span>{usernameError}</span>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
@@ -87,8 +111,11 @@ function Register() {
                   placeholder="First Name"
                   onChange={(e) => setFirstName(e.target.value)}
                   value={firstName}
+                  required
+                  maxLength={50}
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
+                {fieldError("firstName")}
               </div>
 
               <div>
@@ -101,8 +128,11 @@ function Register() {
                   placeholder="Last Name"
                   onChange={(e) => setLastName(e.target.value)}
                   value={lastName}
+                  required
+                  maxLength={50}
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
+                {fieldError("lastName")}
               </div>
 
               <div>
@@ -118,8 +148,8 @@ function Register() {
                   required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
+                {fieldError("email")}
               </div>
-              <span>{emailError}</span>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
@@ -134,8 +164,8 @@ function Register() {
                   required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
+                {fieldError("password")}
               </div>
-              <span>{passwordError}</span>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">
                   {t("register.confirmPasswordLabel")}
@@ -149,6 +179,7 @@ function Register() {
                   required
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30"
                 />
+                {fieldError("confirmPassword")}
               </div>
 
               <button
