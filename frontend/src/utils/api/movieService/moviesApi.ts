@@ -28,6 +28,23 @@ export async function getPopularMovies(
   }
 }
 
+export async function getTrendingMovies(
+  window: "day" | "week",
+): Promise<PopularMoviesResponse> {
+  try {
+    const res = await axiosInstance.get("/movies/trending", { params: { window } });
+    return res.data;
+  } catch (error: any) {
+    return {
+      page: 1,
+      results: [],
+      total_pages: 1,
+      total_results: 0,
+      error: error.message,
+    };
+  }
+}
+
 export async function getMovieDetails(movie_id: number): Promise<MovieDetails> {
   try {
     const res = await axiosInstance.get(`/movies/details/${movie_id}`);

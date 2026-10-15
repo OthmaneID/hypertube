@@ -170,7 +170,7 @@ function SerieDetails() {
 
   return (
     <>
-      <div className="relative select-none scroll-smooth h-screen">
+      <div className="relative select-none min-h-screen">
         {/* back button */}
         <div
           className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "
@@ -185,15 +185,15 @@ function SerieDetails() {
             <img
               src={image_baseUrl + backdrop_size + serie?.backdrop_path}
               alt={serie?.name}
-              className="h-full w-full bg-cover bg-center bg-no-repeat"
+              className="sticky top-0 h-screen w-full object-cover object-center"
               loading="lazy"
             />
           )}
           <div className="bg-linear-to-t from-black/70 to-black/40 absolute top-0 left-0 h-full w-full"></div>
         </div>
-        <div className="relative z-30 w-full h-full overflow-auto">
+        <div className="relative z-30 w-full">
           {/* serie details section*/}
-          <div className="h-full py-5 px-6 flex flex-col justify-between w-full">
+          <div className="min-h-screen py-5 px-6 flex flex-col justify-between w-full">
             <div className="pt-5 gap-6 flex flex-row-reverse flex-wrap w-full justify-between">
               <div className="flex flex-row gap-3 items-center text-gray-200 font-bold text-3xl">
                 <button

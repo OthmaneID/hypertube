@@ -1,5 +1,6 @@
 from fastapi.routing import APIRouter
-from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits, getMovieVideos
+from services.Movies import getMovies, getGenres, getMovieDetails, getMovieCredits, getMovieVideos, getTrending
+from typing import Literal
 from fastapi.requests import Request
 from database import get_db
 from sqlalchemy.orm import Session
@@ -24,6 +25,12 @@ def get_popular_movies(
     user_lang = user.preferred_language.value if user and user.preferred_language else "en"
     discover_params = build_discover_params("movie", sort_by, genre, min_rating, year_from, year_to)
     return getMovies(request=request, page=page, discover_params=discover_params, lang=user_lang)
+
+
+@router.get("/trending")
+def get_trending_movies(request: Request, window: Literal["day", "week"] = "day", user: UserResponse = Depends(get_current_user)):
+    user_lang = user.preferred_language.value if user and user.preferred_language else "en"
+    return getTrending(request, "movie", window, lang=user_lang)
 
 
 @router.get("/genres")

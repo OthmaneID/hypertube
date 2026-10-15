@@ -76,7 +76,7 @@ function StreamingOptions({
   return (
     <div
       className={
-        "absolute w-full h-full z-40 top-0 left-0 duration-500 flex justify-center items-center " +
+        "fixed inset-y-0 left-20 right-0 z-40 duration-500 flex justify-center items-center " +
         (showStreams
           ? "opacity-100 scale-100"
           : "opacity-0 scale-0 pointer-events-none")

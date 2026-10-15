@@ -200,7 +200,7 @@ export default function Comments({ movieId, show, setShow }: Props) {
   return (
     <div
       className={
-        "absolute w-full h-screen z-60 top-0 left-0 duration-500 flex justify-end " +
+        "fixed inset-y-0 left-20 right-0 z-60 duration-500 flex justify-end " +
         (show
           ? "opacity-100 pointer-events-auto"
           : "opacity-0 pointer-events-none")

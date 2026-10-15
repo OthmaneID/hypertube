@@ -29,6 +29,23 @@ export async function getPopularSeries(
   }
 }
 
+export async function getTrendingSeries(
+  window: "day" | "week",
+): Promise<PopularSeriesResponse> {
+  try {
+    const res = await axiosInstance.get("/series/trending", { params: { window } });
+    return res.data;
+  } catch (error: any) {
+    return {
+      page: 1,
+      results: [],
+      total_pages: 1,
+      total_results: 0,
+      error: error.message,
+    };
+  }
+}
+
 export async function getSerieDetails(serie_id: number): Promise<SerieDetails> {
   try {
     const res = await axiosInstance.get("/series/details/" + serie_id);

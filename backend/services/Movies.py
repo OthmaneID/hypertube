@@ -78,6 +78,30 @@ def getMovies(request : Request, category: str = "popular", page: int = 1, disco
         return {"page": 1, "results": [], "total_pages": 1, "total_results": 0}
 
 
+def getTrending(request: Request, media_type: str, time_window: str, lang: str = "en"):
+    # media_type is TMDB's "movie" or "tv", time_window is "day" or "week"
+    rd: redis.Redis | None = getattr(request.app.state, "redis", None)
+    tmdb_lang = "fr-FR" if lang == "fr" else "en-US"
+    cache_key = f"trending_{media_type}_{time_window}_{lang}"
+    try:
+        if rd is not None:
+            cached = rd.get(cache_key)
+            if cached is not None:
+                return json.loads(cached)
+    except Exception:
+        pass
+
+    try:
+        res = requests.get(f"{settings.api_base_url.rstrip('/')}/trending/{media_type}/{time_window}", params={"language": tmdb_lang}, headers=headers, timeout=10)
+        data = res.json()
+        if data and rd is not None and res.status_code == 200:
+            rd.setex(cache_key, 60 * 60, json.dumps(data))
+        return data
+    except Exception as e:
+        print(f"Error while fetching trending {media_type}: {e}")
+        return {"page": 1, "results": [], "total_pages": 1, "total_results": 0}
+
+
 def getMovieDetails(request: Request, movie_id: int, db: Session, user: UserResponse, lang: str = "en"):
     rd: redis.Redis | None = getattr(request.app.state, "redis", None)
     tmdb_lang = "fr-FR" if lang == "fr" else "en-US"

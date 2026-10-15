@@ -112,7 +112,7 @@ function TrailerModule({
   return (
     <div
       className={
-        "absolute w-full h-screen z-60 top-0 left-0  duration-500  flex justify-center items-center " +
+        "fixed inset-y-0 left-20 right-0 z-60 duration-500  flex justify-center items-center " +
         (show ? "opacity-100 scale-100" : "opacity-0 scale-0")
       }
     >

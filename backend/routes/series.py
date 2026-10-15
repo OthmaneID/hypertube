@@ -7,6 +7,8 @@ from database import get_db
 from schema.User import UserResponse
 from services.auth import get_current_user
 from services.Series import GetSeries, getSerieDetails, getSerieCredits, getSerieVideos, getSerieSeason, getGenres
+from services.Movies import getTrending
+from typing import Literal
 
 
 router = APIRouter(prefix="/series")
@@ -25,6 +27,12 @@ def get_popular_series(
     user_lang = user.preferred_language.value if user and user.preferred_language else "en"
     discover_params = build_discover_params("tv", sort_by, genre, min_rating, year_from, year_to)
     return GetSeries(request, "popular", page, discover_params=discover_params, lang=user_lang)
+
+
+@router.get("/trending")
+def get_trending_series(request: Request, window: Literal["day", "week"] = "day", user: UserResponse = Depends(get_current_user)):
+    user_lang = user.preferred_language.value if user and user.preferred_language else "en"
+    return getTrending(request, "tv", window, lang=user_lang)
 
 
 @router.get("/genres")

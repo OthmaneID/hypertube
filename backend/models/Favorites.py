@@ -14,7 +14,7 @@ class Favorites(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     favorite_id : Mapped[int] = mapped_column(Integer, nullable=False)
-    favorite_type : Mapped[favoriteTypeEnum] = Column(Enum(favoriteTypeEnum), nullable=False)
+    favorite_type : Mapped[favoriteTypeEnum] = mapped_column(Enum(favoriteTypeEnum), nullable=False)
     user = relationship("User", back_populates="favorites")
     created_at : Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     

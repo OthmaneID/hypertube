@@ -86,6 +86,10 @@
   "home": {
     "popularMovies": "Popular - Movies",
     "popularSeries": "Popular - Series",
+    "trendingMovies": "Trending - Movies",
+    "trendingSeries": "Trending - Series",
+    "today": "Today",
+    "thisWeek": "This Week",
     "seeAll": "See All",
     "continueWatching": "Continue Watching",
     "minutesLeft_one": "{{count}} min left",
