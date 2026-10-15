@@ -48,4 +48,4 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     
 
-settings = Settings()
+settings = Settings() 

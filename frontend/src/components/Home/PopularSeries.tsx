@@ -33,7 +33,7 @@ function PopularSeries() {
           {t("home.seeAll")} <BiChevronRight className="ml-1" />
         </Link>
       </div>
-      <div className="flex flex-row items-end h-90 shrink-0 overflow-x-auto overflow-y-hidden gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-end h-90 shrink-0 overflow-x-auto overflow-y-hidden gap-2 border-b-2 border-gray-600 px-2">
         {Series.results.map((serie, index) => {
           const year = serie.first_air_date?.toString().split("-")[0];
           return (

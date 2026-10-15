@@ -25,6 +25,7 @@ import ResetPass from "./page/ResetPass";
 import EmailVerification from "./page/EmailVerification";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Watch from "./page/Watch.tsx";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -40,9 +41,10 @@ function App() {
                     <Router>
                       <Sidebar />
                       <div
-                        className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth"
+                        className="flex flex-col w-full overflow-y-auto overflow-x-hidden scroll-smooth flex-1"
                         id="scrollContainer"
                       >
+                        <main className="grid grid-cols-1 min-h-full shrink-0">
                         <Routes>
                           <Route
                             path="/verify-email"
@@ -84,6 +86,8 @@ function App() {
                             <Route path="/register" element={<Register />} />
                           </Route>
                         </Routes>
+                        </main>
+                        <Footer />
                       </div>
                     </Router>
                   </div>

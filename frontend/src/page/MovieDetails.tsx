@@ -155,7 +155,7 @@ function MovieDetails() {
     );
 
   return (
-    <div className="relative select-none scroll-smooth h-full">
+    <div className="relative select-none scroll-smooth h-screen">
       {/* back button */}
       <div
         className="absolute z-40 left-1 top-0 text-5xl font-bold text-gray-300 cursor-pointer w-15 h-12.5 flex "

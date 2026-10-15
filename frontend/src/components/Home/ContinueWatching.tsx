@@ -63,7 +63,7 @@ function ContinueWatching() {
       <div className="flex flex-row justify-between items-center px-2">
         <h4 className="text-4xl text-white font-thin">{t("home.continueWatching")}</h4>
       </div>
-      <div className="flex flex-row items-center h-85 shrink-0 overflow-auto gap-2 border-b-2 border-gray-600">
+      <div className="flex flex-row items-center h-85 shrink-0 overflow-auto gap-2 border-b-2 border-gray-600 px-2">
         <ContinueWatchingCards items={items} />
       </div>
     </div>
