@@ -355,6 +355,10 @@
     "chooseSource": "Choisir une source",
     "retry": "Réessayer",
     "streamEnded": "Flux terminé",
+    "subtitlesOpenSubtitlesLoaded_one": "OpenSubtitles : {{count}} piste de sous-titres chargée",
+    "subtitlesOpenSubtitlesLoaded_other": "OpenSubtitles : {{count}} pistes de sous-titres chargées",
+    "subtitlesEmbeddedLoaded_one": "Intégrés : {{count}} piste de sous-titres chargée",
+    "subtitlesEmbeddedLoaded_other": "Intégrés : {{count}} pistes de sous-titres chargées",
     "backToDetails": "Retour aux détails"
   },
 

@@ -19,6 +19,24 @@ SUBTITLE_LANGUAGES = {
     "ar": {"stremio": "ara", "label": "العربية"},
 }
 
+# ISO 639-2 codes found in the language tag of embedded tracks -> (BCP 47 code for <track srclang>, label)
+EMBEDDED_LANGUAGES = {
+    "eng": ("en", "English"),
+    "fre": ("fr", "Français"), "fra": ("fr", "Français"),
+    "ara": ("ar", "العربية"),
+    "spa": ("es", "Español"),
+    "ger": ("de", "Deutsch"), "deu": ("de", "Deutsch"),
+    "ita": ("it", "Italiano"),
+    "por": ("pt", "Português"),
+    "rus": ("ru", "Русский"),
+    "dut": ("nl", "Nederlands"), "nld": ("nl", "Nederlands"),
+    "tur": ("tr", "Türkçe"),
+    "pol": ("pl", "Polski"),
+    "jpn": ("ja", "日本語"),
+    "kor": ("ko", "한국어"),
+    "chi": ("zh", "中文"), "zho": ("zh", "中文"),
+}
+
 STREMIO_SUBTITLES_URL = "https://opensubtitles-v3.strem.io/subtitles"
 OPENSUBTITLES_API_URL = "https://api.opensubtitles.com/api/v1"
 CANDIDATES_CACHE_TTL = 60 * 60 * 12
@@ -72,6 +90,26 @@ def release_score(candidate: dict, filename: str | None) -> int:
     if MULTI_PART_RE.search(release) and not MULTI_PART_RE.search(name):
         score -= 20
     return score
+
+
+def describe_embedded_track(tags: dict) -> tuple[str, str]:
+    """Returns (srclang, label) for an embedded track from its language / title tags."""
+    code = (tags.get("language") or "").lower()
+    title = (tags.get("title") or "").lower()
+    srclang, label = EMBEDDED_LANGUAGES.get(code, ("und", tags.get("title") or code.upper() or "Unknown"))
+    # Releases often ship a full track next to a forced-only or SDH one in the same language
+    if "forced" in title:
+        label += " (Forced)"
+    elif "sdh" in title or "hearing" in title:
+        label += " (SDH)"
+    return srclang, label
+
+
+def embedded_subtitles_response(tracks: list[dict], preferred_lang: str) -> list[dict]:
+    """Marks the first track in the user's language as default; embedded tracks are the primary source."""
+    default_lang = preferred_lang if preferred_lang in SUBTITLE_LANGUAGES else "en"
+    default_src = next((t["src"] for t in tracks if t["srcLang"] == default_lang), None)
+    return [{**t, "default": t["src"] == default_src} for t in tracks]
 
 
 def subtitle_key(imdb_id: str, season: int | None, episode: int | None) -> str:
@@ -220,6 +258,7 @@ async def get_subtitles(rd: redis.Redis | None, imdb_id: str, season: int | None
             "srcLang": lang,
             "label": SUBTITLE_LANGUAGES[lang]["label"],
             "default": lang == default_lang,
+            "source": "opensubtitles",
         }
         for lang, vtt_filename in zip(langs, files)
         if vtt_filename

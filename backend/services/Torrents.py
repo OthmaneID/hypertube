@@ -1,7 +1,8 @@
 from fastapi.requests import Request
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
-from schema.Torrents import SourcesResponse, StreamInfoResponse
+from schema.Torrents import SourcesResponse, StreamInfoResponse, EmbeddedSubtitlesResponse
+from services.Subtitles import SUBTITLES_DIR, describe_embedded_track, embedded_subtitles_response
 from config import settings
 import httpx2
 import redis
@@ -14,7 +15,7 @@ import math
 import json
 import secrets
 import functools
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import insert
@@ -34,8 +35,14 @@ probe_cache = {}
 audio_probe_cache = {}
 # hash -> number of responses currently sending its data; the cleanup job never deletes these
 open_streams = {}
+# (hash, file index) -> running task extracting its embedded subtitles
+subtitle_jobs = {}
 # Authorizes ffmpeg's requests to the internal file endpoint, which has no user session
 INTERNAL_KEY = secrets.token_urlsafe(32)
+
+# Bitmap tracks (PGS, VobSub) can't become WebVTT
+TEXT_SUBTITLE_CODECS = ('subrip', 'srt', 'ass', 'ssa', 'webvtt', 'mov_text', 'text')
+EXTRACT_SUBTITLES_TIMEOUT = 300
 
 METADATA_TIMEOUT = 60
 STREAM_BUFFER_PIECES = 3
@@ -419,10 +426,10 @@ async def serve_range(request: Request, sf: StreamFile):
     )
 
 
-async def run_ffprobe(sf: StreamFile, *args):
-    """Runs ffprobe with JSON output on the file; returns the parsed output, or None on failure."""
+async def run_ffprobe(sf: StreamFile, *args, source: str | None = None):
+    """Runs ffprobe with JSON output on the file (or on `source`); returns the parsed output, or None on failure."""
     process = await asyncio.create_subprocess_exec(
-        'ffprobe', '-v', 'error', *args, '-of', 'json', internal_url(sf),
+        'ffprobe', '-v', 'error', *args, '-of', 'json', source or internal_url(sf),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL
@@ -616,6 +623,80 @@ async def stream_transcoded_video(input_url, start, video_codec, pix_fmt, audio_
             print(f"ffmpeg exited with code {process.returncode}:\n" + "\n".join(stderr_tail))
 
 
+def embedded_subtitles_meta_path(sf: StreamFile):
+    return os.path.join(SUBTITLES_DIR, f"embedded_{sf.hash}_{sf.idx}.json")
+
+
+def read_embedded_subtitles(sf: StreamFile) -> list[dict] | None:
+    """Returns the cached tracks of the file, or None if they were never extracted (or were purged)."""
+    meta_path = embedded_subtitles_meta_path(sf)
+    try:
+        with open(meta_path) as f:
+            tracks = json.load(f)
+        paths = [os.path.join(SUBTITLES_DIR, os.path.basename(t["src"])) for t in tracks]
+        if not all(os.path.exists(p) for p in paths):
+            return None
+        # mtime is the last-use date read by the cleanup job
+        for p in [meta_path, *paths]:
+            os.utime(p)
+        return tracks
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+async def extract_embedded_subtitles(sf: StreamFile):
+    """Converts every text subtitle track of the (fully downloaded) file to WebVTT in a single pass."""
+    # Read from disk: going through the internal endpoint would compete with the player for the torrent
+    info = await run_ffprobe(
+        sf, '-select_streams', 's',
+        '-show_entries', 'stream=index,codec_name:stream_tags=language,title',
+        source=sf.path,
+    ) or {}
+    streams = [s for s in info.get("streams") or [] if s.get("codec_name") in TEXT_SUBTITLE_CODECS]
+
+    tracks = []
+    cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', sf.path]
+    temp_files = []
+    for s in streams:
+        vtt_filename = f"embedded_{sf.hash}_{sf.idx}_{s['index']}.vtt"
+        # Written under a temporary name so a request never reads a half-written file
+        temp_path = os.path.join(SUBTITLES_DIR, vtt_filename + ".tmp")
+        srclang, label = describe_embedded_track(s.get("tags") or {})
+        cmd += ['-map', f"0:{s['index']}", '-f', 'webvtt', temp_path]
+        temp_files.append((temp_path, os.path.join(SUBTITLES_DIR, vtt_filename)))
+        tracks.append({"src": f"/uploads/subtitles/{vtt_filename}", "srcLang": srclang, "label": label, "source": "embedded"})
+
+    # Several tracks of one language (e.g. Spanish from Spain / Latin America) would otherwise look identical
+    label_counts = Counter(t["label"] for t in tracks)
+    for track, s in zip(tracks, streams):
+        title = (s.get("tags") or {}).get("title")
+        if title and label_counts[track["label"]] > 1:
+            track["label"] += f" ({title.removeprefix('CR_').replace('_', ' ')})"
+
+    if streams:
+        process = await asyncio.create_subprocess_exec(*cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        try:
+            _, stderr = await asyncio.wait_for(process.communicate(), timeout=EXTRACT_SUBTITLES_TIMEOUT)
+            if process.returncode != 0:
+                print(f"ffmpeg could not extract the subtitles of {sf.path}:\n{stderr.decode(errors='replace')}")
+                tracks = []
+        except asyncio.TimeoutError:
+            print(f"Extracting the subtitles of {sf.path} timed out after {EXTRACT_SUBTITLES_TIMEOUT}s")
+            process.kill()
+            await process.communicate()
+            tracks = []
+
+        for temp_path, final_path in temp_files:
+            if tracks and os.path.exists(temp_path):
+                os.replace(temp_path, final_path)
+            elif os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    # An empty list is stored too, so a file without embedded subtitles isn't probed again on every play
+    with open(embedded_subtitles_meta_path(sf), "w") as f:
+        json.dump(tracks, f)
+
+
 def parse_start_time(request: Request):
     try:
         start = float(request.query_params.get("start", 0))
@@ -657,6 +738,32 @@ async def get_stream_info(request: Request, hash: str):
 
 
 @stream_errors
+async def get_embedded_subtitles(request: Request, hash: str, preferred_lang: str):
+    sf = await open_stream_file(request, hash)
+    if sf is None:
+        return Response(status_code=499)
+
+    def respond(tracks):
+        return EmbeddedSubtitlesResponse(pending=False, tracks=embedded_subtitles_response(tracks, preferred_lang))
+
+    tracks = read_embedded_subtitles(sf)
+    if tracks is not None:
+        return respond(tracks)
+
+    # The subtitle packets of a mkv are interleaved with the video, so they are only all there once it is complete
+    if not pieces_downloaded(sf.handle, sf.offset // sf.piece_length, sf.last_piece):
+        return EmbeddedSubtitlesResponse(pending=True)
+
+    key = (sf.hash, sf.idx)
+    job = subtitle_jobs.get(key)
+    if job is None:
+        job = subtitle_jobs[key] = asyncio.create_task(extract_embedded_subtitles(sf))
+        job.add_done_callback(lambda _: subtitle_jobs.pop(key, None))
+        job.add_done_callback(lambda t: t.cancelled() or t.exception() and print(f"error while extracting subtitles: {t.exception()}"))
+    return EmbeddedSubtitlesResponse(pending=True)
+
+
+@stream_errors
 async def serve_internal_file(request: Request, hash: str, file_idx: int, key: str):
     if not secrets.compare_digest(key, INTERNAL_KEY):
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -667,4 +774,6 @@ async def serve_internal_file(request: Request, hash: str, file_idx: int, key: s
 
     return await serve_range(request, resolve_stream_file(hash, handle, file_idx))
 
+
+# async def get_embeded_subtitles(request: Request, hash:)
 # async def getArchiveSources()

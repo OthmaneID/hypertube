@@ -1,9 +1,14 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import VideoPlayer, { type ProgressReason, type SubtitleTrack } from "../components/VideoPlayer";
+import VideoPlayer, { type PlayerNotice, type ProgressReason, type SubtitleTrack } from "../components/VideoPlayer";
 import { get_stream_info } from "../utils/api/movieService/torrentsApi";
 import type { StreamInfo } from "../utils/interfaces";
-import { getSubtitles, revokeSubtitles, type SubtitleQuery } from "../utils/api/movieService/subtitlesApi";
+import {
+  getSubtitles,
+  getEmbeddedSubtitles,
+  revokeSubtitles,
+  type SubtitleQuery,
+} from "../utils/api/movieService/subtitlesApi";
 import {
   getProgress,
   updateProgress,
@@ -30,6 +35,9 @@ const MIN_SAVED_POSITION = 5;
 const RESUME_REWIND_SECONDS = 5;
 // Past this share of the duration the movie or episode counts as watched
 const FINISHED_RATIO = 0.95;
+// Embedded subtitles are extracted once the file is fully downloaded, so they are asked for again until then
+const EMBEDDED_SUBTITLES_POLL_MS = 15_000;
+const NOTICE_DURATION_MS = 4_000;
 
 type PlayerStatus = "loading" | "buffering" | "playing" | "error" | "ended";
 type ProgressTarget = Omit<ProgressUpdate, "watched_duration" | "is_finished" | "duration">;
@@ -146,8 +154,19 @@ function StreamPlayer({
   const [status, setStatus] = useState<PlayerStatus>("loading");
   const [hasPlayed, setHasPlayed] = useState(false);
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
-  const [subtitles, setSubtitles] = useState<SubtitleTrack[]>([]);
+  // Shown by the player itself: a page-level toast would be hidden when the player is fullscreen
+  const [notices, setNotices] = useState<PlayerNotice[]>([]);
+  const noticeIdRef = useRef(0);
+  const pushNotice = useCallback((text: string, tone: PlayerNotice["tone"]) => {
+    const id = ++noticeIdRef.current;
+    setNotices((current) => [...current, { id, text, tone }]);
+    setTimeout(() => setNotices((current) => current.filter((n) => n.id !== id)), NOTICE_DURATION_MS);
+  }, []);
 
+  const [externalSubtitles, setExternalSubtitles] = useState<SubtitleTrack[]>([]);
+  const [embeddedSubtitles, setEmbeddedSubtitles] = useState<SubtitleTrack[]>([]);
+
+  // OpenSubtitles: available right away, covers the languages the video doesn't embed
   const { imdbId, season, episode, filename } = subtitleQuery ?? {};
   useEffect(() => {
     if (!imdbId) return;
@@ -159,13 +178,49 @@ function StreamPlayer({
         return;
       }
       loaded = tracks;
-      setSubtitles(tracks);
+      setExternalSubtitles(tracks);
+      if (tracks.length > 0) pushNotice(t("watch.subtitlesOpenSubtitlesLoaded", { count: tracks.length }), "info");
     });
     return () => {
       cancelled = true;
       revokeSubtitles(loaded);
     };
   }, [imdbId, season, episode, filename]);
+
+  // Embedded: the primary source, but only readable once the file is downloaded. Asked only once
+  // playback starts, so it doesn't compete with the initial buffering
+  useEffect(() => {
+    if (!hasPlayed || !hash) return;
+    let cancelled = false;
+    let loaded: SubtitleTrack[] = [];
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      const { pending, tracks } = await getEmbeddedSubtitles(hash, new URLSearchParams(streamQuery));
+      if (cancelled) {
+        revokeSubtitles(tracks);
+        return;
+      }
+      if (tracks.length > 0) {
+        loaded = tracks;
+        setEmbeddedSubtitles(tracks);
+        pushNotice(t("watch.subtitlesEmbeddedLoaded", { count: tracks.length }), "success");
+      }
+      if (pending) timer = setTimeout(poll, EMBEDDED_SUBTITLES_POLL_MS);
+    };
+    poll();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      revokeSubtitles(loaded);
+    };
+  }, [hasPlayed, hash, streamQuery]);
+
+  // Embedded tracks come first, so they win the default; OpenSubtitles complete the missing languages
+  const subtitles = useMemo(() => {
+    const all = [...embeddedSubtitles, ...externalSubtitles];
+    const defaultSrc = all.find((track) => track.default)?.src;
+    return all.map((track) => ({ ...track, default: track.src === defaultSrc }));
+  }, [embeddedSubtitles, externalSubtitles]);
 
   // Where to start: the time in the link, otherwise the saved progress (a finished one starts over).
   // The player waits for it, because a resumed transcoded stream must start at the right keyframe
@@ -285,11 +340,15 @@ function StreamPlayer({
   }, [status, topBarTimeout]);
 
   useEffect(() => {
+    // Only arm the timeout while still in the loading state;
+    // once playback starts the timer is cleaned up automatically
+    if (status !== "loading") return;
+
     const timer = setTimeout(() => {
       setStatus((current) => (current === "loading" ? "error" : current));
     }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [status]);
 
   useEffect(() => {
     return () => {
@@ -434,6 +493,7 @@ function StreamPlayer({
               startAt={startAt}
               onProgress={handleProgress}
               subtitles={subtitles.length > 0 ? subtitles : undefined}
+              notices={notices}
               onCanPlay={() => setStatus("playing")}
               onWaiting={() =>
                 setStatus((current) =>

@@ -18,10 +18,20 @@ export interface SubtitleTrack {
   srcLang: string;
   label: string;
   default?: boolean;
+  /** Where the track comes from: the video file itself, or the OpenSubtitles database */
+  source?: "embedded" | "opensubtitles";
+}
+
+/** A short message drawn over the video, so it stays visible in fullscreen (unlike a page-level toast) */
+export interface PlayerNotice {
+  id: number;
+  text: string;
+  tone: "info" | "success";
 }
 
 interface VideoPlayerProps {
   src: string;
+  notices?: PlayerNotice[];
   poster?: string;
   title?: string;
   // Secondary line under the title, e.g. "S1 E3 · Pilot"
@@ -56,6 +66,7 @@ function withStartParam(src: string, start: number) {
 
 export default function VideoPlayer({
   src,
+  notices,
   poster,
   title,
   episodeTitle,
@@ -241,9 +252,17 @@ export default function VideoPlayer({
     if (total > 0) setDuration(total);
   }, [passedDuration, transcoded]);
 
+  // Embedded tracks arrive later than the external ones and are listed first, so once the user
+  // has chosen (or turned off) a track it is followed by src, not by its position in the list
+  const pickedSubtitleRef = useRef<{ src: string | null } | null>(null);
   useEffect(() => {
     if (!subtitles) return;
-    selectSubtitleTrack(subtitles.findIndex((s) => s.default));
+    const picked = pickedSubtitleRef.current;
+    selectSubtitleTrack(
+      picked
+        ? subtitles.findIndex((s) => s.src === picked.src)
+        : subtitles.findIndex((s) => s.default),
+    );
   }, [subtitles]);
 
   // Auto-hide controls when mouse is idle
@@ -522,6 +541,7 @@ export default function VideoPlayer({
   };
 
   const changeSubtitle = (index: number) => {
+    pickedSubtitleRef.current = { src: subtitles?.[index]?.src ?? null };
     selectSubtitleTrack(index);
     setShowSubtitlesMenu(false);
   };
@@ -627,7 +647,16 @@ export default function VideoPlayer({
             commitTranscodedSeek(lastGoodOffsetRef.current, isPlaying);
             return;
           }
-          if (onError) onError(e);
+          // Transient media errors (network hiccups, an empty chunk, ffmpeg restarting a segment)
+          // should not kill a video that has already started playing. Enter buffering state and let
+          // the browser's native retry logic recover. Only propagate fatal errors that occur before
+          // any playback has happened.
+          if (hasStartedRef.current) {
+            setIsWaiting(true);
+            onWaiting?.();
+            return;
+          }
+          onError?.(e);
         }}
         onWaiting={() => {
           setIsWaiting(true);
@@ -649,9 +678,9 @@ export default function VideoPlayer({
         autoFocus={true}
       >
         {/* No `default` attribute: the browser would switch that track to "showing" and draw it too */}
-        {subtitles?.map((sub, idx) => (
+        {subtitles?.map((sub) => (
           <track
-            key={idx}
+            key={sub.src}
             kind="subtitles"
             src={sub.src}
             srcLang={sub.srcLang}
@@ -709,6 +738,26 @@ export default function VideoPlayer({
       {(!hidePlayerBuffering || isFullscreen) && isWaiting && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-none transition-all z-10">
           <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
+        </div>
+      )}
+
+      {/* Notices (e.g. subtitles loaded) */}
+      {notices && notices.length > 0 && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none z-30">
+          {notices.map((notice) => (
+            <div
+              key={notice.id}
+              className={`px-4 py-2 rounded-full text-sm font-medium backdrop-blur-md border shadow-lg ${
+                notice.tone === "success"
+                  ? "bg-emerald-500/20 border-emerald-400/30 text-emerald-200"
+                  : "bg-purple-500/20 border-purple-400/30 text-purple-200"
+              }`}
+              style={{ animation: "noticeIn 0.2s ease" }}
+            >
+              {notice.text}
+            </div>
+          ))}
+          <style>{`@keyframes noticeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </div>
       )}
 
@@ -882,7 +931,7 @@ export default function VideoPlayer({
 
                 {/* Subtitles Dropdown */}
                 {showSubtitlesMenu && (
-                  <div className="absolute bottom-full right-0 mb-4 w-32 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 origin-bottom-right animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute bottom-full right-0 mb-4 w-52 max-h-72 overflow-y-auto bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-20 origin-bottom-right animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-2 border-b border-white/10 text-xs text-gray-400 font-semibold uppercase tracking-wider">
                       Subtitles
                     </div>
@@ -899,15 +948,20 @@ export default function VideoPlayer({
                       </button>
                       {subtitles.map((sub, idx) => (
                         <button
-                          key={idx}
+                          key={sub.src}
                           onClick={() => changeSubtitle(idx)}
-                          className={`text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${
+                          className={`flex items-center justify-between gap-2 text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${
                             activeSubtitleIndex === idx
                               ? "text-purple-400 font-medium bg-purple-500/10"
                               : "text-gray-200"
                           }`}
                         >
-                          {sub.label}
+                          <span className="truncate">{sub.label}</span>
+                          {sub.source && (
+                            <span className="shrink-0 text-[10px] uppercase tracking-wide text-gray-400">
+                              {sub.source === "embedded" ? "Embedded" : "OpenSubtitles"}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>

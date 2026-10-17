@@ -22,6 +22,20 @@ class SourcesResponse(BaseModel):
     error: Optional[str] = None
 
 
+class EmbeddedSubtitle(BaseModel):
+    src: str
+    srcLang: str
+    label: str
+    default: bool = False
+    source: str = "embedded"
+
+
+class EmbeddedSubtitlesResponse(BaseModel):
+    # Embedded tracks are spread over the whole file, so they can only be read once it is fully downloaded
+    pending: bool
+    tracks: List[EmbeddedSubtitle] = []
+
+
 class StreamInfoResponse(BaseModel):
     transcoded: bool
     # Seconds, from ffprobe; only known for transcoded streams

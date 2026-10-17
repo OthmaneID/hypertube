@@ -355,6 +355,10 @@
     "chooseSource": "Choose source",
     "retry": "Retry",
     "streamEnded": "Stream ended",
+    "subtitlesOpenSubtitlesLoaded_one": "OpenSubtitles: {{count}} subtitle track loaded",
+    "subtitlesOpenSubtitlesLoaded_other": "OpenSubtitles: {{count}} subtitle tracks loaded",
+    "subtitlesEmbeddedLoaded_one": "Embedded: {{count}} subtitle track loaded",
+    "subtitlesEmbeddedLoaded_other": "Embedded: {{count}} subtitle tracks loaded",
     "backToDetails": "Back to details"
   },
 

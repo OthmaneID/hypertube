@@ -169,7 +169,8 @@ def cleanup_subtitles():
     removed = 0
     for entry in os.scandir(SUBTITLES_DIR):
         try:
-            if entry.is_file() and entry.name.endswith(".vtt") and entry.stat().st_mtime < cutoff:
+            # .json are the track lists of embedded subtitles, which must not outlive their .vtt files
+            if entry.is_file() and entry.name.endswith((".vtt", ".json")) and entry.stat().st_mtime < cutoff:
                 os.remove(entry.path)
                 removed += 1
         except OSError as e:

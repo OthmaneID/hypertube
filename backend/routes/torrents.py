@@ -3,7 +3,7 @@ from fastapi.requests import Request
 from schema.User import UserResponse
 from fastapi import Depends
 from services.auth import get_current_user
-from services.Torrents import getSources, getEpisodeStreams, stream_from_source, get_stream_info, serve_internal_file
+from services.Torrents import getSources, getEpisodeStreams, stream_from_source, get_stream_info, get_embedded_subtitles, serve_internal_file
 from database import get_db
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,15 @@ async def stream_torrent_info(request : Request, hash: str, user : UserResponse 
     
     """
     return await get_stream_info(request, hash)
+
+
+@router.get("/stream/{hash}/subtitles")
+async def stream_torrent_subtitles(request : Request, hash: str, user : UserResponse = Depends(get_current_user)):
+    """
+    The subtitles embedded in the video file; `pending` stays true until the file is downloaded and they are extracted.
+    """
+    user_lang = user.preferred_language.value if user and user.preferred_language else "en"
+    return await get_embedded_subtitles(request, hash, user_lang)
 
 
 # Called by the backend's own ffmpeg/ffprobe processes, authorized by a per-process key instead of a session
