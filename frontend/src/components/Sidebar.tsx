@@ -22,17 +22,6 @@ function Sidebar() {
         >
           <Home size={24} />
         </Link>
-
-        <Link
-          to="/settings"
-          className={`p-3 rounded-xl transition-all ${
-            location.pathname === "/settings"
-              ? "bg-white text-black"
-              : "text-gray-400 hover:text-white hover:bg-gray-800"
-          }`}
-        >
-          <Settings size={24} />
-        </Link>
       </nav>
 
       <div className="w-full flex justify-center">

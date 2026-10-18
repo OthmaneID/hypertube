@@ -617,6 +617,7 @@ export default function VideoPlayer({
       ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-black group select-none flex items-center justify-center"
       onMouseMove={resetControlsTimeout}
+      onTouchStart={resetControlsTimeout}
       onMouseLeave={() => {
         if (isPlaying) {
           setShowControls(false);
@@ -743,7 +744,7 @@ export default function VideoPlayer({
 
       {/* Notices (e.g. subtitles loaded) */}
       {notices && notices.length > 0 && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none z-30">
+        <div className="absolute top-16 sm:top-24 left-1/2 -translate-x-1/2 w-[90%] flex flex-col items-center gap-2 pointer-events-none z-30">
           {notices.map((notice) => (
             <div
               key={notice.id}
@@ -771,15 +772,15 @@ export default function VideoPlayer({
 
       {/* Top Title Bar (Glassmorphic) */}
       <div
-        className={`absolute top-0 left-0 right-0 p-6 pt-8 pb-12 bg-gradient-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 pointer-events-none z-20 ${
+        className={`absolute top-0 left-0 right-0 p-3 pt-4 pb-8 sm:p-6 sm:pt-8 sm:pb-12 bg-gradient-to-b from-black/90 via-black/50 to-transparent transition-opacity duration-300 pointer-events-none z-20 ${
           showControls || !isPlaying ? "opacity-100" : "opacity-0"
         }`}
       >
-        <h2 className="text-white/90 font-medium text-xl drop-shadow-lg max-w-3xl truncate px-4">
+        <h2 className="text-white/90 font-medium text-base sm:text-xl drop-shadow-lg max-w-3xl truncate px-2 sm:px-4">
           {title || episodeTitle || "Now Playing"}
         </h2>
         {title && episodeTitle && (
-          <p className="text-white/60 text-sm drop-shadow-lg max-w-3xl truncate px-4 mt-1">
+          <p className="text-white/60 text-xs sm:text-sm drop-shadow-lg max-w-3xl truncate px-2 sm:px-4 mt-0.5 sm:mt-1">
             {episodeTitle}
           </p>
         )}
@@ -793,14 +794,14 @@ export default function VideoPlayer({
             : "opacity-0 scale-75"
         }`}
       >
-        <div className="bg-purple-600/80 hover:bg-purple-600 backdrop-blur-md text-white p-5 rounded-full shadow-[0_0_40px_rgba(147,51,234,0.5)] border border-purple-400/30">
-          <Play className="w-12 h-12 ml-1" />
+        <div className="bg-purple-600/80 hover:bg-purple-600 backdrop-blur-md text-white p-4 sm:p-5 rounded-full shadow-[0_0_40px_rgba(147,51,234,0.5)] border border-purple-400/30">
+          <Play className="w-9 h-9 sm:w-12 sm:h-12 ml-1" />
         </div>
       </div>
 
       {/* Bottom Controls (Glassmorphic) */}
       <div
-        className={`absolute bottom-0 left-0 right-0 p-6 pt-16 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 z-20 ${
+        className={`absolute bottom-0 left-0 right-0 p-3 pt-10 sm:p-6 sm:pt-16 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 z-20 ${
           showControls || !isPlaying
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-4 pointer-events-none"
@@ -809,7 +810,7 @@ export default function VideoPlayer({
         {/* Progress Bar */}
         <div
           ref={progressRef}
-          className={`relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-4 transition-all duration-200 flex items-center ${disableSeek ? "cursor-default" : "cursor-pointer"}`}
+          className={`relative h-1.5 hover:h-2.5 bg-white/20 rounded-full mb-3 sm:mb-4 transition-all duration-200 flex items-center ${disableSeek ? "cursor-default" : "cursor-pointer"}`}
           onPointerDown={handleSeekStart}
         >
           {/* Buffer / Trail bar */}
@@ -835,11 +836,11 @@ export default function VideoPlayer({
         </div>
 
         {/* Controls Row */}
-        <div className="flex items-center justify-between text-white">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between text-white gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button
               onClick={togglePlay}
-              className="hover:text-purple-400 transition-colors active:scale-95"
+              className="hover:text-purple-400 transition-colors active:scale-95 shrink-0"
             >
               {isPlaying ? (
                 <Pause className="w-6 h-6" />
@@ -890,14 +891,14 @@ export default function VideoPlayer({
             </div>
 
             {/* Timestamps */}
-            <div className="text-xs font-medium text-gray-300 tracking-wide font-mono min-w-[90px]">
+            <div className="text-[11px] sm:text-xs font-medium text-gray-300 tracking-wide font-mono whitespace-nowrap shrink-0">
               {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Hold to Fast Forward */}
-            <button
+            {/* <button
               onPointerDown={handleSpeedUpPress}
               onPointerUp={handleSpeedUpRelease}
               onPointerLeave={handleSpeedUpRelease}
@@ -909,7 +910,7 @@ export default function VideoPlayer({
               title="Hold to Fast Forward"
             >
               <FastForward className="w-4 h-4" />
-            </button>
+            </button> */}
 
             {/* Subtitles Menu Toggle */}
             {subtitles && subtitles.length > 0 && (

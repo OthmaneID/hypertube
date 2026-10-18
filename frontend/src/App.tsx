@@ -52,7 +52,6 @@ function App() {
                           />
                           <Route element={<ProtectedRoute />}>
                             <Route index path="/" element={<Home />} />
-                            <Route path="/settings" element={<Settings />} />
                             <Route path="/movies" element={<Movies />} />
                             <Route path="/series" element={<Series />} />
                             {/* <Route path="/discover" element={<Discover/>} */}

@@ -78,3 +78,13 @@ export async function removeFavorite(favorite_id: number, favorite_type: "movie"
     }
 
 };
+
+
+export async function updateEmail(email: string): Promise<any> {
+    try {
+        const res = await axios.patch("/user/email", { email: email });
+        return res.data
+    } catch (error: any) {
+        throw new Error (error.message)
+    }
+}

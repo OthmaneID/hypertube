@@ -12,6 +12,8 @@ from models.Favorites import favoriteTypeEnum, Favorites
 from utils.auth import hashPass
 import bcrypt
 from utils.validation import password_error
+from services.auth import sendVerificationEmail
+from pydantic import EmailStr
 
 
 def _invalidate_favorite_details_cache(
@@ -254,4 +256,51 @@ async def uploadProfilePicture(request: Request, file: UploadFile, db: Session, 
         raise HTTPException(
             status_code=500,
             detail="Failed to upload profile picture"
+        )
+
+
+def updateEmail(request: Request, email: EmailStr, db: Session, user: UserResponse):
+    try:
+        # get user and check if oauth_provider is EMAIL (if not email then the user has no password it should be provided first)
+        user_db = db.query(User).filter(User.email == user.email).first()
+        if not user_db:
+            raise HTTPException(status_code=404, detail="User not found")
+        if user_db.oauth_provider is not oauthEnum.EMAIL:
+            raise HTTPException(status_code=400, detail="User does not have a password set")
+        # nothing to do if the user submits the address they already own
+        if email == user_db.email:
+            raise HTTPException(status_code=400, detail="New email is the same as the current one")
+        # the email must be free: reject it if another account already owns it
+        existing = db.query(User).filter(User.email == email, User.id != user_db.id).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="Email already in use")
+        # set the new email and mark the account unverified so no activity is allowed until it's confirmed
+        old_email = user_db.email
+        user_db.email = email
+        user_db.is_verified = False
+        db.commit()
+        db.refresh(user_db)
+
+        # drop the cached user entry for both the old and the new key
+        redis = getattr(request.app.state, "redis", None)
+        if redis:
+            try:
+                redis.delete(old_email)
+                redis.delete(email)
+            except Exception as e:
+                print(f"[updateEmail cache invalidation error]: {e}")
+
+        # send a verification link to the new address so the user can confirm ownership
+        if not sendVerificationEmail(user_db, db):
+            raise HTTPException(status_code=502, detail="Could not send verification email")
+
+        return {"message": "Email updated. Please check your inbox to verify the new address."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[updateEmail error]: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update email"
         )

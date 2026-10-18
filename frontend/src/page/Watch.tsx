@@ -200,6 +200,7 @@ function StreamPlayer({
         revokeSubtitles(tracks);
         return;
       }
+      console.log(tracks)
       if (tracks.length > 0) {
         loaded = tracks;
         setEmbeddedSubtitles(tracks);

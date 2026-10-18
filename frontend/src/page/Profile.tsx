@@ -7,6 +7,7 @@ import {
   updateUserProfile,
   updateProfilePicture,
   changePassword,
+  updateEmail,
 } from "../utils/api/userService/userApi";
 import { getMovieDetails } from "../utils/api/movieService/moviesApi";
 import { getSerieDetails } from "../utils/api/movieService/seriesApi";
@@ -50,6 +51,8 @@ function Profile() {
     newPassword: "",
     confirmPassword: "",
   });
+
+  const [email, setEmail] = useState<string>("")
 
   const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
   const [updating, setUpdating] = useState(false);
@@ -100,6 +103,7 @@ function Profile() {
         last_name: authUser.last_name || "",
         preferred_language: authUser.preferred_language || "en",
       });
+      setEmail(authUser.email || "");
       setLoading(false);
     } else {
       // Fetch from API if no auth user
@@ -118,6 +122,7 @@ function Profile() {
         last_name: userData.last_name || "",
         preferred_language: userData.preferred_language || "en",
       });
+      setEmail(userData.email || "");
     } catch {
       toast.error(t("profile.loadFailed"));
     } finally {
@@ -244,6 +249,38 @@ function Profile() {
       });
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to change password");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleEmailChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmed = email.trim();
+    if (!trimmed) {
+      toast.error(t("profile.emailRequired"));
+      return;
+    }
+    if (trimmed === user?.email) {
+      toast.error(t("profile.emailUnchanged"));
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      await updateEmail(trimmed);
+      // The new address is unverified until the user confirms it via email
+      const updatedUser = user
+        ? { ...user, email: trimmed, is_verified: false }
+        : user;
+      setUser(updatedUser);
+      if (updatedUser) setAuthUser(updatedUser);
+      toast.success(t("profile.emailUpdated"));
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.detail || t("profile.emailUpdateFailed"),
+      );
     } finally {
       setUpdating(false);
     }
@@ -550,6 +587,50 @@ function Profile() {
                     : isEmailAccount
                       ? t("profile.changePasswordBtn")
                       : t("profile.addPasswordBtn")}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {activeTab === "security" && (
+          <div className="mt-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-6 sm:p-8">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-white mb-2">
+                <UserIcon className="w-5 h-5 inline mr-2" />
+                {t("profile.changeEmailTitle")}
+              </h3>
+              <p className="text-gray-400 text-sm">
+                {isEmailAccount
+                  ? t("profile.changeEmailDesc")
+                  : t("profile.changeEmailDescOAuth")}
+              </p>
+            </div>
+
+            <form onSubmit={handleEmailChange} className="space-y-6">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  {t("profile.newEmailLabel")}
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={!isEmailAccount}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-hidden transition focus:border-white focus:ring-2 focus:ring-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={updating || !isEmailAccount}
+                  className="px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {updating ? t("profile.saving") : t("profile.changeEmailBtn")}
                 </button>
               </div>
             </form>
