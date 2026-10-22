@@ -221,13 +221,18 @@ def loginEmail(request: Request, user: UserLogin, db:Session):
         if not user.email or not user.password:
             return {"error": "email/password is not correct"}
         user_db = db.query(User).filter(User.email == user.email).first()
+            
         if not user_db:
             return {"error": "email/password is not correct"}
+        if user_db.oauth_provider is not oauthEnum.EMAIL:
+            raise HTTPException(status_code=400, detail="account is a Google/42 account")
         check_pass = bcrypt.checkpw(password=user.password.encode("utf-8"), hashed_password=user_db.password.encode("utf-8"))
         if not check_pass or user_db.oauth_provider != oauthEnum.EMAIL:
             return {"error": "email/password is not correct"}
         user_serialized = UserResponse.model_validate(user_db)
         tokens = createTokens(user_serialized.email)
+        if not tokens:
+            raise HTTPException(500, "Internal server error while generating tokens")
 
         http_response = Response(media_type="application/json")
         http_response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")

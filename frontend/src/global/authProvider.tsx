@@ -57,7 +57,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     emailLogin(email, password)
       .then((data: AuthResponse) => {
         if (data.error) {
-          toast.error(data.error);
+          toast.error(data.details || "internal server error");
           setLoading(false);
           return;
         }

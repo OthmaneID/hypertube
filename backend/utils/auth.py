@@ -13,20 +13,24 @@ def hashPass(password: str) -> str:
     return hashed_pass.decode("utf-8")
 
 def createTokens(user_email: str):
-    
-    payload = {
-        "user_email": user_email,
-        "exp": datetime.now().timestamp() + settings.jwt_expiration
-    }
+    try:
 
-    access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
-    
-    refresh_payload = {
-        "user_email": user_email,
-        "exp" : datetime.now().timestamp() + settings.jwt_refresh_expiration
-    }
-    refresh_token = jwt.encode(refresh_payload, settings.jwt_secret, algorithm="HS256")
-    return access_token, refresh_token
+        payload = {
+            "user_email": user_email,
+            "exp": datetime.now().timestamp() + settings.jwt_expiration
+        }
+
+        access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+        
+        refresh_payload = {
+            "user_email": user_email,
+            "exp" : datetime.now().timestamp() + settings.jwt_refresh_expiration
+        }
+        refresh_token = jwt.encode(refresh_payload, settings.jwt_secret, algorithm="HS256")
+        return access_token, refresh_token
+    except Exception as e:
+        print("error whaile generating access_token/refresh_token : ", e)
+        return None
 
 
 # "typ" keeps API tokens and website cookies from being accepted in place of each other
@@ -53,6 +57,8 @@ def refreshToken(request: Request):
         if not user_email:
             raise HTTPException(401, "Invalid refresh token")
         tokens = createTokens(user_email)
+        if not tokens:
+            raise HTTPException(500, "Internal server error while generating tokens")
         response = Response(media_type="application/json")
         response.set_cookie(key="access_token", value=tokens[0], httponly=True, secure=settings.cookie_secure, samesite="lax")
         response.set_cookie(key="refresh_token", value=tokens[1], httponly=True, secure=settings.cookie_secure, samesite="lax")

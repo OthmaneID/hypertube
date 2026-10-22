@@ -344,6 +344,7 @@ export interface AuthResponse {
   user?: User;
   access_token?: string;
   error?: string;
+  details?:string
 }
 
 export interface AuthContextType {
